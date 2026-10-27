@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#050508" />
+  <title>Money 24 by DOGS</title>
+  <meta name="description"
+    content="Money 24 by DOGS — an AI that trades crypto, options, stocks, futures, and prediction markets. Around the clock. In development; paper trading now." />
+</head>
+
+<body class="bg-app text-white">
+  <div id="app"></div>
+
+  <!-- Static fallback for browsers too old to run the app (Potato Target: Chrome 40), and for no-JS visitors.
+       Plain HTML only. Styles: src/styles/legacy-fallback.css. Text mirrors src/App.svelte. -->
+  <div id="legacy-fallback" class="legacy-fallback">
+    <img class="legacy-fallback__logo" src="/src/assets/dogs-logo-cropped.png" alt="DOGS dog head logo" width="540"
+      height="534" />
+    <div class="legacy-fallback__text">
+      <h1 class="legacy-fallback__title">MONEY24</h1>
+      <p class="legacy-fallback__tagline">An AI that trades crypto, options, stocks, futures, and prediction markets. Around the clock.</p>
+      <a class="legacy-fallback__badge" href="https://dogs.red" target="_blank" rel="noopener noreferrer">
+        <img src="/src/assets/made-by-dogs-sticker.webp" alt="This product was made by DOGS" width="360" height="119" />
+      </a>
+    </div>
+  </div>
+  <!-- Must stay ES5: this is the only script the Potato Target runs. Hides the fallback before first paint on
+       browsers that can run the app (CSS cascade layers = the Tailwind v4 floor, see APP_CSS_TARGET in vite.config.js),
+       and brings it back if the app crashes before rendering anything. -->
+  <script>
+    (function () {
+      var fallback = document.getElementById('legacy-fallback');
+      if (!window.CSSLayerBlockRule) return;
+      fallback.setAttribute('hidden', '');
+      window.addEventListener('error', function () {
+        if (!document.getElementById('app').firstChild) fallback.removeAttribute('hidden');
+      });
+    })();
+  </script>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
