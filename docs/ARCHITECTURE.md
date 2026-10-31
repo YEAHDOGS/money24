@@ -86,7 +86,7 @@ Webull order events are gRPC, which Workers cannot speak
 
 ---
 
-## 3. Languages (amends AGENTS.md — needs owner sign-off)
+## 3. Languages (approved 2026-10-31; recorded in AGENTS.md)
 
 | Layer | Language |
 |---|---|
@@ -114,7 +114,7 @@ Libraries: `eclipse/paho.mqtt.golang` (MQTT 3.1.1), `google.golang.org/grpc` +
 `protobuf`, `modernc.org/sqlite` (CGO-free; pin with its `libc` version). No Go tray
 library (it needs CGO); tray and keep-awake belong to the Tauri host.
 
-Proposed AGENTS.md amendment: *"JavaScript only, except the runner engine in `engine/`
+AGENTS.md now reads: *"JavaScript only, except the runner engine in `engine/`
 (Go) and the Tauri host (Rust). No TypeScript; Python never required."*
 
 ---
