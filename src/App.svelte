@@ -5,7 +5,7 @@
   const DOGS_URL = "https://dogs.red";
   const CURRENT_YEAR = new Date().getFullYear();
 
-  const MARKETS = ["CRYPTO", "OPTIONS", "STOCKS", "FUTURES", "PREDICTION MARKETS"];
+  const MARKETS = ["CRYPTO", "OPTIONS", "STOCKS", "FUTURES", "PREDICTION MARKETS", "FOREX"];
   const STEPS = ["SCAN", "SIZE", "RISK GATE", "EXECUTE", "LEDGER"];
 
   /** Reveal panels as they enter; observe the panel, never the clipped text. */
@@ -45,7 +45,7 @@
     <div class="bg bg-markets"></div>
     <div class="scrim"></div>
     <div class="content">
-      <h2 class="rv word">5 MARKETS</h2>
+      <h2 class="rv word">6 MARKETS</h2>
       <ul class="markets">
         {#each MARKETS as market, i}
           <li class="rv market" style="transition-delay:{120 + i * 90}ms">{market}</li>
