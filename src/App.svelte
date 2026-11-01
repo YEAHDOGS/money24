@@ -35,7 +35,7 @@
       <h2 class="rv word">MONEY<span class="text-neon-red">24</span></h2>
       <p class="rv line">An AI that trades every market it can reach.</p>
       <p class="rv line dim">Around the clock.</p>
-      <p class="rv pill">IN DEVELOPMENT — PAPER TRADING</p>
+      <p class="rv pill">IN DEVELOPMENT</p>
     </div>
     <div class="cue" aria-hidden="true">↓</div>
   </section>
@@ -92,7 +92,7 @@
     <div class="scrim"></div>
     <div class="content content-bottom">
       <h2 class="rv word">SOON</h2>
-      <p class="rv line">In development. Paper trading now, while it earns the keys.</p>
+      <p class="rv line">In Development.</p>
       <a class="badge" href={DOGS_URL} target="_blank" rel="noopener noreferrer">
         <img src={sticker} alt="This product was made by DOGS" width="360" height="119" />
       </a>
