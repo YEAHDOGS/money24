@@ -5,7 +5,7 @@
   const DOGS_URL = "https://dogs.red";
   const CURRENT_YEAR = new Date().getFullYear();
 
-  const MARKETS = ["CRYPTO", "OPTIONS", "STOCKS", "FUTURES", "PREDICTION MARKETS", "FOREX"];
+  const MARKETS = ["CRYPTO", "OPTIONS", "STOCKS", "FUTURES", "PREDICTION", "FOREX"];
   const STEPS = ["SCAN", "SIZE", "RISK GATE", "EXECUTE", "LEDGER"];
 
   /** Reveal panels as they enter; observe the panel, never the clipped text. */
