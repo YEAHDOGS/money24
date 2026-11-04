@@ -54,6 +54,10 @@ exchange-grade API or liquidity).
   sleeve would work; why "24/7 spot" is really four different things.
 - [prediction-markets.md](prediction-markets.md) — venues, the fee math, a
   full evaluation of a viral both-sides strategy, and reference repos.
+- [catalyst-and-filings.md](catalyst-and-filings.md) — how the system
+  catches moves like AAPL's 6% day: catalyst calendar + implied move,
+  a filing-diff agent that reads EDGAR faster than the institutions,
+  the analyst revision cascade, and defined-risk structures.
 - [integrations.md](integrations.md) — what the desk scaffold actually
   connects to today, plus the owner's candidate integration list.
 - [paper-desk.md](paper-desk.md) — the predecessor paper-trading scaffold:
