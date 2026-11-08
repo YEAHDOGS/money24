@@ -8,11 +8,16 @@
     "build": "vite build",
     "test": "vitest",
     "test:ui": "vitest run --ui",
-    "test:ui:coverage": "vitest run --ui --coverage"
+    "test:ui:coverage": "vitest run --ui --coverage",
+    "engine:build": "node scripts/build-engine.js",
+    "engine:linux": "node scripts/build-engine.js --linux",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2.12.4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/svelte": "^5.4.2",
     "jsdom": "^30.1.1",

@@ -43,7 +43,7 @@ Never write the owner's name, pseudonym, alias, or any personal information anyw
 
 ## Stack
 - Vite + Svelte, **JavaScript only** (no TypeScript). Add concise JSDoc types to complex functions and components.
-- **Go is allowed for the trading engine** (`engine/`, the `m24d` runner): broker and data adapters, risk checks, the agent scheduler and the local ledger. It ships as a Tauri sidecar and as a headless binary for a VPS. Keep it a single Go module, prefer the standard library, and keep it CGO-free so it cross-compiles. Use `gofmt` and `go vet`; the hoisted-constants, guard-clause and 1000-line rules apply to Go too. Workers, Pages Functions and the UI stay JavaScript.
+- **Go is allowed for the trading engine** (`engine/`: the `m24d` runner and the `newsd` news and events service): broker and data adapters, news ingest, risk checks, the agent scheduler and the local ledger. It ships as a Tauri sidecar and as a headless binary for a VPS. Keep it a single Go module, prefer the standard library, and keep it CGO-free so it cross-compiles. Use `gofmt` and `go vet`; the hoisted-constants, guard-clause and 1000-line rules apply to Go too. Workers, Pages Functions and the UI stay JavaScript.
 - Rust only where Tauri requires it (tray, keep-awake, autostart, sidecar lifecycle in `src/tauri/`). Python is never required; it may appear only as an optional, separate research sidecar.
 - Styling is **Tailwind CSS plus plain CSS**. No SCSS, Sass, Less or other preprocessors.
 - Icons come from `@lucide/svelte`, imported one at a time.
