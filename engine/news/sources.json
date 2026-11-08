@@ -1,0 +1,29 @@
+{
+  "sources": [
+    { "id": "sec-8k", "label": "SEC 8-K", "type": "rss", "kind": "filing", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&owner=include&count=100&output=atom" },
+    { "id": "sec-10q", "label": "SEC 10-Q", "type": "rss", "kind": "filing", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=10-Q&owner=include&count=100&output=atom" },
+    { "id": "sec-10k", "label": "SEC 10-K", "type": "rss", "kind": "filing", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=10-K&owner=include&count=100&output=atom" },
+    { "id": "sec-form4", "label": "SEC Form 4", "type": "rss", "kind": "insider", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&owner=include&count=100&output=atom" },
+    { "id": "fed-press", "label": "Federal Reserve", "type": "rss", "kind": "central_bank", "url": "https://www.federalreserve.gov/feeds/press_all.xml" },
+    { "id": "ecb-press", "label": "ECB", "type": "rss", "kind": "central_bank", "url": "https://www.ecb.europa.eu/rss/press.html" },
+    { "id": "boe-news", "label": "Bank of England", "type": "rss", "kind": "central_bank", "url": "https://www.bankofengland.co.uk/rss/news" },
+    { "id": "bls-latest", "label": "BLS", "type": "rss", "kind": "macro", "url": "https://www.bls.gov/feed/bls_latest.rss" },
+    { "id": "marketwatch-top", "label": "MarketWatch", "type": "rss", "kind": "news", "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
+    { "id": "marketwatch-pulse", "label": "MarketWatch Pulse", "type": "rss", "kind": "news", "url": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse" },
+    { "id": "cnbc-top", "label": "CNBC", "type": "rss", "kind": "news", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114" },
+    { "id": "yahoo-sp500", "label": "Yahoo Finance", "type": "rss", "kind": "news", "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US" },
+    { "id": "nyt-business", "label": "NYT Business", "type": "rss", "kind": "news", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" },
+    { "id": "nyt-politics", "label": "NYT Politics", "type": "rss", "kind": "news", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml" },
+    { "id": "bbc-business", "label": "BBC Business", "type": "rss", "kind": "news", "url": "https://feeds.bbci.co.uk/news/business/rss.xml" },
+    { "id": "bbc-world", "label": "BBC World", "type": "rss", "kind": "news", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+    { "id": "fxstreet", "label": "FXStreet", "type": "rss", "kind": "news", "url": "https://www.fxstreet.com/rss/news" },
+    { "id": "coindesk", "label": "CoinDesk", "type": "rss", "kind": "news", "url": "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+    { "id": "cointelegraph", "label": "Cointelegraph", "type": "rss", "kind": "news", "url": "https://cointelegraph.com/rss" },
+    { "id": "decrypt", "label": "Decrypt", "type": "rss", "kind": "news", "url": "https://decrypt.co/feed" },
+    { "id": "gdelt-macro", "label": "GDELT Macro", "type": "gdelt", "kind": "news", "min_every": "5m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28%22federal%20reserve%22%20OR%20inflation%20OR%20%22interest%20rates%22%20OR%20recession%20OR%20tariffs%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "gdelt-fx", "label": "GDELT FX", "type": "gdelt", "kind": "news", "min_every": "5m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28%22central%20bank%22%20OR%20%22exchange%20rate%22%20OR%20currency%20OR%20forex%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "gdelt-crypto", "label": "GDELT Crypto", "type": "gdelt", "kind": "news", "min_every": "5m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28bitcoin%20OR%20ethereum%20OR%20crypto%20OR%20stablecoin%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "gdelt-megacaps", "label": "GDELT Megacaps", "type": "gdelt", "kind": "news", "min_every": "5m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28tesla%20OR%20spacex%20OR%20nvidia%20OR%20apple%20OR%20microsoft%20OR%20amazon%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "polymarket", "label": "Polymarket", "type": "polymarket", "kind": "market", "min_every": "60s", "url": "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=200&order=volume24hr&ascending=false" }
+  ]
+}
