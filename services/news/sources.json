@@ -1,0 +1,33 @@
+{
+  "sources": [
+    { "id": "sec-8k", "type": "rss", "kind": "filing", "every": "60s", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&owner=include&count=100&output=atom" },
+    { "id": "sec-10q", "type": "rss", "kind": "filing", "every": "5m", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=10-Q&owner=include&count=100&output=atom" },
+    { "id": "sec-10k", "type": "rss", "kind": "filing", "every": "10m", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=10-K&owner=include&count=100&output=atom" },
+    { "id": "sec-form4", "type": "rss", "kind": "insider", "every": "2m", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&owner=include&count=100&output=atom" },
+
+    { "id": "fed-press", "type": "rss", "kind": "central_bank", "every": "2m", "url": "https://www.federalreserve.gov/feeds/press_all.xml" },
+    { "id": "ecb-press", "type": "rss", "kind": "central_bank", "every": "5m", "url": "https://www.ecb.europa.eu/rss/press.html" },
+    { "id": "boe-news", "type": "rss", "kind": "central_bank", "every": "5m", "url": "https://www.bankofengland.co.uk/rss/news" },
+    { "id": "bls-latest", "type": "rss", "kind": "macro", "every": "5m", "url": "https://www.bls.gov/feed/bls_latest.rss" },
+
+    { "id": "marketwatch-top", "type": "rss", "kind": "news", "every": "60s", "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
+    { "id": "marketwatch-pulse", "type": "rss", "kind": "news", "every": "60s", "url": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse" },
+    { "id": "cnbc-top", "type": "rss", "kind": "news", "every": "60s", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114" },
+    { "id": "yahoo-finance", "type": "rss", "kind": "news", "every": "60s", "url": "https://finance.yahoo.com/news/rssindex" },
+    { "id": "nyt-business", "type": "rss", "kind": "news", "every": "2m", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" },
+    { "id": "nyt-politics", "type": "rss", "kind": "news", "every": "2m", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml" },
+    { "id": "bbc-business", "type": "rss", "kind": "news", "every": "2m", "url": "https://feeds.bbci.co.uk/news/business/rss.xml" },
+    { "id": "bbc-world", "type": "rss", "kind": "news", "every": "2m", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+    { "id": "fxstreet", "type": "rss", "kind": "news", "every": "60s", "url": "https://www.fxstreet.com/rss/news" },
+    { "id": "coindesk", "type": "rss", "kind": "news", "every": "60s", "url": "https://www.coindesk.com/arc/outboundfeeds/rss/" },
+    { "id": "cointelegraph", "type": "rss", "kind": "news", "every": "60s", "url": "https://cointelegraph.com/rss" },
+    { "id": "decrypt", "type": "rss", "kind": "news", "every": "2m", "url": "https://decrypt.co/feed" },
+
+    { "id": "gdelt-macro", "type": "gdelt", "kind": "news", "every": "15m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28%22federal%20reserve%22%20OR%20inflation%20OR%20%22interest%20rates%22%20OR%20recession%20OR%20tariffs%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "gdelt-fx", "type": "gdelt", "kind": "news", "every": "15m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28%22central%20bank%22%20OR%20%22exchange%20rate%22%20OR%20currency%20OR%20forex%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "gdelt-crypto", "type": "gdelt", "kind": "news", "every": "15m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28bitcoin%20OR%20ethereum%20OR%20crypto%20OR%20stablecoin%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+    { "id": "gdelt-megacaps", "type": "gdelt", "kind": "news", "every": "15m", "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28tesla%20OR%20spacex%20OR%20nvidia%20OR%20apple%20OR%20microsoft%20OR%20amazon%29&mode=artlist&format=json&maxrecords=250&timespan=20min&sort=datedesc" },
+
+    { "id": "polymarket", "type": "polymarket", "kind": "market", "every": "5m", "url": "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=200&order=volume24hr&ascending=false" }
+  ]
+}

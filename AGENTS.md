@@ -47,6 +47,7 @@ Never write the owner's name, pseudonym, alias, or any personal information anyw
 - Icons come from `@lucide/svelte`, imported one at a time.
 - Use Cloudflare Workers bindings and D1's native APIs for database access; no ORM. Put schema changes in SQL migrations and commit them.
 - Tauri is the native shell. Keep the web build functional on its own and feature-detect native APIs.
+- **Exception: `services/`** holds long-running backend services (Go + Postgres, run with Docker Compose) for the trading engine. The rules above on constants, guard clauses, file size and dependencies still apply there. See `services/README.md`.
 
 ## Dependencies
 Every dependency is a cost: bundle size, security surface, install scripts and upkeep. Keep the list as short as possible.

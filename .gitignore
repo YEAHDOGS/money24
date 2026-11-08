@@ -33,3 +33,6 @@ src/tauri/gen/
 *.njsproj
 *.sln
 *.sw?
+
+# Local service secrets
+services/.env

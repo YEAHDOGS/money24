@@ -1,0 +1,36 @@
+# Money 24 local stack. Run from this folder: docker compose up --build
+# Local only: ports bind to 127.0.0.1 and the database password is a dev placeholder.
+name: money24
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: money24
+      POSTGRES_PASSWORD: money24
+      POSTGRES_DB: money24
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U money24"]
+      interval: 2s
+      retries: 30
+    restart: unless-stopped
+
+  news:
+    build: ./news
+    environment:
+      DATABASE_URL: postgres://money24:money24@db:5432/money24?sslmode=disable
+      # SEC asks automated clients to identify themselves with a contact email.
+      USER_AGENT: ${USER_AGENT:-Money24-News/0.1 (DOGS)}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8024:8024"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
