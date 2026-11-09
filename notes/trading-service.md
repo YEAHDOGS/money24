@@ -111,6 +111,13 @@ with the ladder and stop drawn on it, and there's a scoreboard per source.
 - Collect 5–10 real callout and exit posts per format as classifier fixtures.
 - Decide what happens to callouts after the market closes: queue them for
   the open, or drop them.
-- Pick a stack for the trading service. Node is the likely choice, since
-  Playwright and the Telegram client are first-class there and the repo is
-  JS.
+- Stack: Go, an `engine/signals/` package run by `m24d`, per
+  [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md). Its state goes in the
+  runner's SQLite ledger. News context comes from `newsd`'s SSE stream.
+  The X scraper drives headless Chrome from Go over the DevTools protocol,
+  with no Node. The Telegram reader is a Go MTProto client, which needs a
+  stated reason as a dependency.
+- **Legal gate** (ARCHITECTURE §11): copy-trading for our own account on
+  paper is fine. Copy-trading *for customers* can trigger investment-adviser
+  or broker-dealer registration, so that needs a lawyer before anyone else
+  gets it.
