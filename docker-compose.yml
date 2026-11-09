@@ -1,0 +1,25 @@
+# Money 24 engine services. Same file on Windows (Docker Desktop), Linux and the VPS:
+#   docker compose up -d --build
+# Ports bind to 127.0.0.1 only. Put a reverse proxy in front before exposing anything.
+name: money24
+
+services:
+  news:
+    build:
+      context: ./engine
+      args:
+        CMD: newsd
+    env_file: .env
+    environment:
+      NEWSD_DATA: /data
+      NEWSD_ADDR: 0.0.0.0:8024
+    volumes:
+      - news-data:/data
+    ports:
+      - "127.0.0.1:8024:8024"
+    restart: unless-stopped
+
+  # trading (m24d) joins here: same image recipe with CMD: m24d. See notes/trading-service.md.
+
+volumes:
+  news-data:
