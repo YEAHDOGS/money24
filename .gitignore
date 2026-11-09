@@ -40,3 +40,4 @@ src/tauri/binaries/
 
 # Local secrets for docker compose
 .env
+engine/data/

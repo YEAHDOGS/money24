@@ -11,7 +11,7 @@ forex, around the clock.
 |---|---|---|---|
 | Landing / client (`src/`) | Svelte 5 + Vite + Tailwind v4 landing page, plus the live feed at `feed.html` | Cloudflare Pages · Tauri desktop | Live |
 | `newsd` (`engine/cmd/newsd`) | Polls news, filings, central-bank, macro and Polymarket feeds; tags against the watchlist; stores in SQLite; streams over SSE | Desktop sidecar · Linux server | Running |
-| `m24d` + signals (`engine/`) | The trading runner. The signals package reads callout sources (X, Telegram, wallets, webhooks), parses them and paper-trades with our own exits | Same as `newsd` | Planned: [notes/trading-service.md](notes/trading-service.md) |
+| `m24d` + signals (`engine/`) | The trading runner. The signals package reads callout sources (X, Telegram, wallets, webhooks), parses them and paper-trades with our own exits | Same as `newsd` | Paper webhook runner; adapters next: [notes/trading-service.md](notes/trading-service.md) |
 
 Everything server-side is one Go module in `engine/` (see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). Each process keeps its own
@@ -38,8 +38,7 @@ docker compose logs -f news
 docker compose down           # the news-data volume keeps the database
 ```
 
-On Windows this needs Docker Desktop. `m24d` (trading) joins the same
-compose file when it's built.
+On Windows this needs Docker Desktop. This starts `news` (8024) and `trading` (8025).
 
 ### newsd: by hand (any OS)
 
@@ -73,11 +72,26 @@ journalctl -u newsd -f                   # logs
 On a server, set `NEWSD_ADMIN_TOKEN` and `NEWSD_HOSTS` (your domain behind
 the reverse proxy). All flags are listed in [engine/README.md](engine/README.md).
 
-### m24d / signals (planned)
+### m24d: paper trading runner (first cut)
 
-It will run the same ways as `newsd`: Docker, `go run ./cmd/m24d`, a desktop
-sidecar, or under systemd. It reads `newsd`'s `/api/stream` for news
-context, so start `newsd` first.
+Takes callouts on a webhook, plans each entry with its stop and ladder, and
+writes every plan and rejection to `paper-journal.jsonl`. It has no broker
+code yet, so it can't place a real order.
+
+```sh
+cd engine
+M24D_WEBHOOK_SECRET=change-me go run ./cmd/m24d --data ./data/trading
+# Windows PowerShell: $env:M24D_WEBHOOK_SECRET="change-me"; go run ./cmd/m24d --data .\data\trading
+
+curl -H "Authorization: Bearer change-me" \
+  -d '{"source_id":"x:MATTSMATTED","text":"BTO $SPY 600C 11/21 @ 1.20"}' \
+  http://127.0.0.1:8025/signals
+```
+
+The reply shows how the post was read. The journal shows the plan: 4
+contracts, a stop at 0.96, 1 contract to sell at 1.56, 2 at 1.92, and 1
+runner. In Docker it's the `trading` service (port 8025). Tests:
+`go test ./signals/`.
 
 ### Guardrails
 

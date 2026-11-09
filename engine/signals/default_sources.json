@@ -11,7 +11,8 @@
     "follow_source_trim": false,
     "follow_source_add": false,
     "max_chase_pct": 15,
-    "min_confidence": 0.8
+    "min_confidence": 0.8,
+    "max_usd_per_trade": 500
   },
   "sources": [
     { "type": "x", "handle": "MATTSMATTED", "markets": ["options"], "role": "callouts", "note": "Owner's template account for the callout format" },

@@ -19,7 +19,19 @@ services:
       - "127.0.0.1:8024:8024"
     restart: unless-stopped
 
-  # trading (m24d) joins here: same image recipe with CMD: m24d. See notes/trading-service.md.
+  trading:
+    build:
+      context: ./engine
+      args:
+        CMD: m24d
+    env_file: .env
+    command: ["--data", "/data", "--addr", "0.0.0.0:8025"]
+    volumes:
+      - trading-data:/data
+    ports:
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
 
 volumes:
   news-data:
+  trading-data:
