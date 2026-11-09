@@ -1,0 +1,145 @@
+@import "tailwindcss";
+/* Colors, theme tokens and custom variants (short:, ultrawide:) */
+@import "../styles/theme.css";
+
+/* Fluid type: phones stay readable, 4K TVs at ten feet get bigger text. Every rem in the feed scales with it. */
+html {
+  font-size: clamp(14px, 0.4vw + 9px, 24px);
+}
+
+body {
+  margin: 0;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 150ms spring for every interactive trigger: buttons, chips, links, slider thumb */
+.spring {
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease, background-color 150ms ease,
+    border-color 150ms ease, color 150ms ease;
+}
+.spring:active {
+  transform: scale(0.96);
+}
+
+/* A post that just arrived: a red spine flash and glow that fade out. Opacity only, so nothing moves. */
+.post-fresh::before,
+.post-fresh::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  animation: post-flash 2.6s ease-out var(--flash-delay, 0ms) both;
+}
+.post-fresh::before {
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--color-neon-red);
+}
+.post-fresh::after {
+  inset: 0;
+  background: var(--color-neon-red-faint);
+}
+@keyframes post-flash {
+  0%,
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Live dot: a soft pulse ring, transform and opacity only */
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: live-pulse 1.8s ease-out infinite;
+}
+@keyframes live-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Poll slider: a 1px track with a neon thumb that springs when grabbed */
+.poll-range {
+  appearance: none;
+  background: transparent;
+  height: 1.5rem;
+  accent-color: var(--color-neon-red);
+}
+.poll-range::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--color-line);
+}
+.poll-range::-moz-range-track {
+  height: 1px;
+  background: var(--color-line);
+}
+.poll-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: -0.5rem;
+  border-radius: 9999px;
+  background: var(--color-neon-red);
+  border: 2px solid var(--color-app);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.poll-range::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--color-neon-red);
+  border: 2px solid var(--color-app);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.poll-range:active::-webkit-slider-thumb {
+  transform: scale(1.35);
+}
+.poll-range:active::-moz-range-thumb {
+  transform: scale(1.35);
+}
+.poll-range:focus-visible {
+  outline: 2px solid var(--color-neon-red);
+  outline-offset: 4px;
+}
+
+/* Thin themed scrollbars inside lists (the only places that scroll) */
+.list-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neon-red) transparent;
+  overflow-anchor: none;
+}
+.list-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.list-scroll::-webkit-scrollbar-button {
+  display: none;
+}
+.list-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-neon-red-faint);
+  border-radius: 3px;
+}
+.list-scroll:hover::-webkit-scrollbar-thumb {
+  background: var(--color-neon-red);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-fresh::before,
+  .post-fresh::after,
+  .live-dot::after {
+    animation: none;
+  }
+}
