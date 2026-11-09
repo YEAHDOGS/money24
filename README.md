@@ -29,6 +29,18 @@ npm run build        # production build into dist/
 
 Pushes to `master` deploy https://money24.dogs.red.
 
+### Docker: Windows, Linux or VPS (same command everywhere)
+
+```sh
+cp .env.example .env          # put a real contact email in USER_AGENT
+docker compose up -d --build  # http://localhost:8024
+docker compose logs -f news
+docker compose down           # the news-data volume keeps the database
+```
+
+On Windows this needs Docker Desktop. `m24d` (trading) joins the same
+compose file when it's built.
+
 ### newsd: by hand (any OS)
 
 ```sh
@@ -63,7 +75,7 @@ the reverse proxy). All flags are listed in [engine/README.md](engine/README.md)
 
 ### m24d / signals (planned)
 
-It will run the same three ways as `newsd`: `go run ./cmd/m24d`, as a desktop
+It will run the same ways as `newsd`: Docker, `go run ./cmd/m24d`, a desktop
 sidecar, or under systemd. It reads `newsd`'s `/api/stream` for news
 context, so start `newsd` first.
 
