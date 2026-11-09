@@ -72,26 +72,38 @@ journalctl -u newsd -f                   # logs
 On a server, set `NEWSD_ADMIN_TOKEN` and `NEWSD_HOSTS` (your domain behind
 the reverse proxy). All flags are listed in [engine/README.md](engine/README.md).
 
-### m24d: paper trading runner (first cut)
+### m24d: paper trading runner
 
-Takes callouts on a webhook, plans each entry with its stop and ladder, and
-writes every plan and rejection to `paper-journal.jsonl`. It has no broker
-code yet, so it can't place a real order.
+Takes callouts on a webhook, plans each entry with its stop, ladder and time
+exits, and writes every plan and rejection to `paper-journal.jsonl`. It has
+no broker code yet, so it can't place a real order. The UI is optional: the
+runner works the same headless.
+
+| Where | How |
+|---|---|
+| Windows desktop | `npm run desktop` starts `newsd` and `m24d` as sidecars. The window opens on News, and **Trading →** switches to the desk |
+| Any OS, by hand | `cd engine && go run ./cmd/m24d --data ./data/trading`, then `npm run dev` → http://localhost:5173/trading.html |
+| Linux server | `npm run engine:linux`, then `engine/deploy/m24d.service` under systemd (headless) |
+| Docker | the `trading` service in `docker-compose.yml` (port 8025) |
+
+The webhook secret comes from `M24D_WEBHOOK_SECRET`. Without it, a random
+secret is generated once into `<data>/webhook-secret`.
 
 ```sh
-cd engine
-M24D_WEBHOOK_SECRET=change-me go run ./cmd/m24d --data ./data/trading
-# Windows PowerShell: $env:M24D_WEBHOOK_SECRET="change-me"; go run ./cmd/m24d --data .\data\trading
-
-curl -H "Authorization: Bearer change-me" \
+curl -H "Authorization: Bearer $(cat engine/data/trading/webhook-secret)" \
   -d '{"source_id":"x:MATTSMATTED","text":"BTO $SPY 600C 11/21 @ 1.20"}' \
   http://127.0.0.1:8025/signals
 ```
 
-The reply shows how the post was read. The journal shows the plan: 4
-contracts, a stop at 0.96, 1 contract to sell at 1.56, 2 at 1.92, and 1
-runner. In Docker it's the `trading` service (port 8025). Tests:
-`go test ./signals/`.
+| Route | Returns |
+|---|---|
+| `POST /signals` | parses a callout (Bearer secret required) and answers with how it was read |
+| `GET /api/journal?limit=&after=` | recent journal entries, oldest first |
+| `GET /api/stream?after=` | SSE: one message per new entry, with backfill by `Last-Event-ID` |
+| `GET /api/sources` | the source catalog and default settings |
+| `GET /healthz` | `ok` |
+
+Tests: `cd engine && go test ./signals/`.
 
 ### Guardrails
 

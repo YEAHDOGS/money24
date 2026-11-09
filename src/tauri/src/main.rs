@@ -1,6 +1,6 @@
-// Money 24 desktop shell: one window on the live feed, with the Go news engine (newsd) as a sidecar.
-// The engine is started on launch and stopped on exit; it also exits on its own if this app dies,
-// because it watches its stdin pipe (--exit-with-stdin).
+// Money 24 desktop shell: one window on the live feed, with the Go engines as sidecars: newsd (news)
+// and m24d (paper trading runner, shown at trading.html). Both start on launch and stop on exit; they
+// also exit on their own if this app dies, because they watch their stdin pipe (--exit-with-stdin).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::Mutex;
@@ -10,9 +10,11 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
-const ENGINE: &str = "newsd";
-const ENGINE_ADDR: &str = "127.0.0.1:8024";
-const ENGINE_DATA_DIR: &str = "news";
+// (sidecar name, listen address, data folder under the app data dir)
+const ENGINES: [(&str, &str, &str); 2] = [
+    ("newsd", "127.0.0.1:8024", "news"),
+    ("m24d", "127.0.0.1:8025", "trading"),
+];
 const WINDOW_LABEL: &str = "main";
 const WINDOW_TITLE: &str = "Money 24 News";
 const FEED_PAGE: &str = "feed.html";
@@ -24,16 +26,18 @@ const WINDOW_BACKGROUND: Color = Color(5, 5, 8, 255);
 const APP_HOSTS: [&str; 3] = ["tauri.localhost", "localhost", "127.0.0.1"];
 const APP_SCHEME: &str = "tauri";
 
-/// The running engine, kept so it can be stopped when the app exits.
-struct Engine(Mutex<Option<CommandChild>>);
+/// The running engines, kept so they can be stopped when the app exits.
+struct Engines(Mutex<Vec<CommandChild>>);
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
-        .manage(Engine(Mutex::new(None)))
+        .manage(Engines(Mutex::new(Vec::new())))
         .setup(|app| {
-            start_engine(app.handle())?;
+            for (name, addr, dir) in ENGINES {
+                start_engine(app.handle(), name, addr, dir)?;
+            }
             open_window(app.handle())?;
             Ok(())
         })
@@ -41,30 +45,30 @@ fn main() {
         .expect("Money 24 failed to start")
         .run(|app, event| {
             if let RunEvent::Exit = event {
-                stop_engine(app);
+                stop_engines(app);
             }
         });
 }
 
-/// Starts newsd with its database in the app data folder and forwards its log to ours.
-fn start_engine(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let data = app.path().app_data_dir()?.join(ENGINE_DATA_DIR);
+/// Starts one engine with its data in the app data folder and forwards its log to ours.
+fn start_engine(app: &AppHandle, name: &'static str, addr: &str, dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let data = app.path().app_data_dir()?.join(dir);
     std::fs::create_dir_all(&data)?;
     let data = data.to_string_lossy().into_owned();
     let (mut events, child) = app
         .shell()
-        .sidecar(ENGINE)?
-        .args(["--addr", ENGINE_ADDR, "--data", data.as_str(), "--exit-with-stdin"])
+        .sidecar(name)?
+        .args(["--addr", addr, "--data", data.as_str(), "--exit-with-stdin"])
         .spawn()?;
-    *app.state::<Engine>().0.lock().unwrap() = Some(child);
+    app.state::<Engines>().0.lock().unwrap().push(child);
 
     tauri::async_runtime::spawn(async move {
         while let Some(event) = events.recv().await {
             match event {
                 CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
-                    eprintln!("[newsd] {}", String::from_utf8_lossy(&line).trim_end());
+                    eprintln!("[{name}] {}", String::from_utf8_lossy(&line).trim_end());
                 }
-                CommandEvent::Terminated(status) => eprintln!("[newsd] exited with {:?}", status.code),
+                CommandEvent::Terminated(status) => eprintln!("[{name}] exited with {:?}", status.code),
                 _ => {}
             }
         }
@@ -72,11 +76,10 @@ fn start_engine(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn stop_engine(app: &AppHandle) {
-    let Some(child) = app.state::<Engine>().0.lock().unwrap().take() else {
-        return;
-    };
-    let _ = child.kill();
+fn stop_engines(app: &AppHandle) {
+    for child in app.state::<Engines>().0.lock().unwrap().drain(..) {
+        let _ = child.kill();
+    }
 }
 
 fn is_app_url(url: &Url) -> bool {

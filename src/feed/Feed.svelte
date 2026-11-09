@@ -127,6 +127,7 @@
         <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
         {strings.status[client.status]}
       </p>
+      <a href="trading.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.tradingLink}&nbsp;→</a>
     </div>
 
     <div class="list-scroll hidden min-h-0 flex-1 overflow-y-auto md:block landscape-phone:hidden!">

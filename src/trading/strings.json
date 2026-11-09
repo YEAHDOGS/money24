@@ -1,0 +1,50 @@
+{
+  "title": "Money 24 Trading",
+  "brand": "MONEY",
+  "brandAccent": "24",
+  "section": "TRADING",
+  "paper": "Paper only",
+  "newsLink": "News",
+  "status": {
+    "connecting": "Connecting",
+    "live": "Live",
+    "reconnecting": "Reconnecting",
+    "offline": "Runner offline"
+  },
+  "actions": {
+    "all": "All",
+    "entry": "Entry",
+    "exit": "Exit",
+    "trim": "Trim",
+    "add": "Add",
+    "noise": "Noise",
+    "rejected": "Rejected"
+  },
+  "tabs": { "journal": "Journal", "detail": "Plan", "sources": "Sources" },
+  "sources": "Sources",
+  "empty": "No signals yet. Send a callout to POST /signals.",
+  "offlineHint": "Start the runner: go run ./cmd/m24d (port 8025).",
+  "pickOne": "Pick a journal entry to see its plan.",
+  "contracts": "contracts",
+  "units": "units",
+  "cost": "Cost",
+  "stop": "Stop",
+  "entry": "Entry",
+  "runner": "Runner",
+  "exitBy": "Exit by",
+  "timeStop": "Time stop",
+  "timeStopRule": "must be above",
+  "called": "Called",
+  "confidence": "Confidence",
+  "raw": "Post",
+  "reason": "Why it was skipped",
+  "noTimeRule": "No time exit",
+  "roles": {
+    "callouts": "Callouts",
+    "flow": "Flow",
+    "levels": "Levels",
+    "news": "News",
+    "wallets": "Wallets",
+    "insider": "Insider"
+  }
+}
