@@ -12,6 +12,10 @@ const APP_CSS_TARGET = ['chrome99', 'edge99', 'firefox97', 'safari15.4', 'ios15.
 const APP_JS_TARGET = ['chrome99', 'edge99', 'firefox97', 'safari16.4', 'ios16.4']
 // The optional Tauri shell lives in src/tauri; its Rust build output must not trigger dev reloads.
 const NATIVE_SHELL_GLOB = '**/src/tauri/**'
+// Pages: the landing page, and the live news feed (also the desktop app's window).
+const PAGES = { main: 'index.html', feed: 'feed.html' }
+// Tauri's dev window loads this port; it must not drift to another one.
+const DEV_PORT = 5173
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -20,10 +24,13 @@ export default defineConfig({
     svelte()
   ],
   server: {
+    port: DEV_PORT,
+    strictPort: true,
     watch: { ignored: [NATIVE_SHELL_GLOB] },
   },
   build: {
     target: APP_JS_TARGET,
     cssTarget: APP_CSS_TARGET,
+    rolldownOptions: { input: PAGES },
   },
 })

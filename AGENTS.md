@@ -7,12 +7,12 @@ Rules for every AI agent working in this repository.
 - **Name**: Money 24 (`money24`)
 - **What it is**: Landing page for Money 24 by DOGS, created from the DOGS Svelte template.
 - Keep `start.js` and `addons/` working whenever the template changes. A generated app must be ready to install and run.
-- **Main tech stack**: Vite, Svelte 5, Tailwind CSS v4, JavaScript with JSDoc, Cloudflare Workers, D1, R2, Pages, and optional Tauri 2 native shells. No ORM.
+- **Main tech stack**: Vite, Svelte 5, Tailwind CSS v4, JavaScript with JSDoc, Cloudflare Workers, D1, R2, Pages, optional Tauri 2 native shells, and a Go trading engine in `engine/`. No ORM.
 <!-- /setup:project -->
 
 ## Cloudflare environments
 - Use Cloudflare Workers and D1 for serverless logic and relational data, with R2 for object storage when needed. Use Cloudflare bindings and D1 APIs directly. Stay inside the free tier, cache responses, lazy load, and keep data locally so each visitor makes as few requests as possible.
-- Server code lives in `api/`: Pages Functions in `api/functions/`, SQL migrations in `api/migrations/`, Wrangler config in `api/wrangler.jsonc`. The optional Tauri shell lives in `src/tauri/`.
+- Server code lives in `api/`: Pages Functions in `api/functions/`, SQL migrations in `api/migrations/`, Wrangler config in `api/wrangler.jsonc`. The optional Tauri shell lives in `src/tauri/`. The Go trading engine lives in `engine/`; its local SQLite migrations live in `engine/migrations/` as versioned SQL, embedded in the binary.
 - Database changes require versioned SQL migrations. SQL migrations are the source of truth; do not duplicate database schemas in application code.
 - All apps use three isolated environments:
   - **Local**: `npx wrangler pages dev ../dist`, run from `api/`, runs Pages Functions on Workers locally with Miniflare. D1 uses a local SQLite database under `api/.wrangler/state/`; this data is machine-local and must never be committed or connected to production. Standalone Workers use `npx wrangler dev`.
@@ -43,6 +43,8 @@ Never write the owner's name, pseudonym, alias, or any personal information anyw
 
 ## Stack
 - Vite + Svelte, **JavaScript only** (no TypeScript). Add concise JSDoc types to complex functions and components.
+- **Go is allowed for the trading engine** (`engine/`: the `m24d` runner and the `newsd` news and events service): broker and data adapters, news ingest, risk checks, the agent scheduler and the local ledger. It ships as a Tauri sidecar and as a headless binary for a VPS. Keep it a single Go module, prefer the standard library, and keep it CGO-free so it cross-compiles. Use `gofmt` and `go vet`; the hoisted-constants, guard-clause and 1000-line rules apply to Go too. Workers, Pages Functions and the UI stay JavaScript.
+- Rust only where Tauri requires it (tray, keep-awake, autostart, sidecar lifecycle in `src/tauri/`). Python is never required; it may appear only as an optional, separate research sidecar.
 - Styling is **Tailwind CSS plus plain CSS**. No SCSS, Sass, Less or other preprocessors.
 - Icons come from `@lucide/svelte`, imported one at a time.
 - Use Cloudflare Workers bindings and D1's native APIs for database access; no ORM. Put schema changes in SQL migrations and commit them.

@@ -1,0 +1,13 @@
+{
+  "note": "Approximate public list prices for outbound data (North America / EU). Not verified for this build: check each provider before choosing. Inbound data is free on all of these.",
+  "providers": [
+    { "id": "desktop", "name": "This PC (desktop app)", "egress_per_gb": 0, "ingress_per_gb": 0, "included_gb": 0, "detail": "Uses your internet plan. No per-GB fees." },
+    { "id": "cloudflare", "name": "Cloudflare Workers / R2", "egress_per_gb": 0, "ingress_per_gb": 0, "included_gb": 0, "detail": "No egress fees. Long-running pollers do not fit Workers; good for serving the feed." },
+    { "id": "hetzner", "name": "Hetzner Cloud (EU)", "egress_per_gb": 0.0011, "ingress_per_gb": 0, "included_gb": 20480, "detail": "About €1 per TB after 20 TB included." },
+    { "id": "digitalocean", "name": "DigitalOcean Droplet", "egress_per_gb": 0.01, "ingress_per_gb": 0, "included_gb": 500, "detail": "Smallest droplet includes about 500 GB." },
+    { "id": "fly", "name": "Fly.io (NA / EU)", "egress_per_gb": 0.02, "ingress_per_gb": 0, "included_gb": 0, "detail": "Billed per GB out." },
+    { "id": "aws", "name": "AWS EC2", "egress_per_gb": 0.09, "ingress_per_gb": 0, "included_gb": 100, "detail": "First 100 GB a month free across the account." },
+    { "id": "azure", "name": "Azure VM", "egress_per_gb": 0.087, "ingress_per_gb": 0, "included_gb": 100, "detail": "First 100 GB a month free." },
+    { "id": "gcp", "name": "Google Cloud (Premium tier)", "egress_per_gb": 0.12, "ingress_per_gb": 0, "included_gb": 1, "detail": "Standard tier is cheaper." }
+  ]
+}
