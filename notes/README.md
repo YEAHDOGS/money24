@@ -46,6 +46,9 @@ exchange-grade API or liquidity).
 
 ## Index
 
+- [trading-service.md](trading-service.md) — copy-trading signals service:
+  sources (X, Telegram, wallets, webhooks), our own exits, per-source
+  settings, the 60-second target.
 - [webull.md](webull.md) — Webull API: what it actually supports, what it
   doesn't (no forex), and where it fits Money 24.
 - [forex.md](forex.md) — verified forex routes (OANDA, Interactive Brokers,
