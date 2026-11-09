@@ -117,3 +117,15 @@ momentum — it means someone changed their mind on new information.
 Design only. The Money 24 engine build remains stopped by the owner's
 order (Oct 27, 2026) until the owner says go; no accounts opened, no live
 trading, paper rule unchanged.
+
+## The middle agent — catalyst brain between newsd and m24d (design, Nov 9, 2026)
+
+Filed from the Nov 9, 2026 discussion (his direction, prompted by NVDA's post-election drawdown: 177.44, -22.61% past month on the chart he shared). Full design in Wordsmith money24 note b78c3227; summary here.
+
+newsd as built predicts nothing: it is a pipe (25 sources -> watchlist tags -> SQLite -> SSE). The missing piece is a 24/7 analyst in the middle — the catalyst brain:
+
+- **Inputs:** newsd SSE stream; a catalyst calendar (elections, Fed, earnings, export-control/tariff deadlines — scheduled events are the strongest input); Polymarket/Kalshi odds as the priced-in gauge (alert rule from the politics-indicator design: outcome crosses >60% or +15pts/week inside T-14d); and the per-ticker exposure map, drafted from 10-K risk factors and timestamped BEFORE events, citation-or-drop.
+- **Processing:** headline -> structured catalyst record (event type, tickers, direction, magnitude band, horizon, confidence, citations); plus a "why is it moving" explainer for post-move autopsies that grade whether a call was right for the stated reason.
+- **Output:** the brain is just another SOURCE to m24d — it emits intents through the same webhook contract as a callout, so the existing parser -> risk gate -> bracket planner -> paper journal -> scoreboard pipeline scores it like any human source: probation first, auto-disable if it loses, same go-live gate (100 trades / 30 trading days / max DD 20% / $1,000 paper capital). This is the ARCHITECTURE.md Thinker tier, productized as a source.
+- **NVDA worked example:** calendar flags the Nov 3 midterms; odds show the Dem sweep climbing; the exposure map has NVDA high-negative on that outcome (China export controls, tariffs) -> paper intent before Nov 3, scored against the -22.61% month after. It scores scenarios and reacts in seconds; it does not prophesy, and magnitude remains the weak half.
+- **Guardrails:** paper only; live stays behind funded accounts + the owner's explicit per-action approval; forward paper results are the only clean judge.
