@@ -1,0 +1,53 @@
+{
+  "_about": "Sources every new Money 24 install starts with. All paper. Every source starts on probation: it is scored on paper results and auto-disabled if it loses. Handles were taken from public 'who to follow' lists on Nov 9, 2026 and could not be checked on X itself; the first scrape run confirms each one exists and posts. Most are commentators, not pure callout accounts, so the classifier will mark most of their posts as noise.",
+  "defaults": {
+    "probation": true,
+    "stop_loss_pct": 20,
+    "ladder": [
+      { "pct_of_position": 25, "at_gain_pct": 30 },
+      { "pct_of_position": 50, "at_gain_pct": 60 }
+    ],
+    "follow_source_exit": true,
+    "follow_source_trim": false,
+    "follow_source_add": false,
+    "max_chase_pct": 15,
+    "min_confidence": 0.8
+  },
+  "sources": [
+    { "type": "x", "handle": "MATTSMATTED", "markets": ["options"], "role": "callouts", "note": "Owner's template account for the callout format" },
+    { "type": "x", "handle": "InvestorsLive", "markets": ["stocks"], "role": "callouts", "note": "Posts entries, exits and reasoning" },
+    { "type": "x", "handle": "OptionsHawk", "markets": ["options"], "role": "flow", "note": "Options flow and unusual activity, with analysis" },
+    { "type": "x", "handle": "HamzeiAnalytics", "markets": ["options"], "role": "callouts" },
+    { "type": "x", "handle": "RedDogT3", "markets": ["stocks", "options"], "role": "levels" },
+    { "type": "x", "handle": "markflowchatter", "markets": ["stocks"], "role": "news" },
+    { "type": "x", "handle": "sspencer_smb", "markets": ["stocks"], "role": "levels" },
+    { "type": "x", "handle": "jimbinder", "markets": ["options"], "role": "callouts" },
+    { "type": "x", "handle": "AlexFotopoulos", "markets": ["stocks", "options"], "role": "callouts", "note": "Listed as posting every trade; list is old, may be inactive" },
+    { "type": "x", "handle": "CRFN", "markets": ["futures", "options"], "role": "levels", "note": "E-mini S&P options and futures" },
+    { "type": "x", "handle": "ToneVays", "markets": ["crypto"], "role": "levels", "note": "Derivatives trader" },
+    { "type": "x", "handle": "RagheeHorner", "markets": ["forex", "futures"], "role": "levels" },
+    { "type": "x", "handle": "Forex_Analytix", "markets": ["forex"], "role": "levels" },
+    { "type": "x", "handle": "PolymarketTrade", "markets": ["prediction"], "role": "callouts", "note": "Community account surfacing top traders" },
+    { "type": "x", "handle": "predictingtop", "markets": ["prediction"], "role": "wallets", "note": "Leaderboard tool; posts sharp wallets" },
+    { "type": "x", "handle": "CarOnPolymarket", "markets": ["prediction"], "role": "wallets" },
+
+    { "type": "x", "handle": "FirstSquawk", "markets": ["all"], "role": "news", "note": "Headline squawk: feeds the fast gate, never trades on its own" },
+    { "type": "x", "handle": "LiveSquawk", "markets": ["all"], "role": "news" },
+    { "type": "x", "handle": "RANsquawk", "markets": ["all"], "role": "news" },
+    { "type": "x", "handle": "ForexLive", "markets": ["forex"], "role": "news" },
+    { "type": "x", "handle": "FXstreetNews", "markets": ["forex"], "role": "news" },
+    { "type": "x", "handle": "DailyFX", "markets": ["forex"], "role": "news" },
+    { "type": "x", "handle": "OPECSecretariat", "markets": ["futures"], "role": "news", "note": "Oil" },
+
+    { "type": "leaderboard", "venue": "hyperliquid", "markets": ["crypto"], "top": 20, "min_days": 90, "max_drawdown_pct": 25, "note": "Picks wallets from the public leaderboard each day instead of hardcoding addresses" },
+    { "type": "leaderboard", "venue": "polymarket", "markets": ["prediction"], "top": 20, "min_days": 90, "exclude_market_makers": true, "note": "Top earners are often quiet or bot wallets; skip wallets that trade both sides of most markets" },
+    { "type": "leaderboard", "venue": "collective2", "markets": ["futures", "forex"], "top": 10, "min_days": 365, "max_drawdown_pct": 25, "note": "Results are hypothetical; require a year of history" },
+    { "type": "leaderboard", "venue": "myfxbook", "markets": ["forex"], "top": 10, "min_days": 365, "max_drawdown_pct": 25, "require_verified": true, "no_grid_or_martingale": true },
+
+    { "type": "edgar", "form": "4", "markets": ["stocks"], "role": "insider", "note": "Already ingested by newsd" },
+    { "type": "webhook", "markets": ["all"], "role": "callouts", "note": "POST /signals with a shared secret: TradingView alerts, bots, our own scripts" }
+  ],
+  "blocklist": [
+    { "type": "x", "handle": "MrZackMorris", "reason": "Charged by the SEC and DOJ in the Dec 2022 Atlas Trading pump-and-dump case" }
+  ]
+}

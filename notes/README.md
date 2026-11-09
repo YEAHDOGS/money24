@@ -46,6 +46,7 @@ exchange-grade API or liquidity).
 
 ## Index
 
+- [prop-firms.md](prop-firms.md) — long-term: running proven strategies on funded prop-firm accounts, and which firm rules allow it.
 - [trading-service.md](trading-service.md) — copy-trading signals service:
   sources (X, Telegram, wallets, webhooks), our own exits, per-source
   settings, the 60-second target.

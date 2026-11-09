@@ -82,6 +82,20 @@ Forex callouts are mostly scams on Telegram. The usable sources are:
 Execution goes through OANDA practice, or CME FX futures through Webull.
 See [forex.md](forex.md).
 
+## Default sources
+
+Every install ships with [engine/signals/default_sources.json](../engine/signals/default_sources.json):
+about 16 callout and flow accounts on X across all six markets, 7 news
+squawk accounts (these feed the fast gate and never trade on their own),
+daily leaderboard pickers for Hyperliquid, Polymarket, Collective2 and
+Myfxbook, insider buys from Form 4, and the webhook. Every default starts
+on **probation**. It's scored on paper results and auto-disabled if it
+loses. A **blocklist** holds accounts charged with pump-and-dump schemes.
+
+Leaderboard sources choose wallets and strategies each day by their record
+(minimum age, maximum drawdown, verified, no martingale), so stale
+addresses are never hardcoded.
+
 ## Per-source settings (defaults)
 
 | Setting | Default | Meaning |
@@ -103,6 +117,11 @@ Every signal can override the defaults of its source.
 
 The client manages sources and settings. The chart shows the live price
 with the ladder and stop drawn on it, and there's a scoreboard per source.
+
+## Long-term: prop-firm capital
+
+Run proven strategies on funded prop-firm accounts. Copy-trading is banned
+there, so only our own strategies qualify. See [prop-firms.md](prop-firms.md).
 
 ## Open items
 
