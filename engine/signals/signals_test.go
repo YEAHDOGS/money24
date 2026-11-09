@@ -66,10 +66,10 @@ func TestParseFixtures(t *testing.T) {
 	for _, f := range fixtures {
 		got, w := Parse(f.Text, f.PostedAt), f.Want
 		if got.Kind != w.Kind || got.Symbol != w.Symbol || got.Right != w.Right || got.Strike != w.Strike ||
-			got.Expiry != w.Expiry || got.Price != w.Price || got.Size != w.Size || got.Confidence != w.Confidence {
-			t.Errorf("%s %s\n got  %s %s %s %v %s %v %q %v\n want %s %s %s %v %s %v %q %v", f.Source, f.PostID,
-				got.Kind, got.Symbol, got.Right, got.Strike, got.Expiry, got.Price, got.Size, got.Confidence,
-				w.Kind, w.Symbol, w.Right, w.Strike, w.Expiry, w.Price, w.Size, w.Confidence)
+			got.Expiry != w.Expiry || got.Price != w.Price || got.ExitPrice != w.ExitPrice || got.Size != w.Size || got.Confidence != w.Confidence {
+			t.Errorf("%s %s\n got  %s %s %s %v %s %v>%v %q %v\n want %s %s %s %v %s %v>%v %q %v", f.Source, f.PostID,
+				got.Kind, got.Symbol, got.Right, got.Strike, got.Expiry, got.Price, got.ExitPrice, got.Size, got.Confidence,
+				w.Kind, w.Symbol, w.Right, w.Strike, w.Expiry, w.Price, w.ExitPrice, w.Size, w.Confidence)
 		}
 	}
 }
@@ -456,5 +456,24 @@ func TestScoreboardAndGoLiveGate(t *testing.T) {
 	}
 	if lucky := byID["x:lucky"]; lucky.GoLive || lucky.WinRatePct != 100 || len(lucky.Missing) != 2 {
 		t.Fatalf("lucky: a 1-for-1 source must not pass: %+v", lucky)
+	}
+}
+
+func TestRecapPostsAreNeverTraded(t *testing.T) {
+	recap := "$QQQ 📈\n13 NOV 26 $693 CALL \n$2.05 ➡️ $3.24 🤑🤑🤑\n58% GAINER 💸💸💸\n\nTURN MY POST NOTIFICATIONS ON 🔔"
+	r := testRunner(t, nil)
+	e, _, _ := r.Handle(callout(recap, "1"), NOW)
+	if e.Action != string(KIND_RECAP) || e.Plan != nil {
+		t.Fatalf("a victory lap was traded: %+v", e)
+	}
+	for text, want := range map[string]Kind{
+		"$SPY 600C 11/20 +120% gainer 🔥":         KIND_RECAP,
+		"$SPY 600C 11/20 1.20 -> 2.40":           KIND_RECAP,
+		"STC $SPY 600C 11/21 @ 1.90 +58%":        KIND_EXIT,  // a real exit stays an exit
+		"BTO $SPY 600C 11/21 @ 1.20, target 80%": KIND_ENTRY, // a target is not a result
+	} {
+		if got := Parse(text, NOW).Kind; got != want {
+			t.Errorf("%q: got %s, want %s", text, got, want)
+		}
 	}
 }

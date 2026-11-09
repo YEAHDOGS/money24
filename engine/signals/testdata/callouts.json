@@ -5,8 +5,31 @@
     "posted_at": "2026-11-09T19:09:52Z",
     "text": "ADDING HEAVY \n\n$CSV \n20 NOV 26 $30 CALL \n$0.75",
     "want": {
-      "kind": "add", "symbol": "CSV", "right": "C", "strike": 30,
-      "expiry": "2026-11-20", "price": 0.75, "size": "heavy", "confidence": 1
+      "kind": "add",
+      "symbol": "CSV",
+      "right": "C",
+      "strike": 30,
+      "expiry": "2026-11-20",
+      "price": 0.75,
+      "size": "heavy",
+      "confidence": 1
+    }
+  },
+  {
+    "source": "x:unknown",
+    "post_id": "",
+    "posted_at": "2026-11-09T00:00:00Z",
+    "note": "Pasted by hand on 2026-11-09; author and post time were not recorded.",
+    "text": "$QQQ 📈\n13 NOV 26 $693 CALL \n$2.05 ➡️ $3.24 🤑🤑🤑\n58% GAINER 💸💸💸\n\nTURN MY POST NOTIFICATIONS ON 🔔",
+    "want": {
+      "kind": "recap",
+      "symbol": "QQQ",
+      "right": "C",
+      "strike": 693,
+      "expiry": "2026-11-13",
+      "price": 2.05,
+      "exit_price": 3.24,
+      "confidence": 1
     }
   }
 ]

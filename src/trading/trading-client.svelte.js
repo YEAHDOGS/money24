@@ -3,6 +3,7 @@
 // sends Last-Event-ID, so the runner backfills anything missed while asleep or offline.
 
 const DEFAULT_API = 'http://127.0.0.1:8025';
+const RECAP_ACTION = 'recap';
 export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || DEFAULT_API;
 const INITIAL_LIMIT = 300;
 const MAX_ITEMS = 1000;
@@ -99,9 +100,11 @@ export class TradingClient {
   }
 }
 
-/** Journal entries are bucketed by what happened: a skipped entry shows as "rejected". */
+/** Journal entries are bucketed by what happened: a skipped entry shows as "rejected", and a
+ *  recap (a caller's victory lap) sits with noise because nothing is traded on it. */
 export function bucket(/** @type {Entry} */ e) {
-  return e.rejected ? 'rejected' : e.action;
+  if (e.rejected) return 'rejected';
+  return e.action === RECAP_ACTION ? 'noise' : e.action;
 }
 
 /** "SPY 600C 11/21" for options, "SPY" otherwise. */

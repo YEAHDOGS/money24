@@ -18,6 +18,7 @@ const (
 	KIND_EXIT  Kind = "exit"
 	KIND_TRIM  Kind = "trim"
 	KIND_ADD   Kind = "add"
+	KIND_RECAP Kind = "recap" // a victory lap about a finished trade: a claim to check, never a trade
 	KIND_NOISE Kind = "noise"
 
 	RIGHT_CALL = "C"
@@ -53,6 +54,9 @@ var (
 	CONTRACT    = regexp.MustCompile(`(?i)\b(\d+(?:\.\d+)?)\s*(c|p|calls?|puts?)\b`)
 	EXPIRY      = regexp.MustCompile(`\b(\d{1,2})/(\d{1,2})(?:/(\d{2}|\d{4}))?\b`)
 	PRICE       = regexp.MustCompile(`(?i)(?:@|\bat\b|\bfor\b)\s*\$?(\d*\.?\d+)`)
+	// "$2.05 ➡️ $3.24" or "58% GAINER": the caller is reporting a result, not calling a trade.
+	RECAP_MOVE  = regexp.MustCompile(`\$?(\d*\.?\d+)\s*(?:\x{27A1}\x{FE0F}?|\x{2192}|-+>|=+>)\s*\$?(\d*\.?\d+)`)
+	RECAP_WORDS = regexp.MustCompile(`(?i)\d\s*%\s*(gainer|gains?|winner|win|profit|banked)\b`)
 	// A price alone on its line ("$0.75"), the way multi-line callouts end. Needs the $ so a lone number is not a price.
 	PRICE_LINE = regexp.MustCompile(`(?m)^\s*\$(\d*\.?\d+)\s*$`)
 	// "20 NOV 26", "20NOV", "20 November 2026": day first. Checked before month-first, or "NOV 26" would win.
@@ -83,7 +87,8 @@ type Signal struct {
 	Strike     float64   `json:"strike,omitempty"`
 	Expiry     string    `json:"expiry,omitempty"`
 	Price      float64   `json:"price,omitempty"`
-	Size       string    `json:"size,omitempty"` // caller's size word: heavy, light or lotto
+	ExitPrice  float64   `json:"exit_price,omitempty"` // recap posts: the exit the caller claims
+	Size       string    `json:"size,omitempty"`       // caller's size word: heavy, light or lotto
 	Confidence float64   `json:"confidence"`
 	SeenAt     time.Time `json:"seen_at"`
 	Raw        string    `json:"raw"`
@@ -121,11 +126,18 @@ func Parse(text string, now time.Time) Signal {
 	}
 
 	contract := sig.Right != "" && sig.Expiry != ""
+	move := RECAP_MOVE.FindStringSubmatch(text)
 	switch {
 	case TRIM_WORDS.MatchString(text):
 		sig.Kind = KIND_TRIM
 	case EXIT_WORDS.MatchString(text):
 		sig.Kind = KIND_EXIT
+	case move != nil || RECAP_WORDS.MatchString(text):
+		sig.Kind = KIND_RECAP
+		if move != nil {
+			sig.Price, _ = strconv.ParseFloat(move[1], 64)
+			sig.ExitPrice, _ = strconv.ParseFloat(move[2], 64)
+		}
 	case ADD_WORDS.MatchString(text):
 		sig.Kind = KIND_ADD
 	case contract || ENTRY_WORDS.MatchString(text) && sig.Price > 0:
