@@ -423,3 +423,38 @@ func TestRecorderKeepsEveryPostAndReplays(t *testing.T) {
 		t.Fatalf("replay: %v %v", kinds, prices)
 	}
 }
+
+func TestScoreboardAndGoLiveGate(t *testing.T) {
+	gate := GoLive{MinTrades: 3, MinTradingDays: 2, MaxDrawdownPct: 20, PaperCapitalUSD: 1000}
+	day := func(d int) time.Time { return NOW.AddDate(0, 0, d) }
+	closed := func(source string, at time.Time, pnl float64) Entry {
+		return Entry{At: at, Action: ACTION_CLOSE, Signal: Signal{SourceID: source, Kind: KIND_ENTRY}, Result: &Result{PnLUSD: pnl}}
+	}
+	entries := []Entry{
+		{Signal: Signal{SourceID: "x:good", Kind: KIND_ENTRY}, Plan: &Plan{}},
+		{Signal: Signal{SourceID: "x:good", Kind: KIND_ENTRY}, Rejected: "chased"},
+		{Signal: Signal{SourceID: "x:good", Kind: KIND_NOISE}},
+		closed("x:good", day(0), 130), closed("x:good", day(0), -50), closed("x:good", day(1), 130),
+		closed("x:bad", day(0), 100), closed("x:bad", day(1), -300), closed("x:bad", day(2), 50), // 1100 -> 800: 27% drawdown
+		closed("x:lucky", day(0), 500), // one big win is not a record
+	}
+	byID := map[string]Score{}
+	scores := Scoreboard(entries, gate)
+	for _, s := range scores {
+		byID[s.SourceID] = s
+	}
+	if scores[0].SourceID != ALL_SOURCES {
+		t.Fatalf("first row is %s, want the all row", scores[0].SourceID)
+	}
+	good := byID["x:good"]
+	if !good.GoLive || good.Posts != 2 || good.Planned != 1 || good.Rejected != 1 || good.Trades != 3 || good.Wins != 2 || good.PnLUSD != 210 {
+		t.Fatalf("good: %+v", good)
+	}
+	bad := byID["x:bad"]
+	if bad.GoLive || bad.MaxDrawdownPct < 27 || bad.MaxDrawdownPct > 28 || len(bad.Missing) != 2 {
+		t.Fatalf("bad: %+v", bad)
+	}
+	if lucky := byID["x:lucky"]; lucky.GoLive || lucky.WinRatePct != 100 || len(lucky.Missing) != 2 {
+		t.Fatalf("lucky: a 1-for-1 source must not pass: %+v", lucky)
+	}
+}

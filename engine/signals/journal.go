@@ -22,6 +22,7 @@ type Entry struct {
 	Action   string    `json:"action"`
 	Signal   Signal    `json:"signal"`
 	Plan     *Plan     `json:"plan,omitempty"`
+	Result   *Result   `json:"result,omitempty"` // set on "close" lines
 	Rejected string    `json:"rejected,omitempty"`
 	Note     string    `json:"note,omitempty"` // what the gate changed or could not check
 	// AsOf is the moment the plan was built for. Manual shares are planned as of the post time,
@@ -107,6 +108,13 @@ func (j *Journal) Recent(after int64, limit int) []Entry {
 		out = out[len(out)-limit:]
 	}
 	return out
+}
+
+// All returns every entry kept in memory, oldest first.
+func (j *Journal) All() []Entry {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	return append([]Entry{}, j.recent...)
 }
 
 // Subscribe returns a channel of new entries and a func that ends the subscription.

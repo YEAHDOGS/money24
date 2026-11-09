@@ -47,6 +47,7 @@ func (s Source) ID() string {
 // Catalog is the loaded source list.
 type Catalog struct {
 	Defaults  Settings `json:"defaults"`
+	GoLive    GoLive   `json:"go_live"`
 	Sources   []Source `json:"sources"`
 	Blocklist []Source `json:"blocklist"`
 }

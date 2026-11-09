@@ -43,7 +43,7 @@ func (o APIOptions) TrustsLocalDesk(r *http.Request) bool {
 	return hostOK && originOK
 }
 
-// API serves the trading UI: GET /api/journal, GET /api/stream (SSE), GET /api/sources, plus the
+// API serves the trading UI: GET /api/journal, GET /api/stream (SSE), GET /api/sources, GET /api/scoreboard, plus the
 // webhook at POST /signals and GET /healthz. Headless servers serve the same routes; the UI is optional.
 func API(j *Journal, c *Catalog, webhook http.Handler, opts APIOptions) http.Handler {
 	origins, hosts := map[string]bool{}, map[string]bool{}
@@ -66,6 +66,7 @@ func API(j *Journal, c *Catalog, webhook http.Handler, opts APIOptions) http.Han
 		after, _ := strconv.ParseInt(r.URL.Query().Get("after"), 10, 64)
 		writeJSON(w, j.Recent(after, limit))
 	})
+	mux.HandleFunc("GET /api/scoreboard", func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, Scoreboard(j.All(), c.GoLive)) })
 	mux.HandleFunc("GET /api/stream", func(w http.ResponseWriter, r *http.Request) { stream(w, r, j) })
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

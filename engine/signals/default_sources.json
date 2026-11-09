@@ -22,6 +22,12 @@
     "exit_days_before_expiry": 0,
     "exit_minutes_before_close": 30
   },
+  "go_live": {
+    "min_trades": 100,
+    "min_trading_days": 30,
+    "max_drawdown_pct": 20,
+    "paper_capital_usd": 1000
+  },
   "sources": [
     { "type": "x", "handle": "MATTSMATTED", "markets": ["options"], "role": "callouts", "note": "Owner's template account for the callout format" },
     { "type": "x", "handle": "InvestorsLive", "markets": ["stocks"], "role": "callouts", "note": "Posts entries, exits and reasoning" },
