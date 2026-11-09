@@ -101,3 +101,15 @@ THE STRUCTURAL PROBLEM (visible in his own video): on Polymarket, an UP share + 
 FIT FOR MONEY 24: (1) Not copy trading, not the indicator — a third thing (own-bot market making), outside the stated strategy focus. (2) Mechanically un-copyable, same lesson as SukantsaS: by the time a ladder fill is public, the price is gone. (3) Capital/scale mismatch is total: covering ~198 resting levels across 280 markets a day is a bankroll-and-infrastructure game; $100 covers a handful of levels in one market and eats the toxic fills without the speed to dodge them. (4) The funnel: the author sells nothing in the post; his bio funnels to SpreadMap (spreadmap.io), his Polymarket/Kalshi arbitrage-gap tool.
 
 STATUS: evaluated and filed at his order. No signup, no spend, no bot. Full read archived from the Nov 9, 2026 browser report.
+
+### @Raphael1402X — "$2 became $2.2M" CASHCAT top-trader post (evaluated Nov 9, 2026)
+
+Source: https://x.com/Raphael1402X/status/2119866081091240093 — his send with "crypto can work going from dollars to at least hundreds."
+
+**The post:** 9-second Dexscreener screen recording of CASHCAT/WETH (Uniswap, Robinhood chain), ~$198M market cap. The Top Traders row #1: BOUGHT $2 (16.3M tokens, 5 txns) / SOLD $2.2M (13.8M tokens, 80 txns) / PNL $2.2M / UNREALIZED -$408.4K / BALANCE 2.4M tokens. Wallet address truncated in the video ("8aa..."), never verified. Author: 57.9K followers; the post itself drew 12 likes / 1,336 views. His pinned post is the actual business: a "$50 SOL to $100,000 challenge" funneling to Telegram, with "first 2500 to drop wallets gets $50" engagement bait.
+
+**Verdict: the row is plausibly real Dexscreener data; the implied strategy does not exist.** A $2 cost basis for 16.3M tokens means the wallet was there at the very first blocks (or received tokens at ~zero basis) — the insider/first-buyer seat, decided before any chart existed. Nobody can choose to become that row after the fact. Survivorship does the rest: this table only exists because CASHCAT ran to ~$198M; the thousands of same-day launches that went to zero have no top-trader screenshots. Note also the row's own fine print: the wallet still holds 2.4M tokens at -$408K unrealized, and its $2.2M of sells across 80 transactions WAS the exit liquidity later buyers provided.
+
+**On his thesis (dollars -> hundreds):** that narrower claim is the defensible one, and this post is not its evidence. Dollars-to-millions here is a 1,100,000x lottery/insider outcome. Dollars-to-hundreds is a 10-100x — a different, repeatable-in-principle game (early entry + disciplined exits), consistent with the wallet-level data already on file: a minority of memecoin wallets profit (~15-20% depending on the study), the median buyer loses, and the edge sits in entry timing and exit discipline, not in screenshots of winners. If anything in this post is copyable, it is the seller's exit pattern (80 staged sells into strength), not the $2 entry.
+
+**Filed:** Wordsmith money24 note; this entry; money-makers README source URLs. No action, no signup, no Telegram join.
