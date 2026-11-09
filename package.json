@@ -11,6 +11,7 @@
     "test:ui:coverage": "vitest run --ui --coverage",
     "engine:build": "node scripts/build-engine.js",
     "engine:linux": "node scripts/build-engine.js --linux",
+    "tauri": "tauri",
     "desktop": "tauri dev",
     "desktop:build": "tauri build"
   },
