@@ -20,7 +20,11 @@
     "noise": "Noise",
     "rejected": "Rejected"
   },
-  "tabs": { "journal": "Journal", "detail": "Plan", "sources": "Sources" },
+  "tabs": {
+    "journal": "Journal",
+    "detail": "Plan",
+    "sources": "Sources"
+  },
   "sources": "Sources",
   "empty": "No signals yet. Send a callout to POST /signals.",
   "offlineHint": "Start the runner: go run ./cmd/m24d (port 8025).",
@@ -46,5 +50,19 @@
     "news": "News",
     "wallets": "Wallets",
     "insider": "Insider"
-  }
+  },
+  "shareLabel": "Paper trade a post",
+  "sharePlaceholder": "x.com link or callout text",
+  "shareButton": "Trade",
+  "shareBusy": "Reading…",
+  "shareRead": "Read as",
+  "shareNoise": "Not a callout: logged as noise.",
+  "shared": "Shared",
+  "asOf": "Planned as of post",
+  "openPost": "Open post",
+  "runnerSettings": "Runner",
+  "runnerUrl": "Runner URL",
+  "runnerSecret": "Webhook secret",
+  "runnerHint": "Desktop app and local dev need no secret. From a phone, use your runner's URL and the secret in its data folder (webhook-secret).",
+  "save": "Save"
 }

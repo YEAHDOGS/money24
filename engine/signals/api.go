@@ -25,6 +25,24 @@ type APIOptions struct {
 	Hosts   []string
 }
 
+// TrustsLocalDesk lets the desk UI post signals without the secret, but only when the runner is bound
+// to loopback (Hosts set) and the request comes from an allowed browser origin on a loopback Host.
+// Anything that can make such a request can already read the secret file on the same machine.
+func (o APIOptions) TrustsLocalDesk(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if len(o.Hosts) == 0 || origin == "" {
+		return false
+	}
+	hostOK, originOK := false, false
+	for _, h := range o.Hosts {
+		hostOK = hostOK || strings.TrimSpace(h) == r.Host
+	}
+	for _, o := range o.Origins {
+		originOK = originOK || strings.TrimSpace(o) == origin
+	}
+	return hostOK && originOK
+}
+
 // API serves the trading UI: GET /api/journal, GET /api/stream (SSE), GET /api/sources, plus the
 // webhook at POST /signals and GET /healthz. Headless servers serve the same routes; the UI is optional.
 func API(j *Journal, c *Catalog, webhook http.Handler, opts APIOptions) http.Handler {

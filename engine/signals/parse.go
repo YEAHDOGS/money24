@@ -59,6 +59,9 @@ type Signal struct {
 	Confidence float64   `json:"confidence"`
 	SeenAt     time.Time `json:"seen_at"`
 	Raw        string    `json:"raw"`
+	PostedAt   time.Time `json:"posted_at,omitzero"` // when the source posted it, when known
+	URL        string    `json:"url,omitempty"`
+	Manual     bool      `json:"manual,omitempty"` // shared by hand from the app
 }
 
 // Parse reads one post. now resolves expiries written without a year.

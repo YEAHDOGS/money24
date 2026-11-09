@@ -7,14 +7,18 @@
   import { onMount } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
-  import { TradingClient, bucket, contractLabel } from './trading-client.svelte.js';
+  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel } from './trading-client.svelte.js';
   import PlanLadder from './PlanLadder.svelte';
+  import ShareBox from './ShareBox.svelte';
+  import RunnerSettings from './RunnerSettings.svelte';
 
   const CLOCK_TICK_MS = 1000;
   const ENTER_MS = 420;
   const ENTER_OFFSET_PX = 16;
   const MS_PER_MINUTE = 60000;
   const MINUTES_PER_HOUR = 60;
+  const HOURS_PER_DAY = 24;
+  const HOURS_SHOWN_MAX = 48; // past two days, ages read in days
   const PERCENT = 100;
   const ALL = 'all';
   const BUCKETS = ['entry', 'exit', 'trim', 'add', 'rejected', 'noise'];
@@ -22,6 +26,10 @@
   const TAB_DETAIL = 'detail';
   const TAB_SOURCES = 'sources';
   const TABS = [TAB_JOURNAL, TAB_DETAIL, TAB_SOURCES];
+  const STORE_RUNNER = 'm24.trading.runner';
+  const STORE_SECRET = 'm24.trading.secret';
+  // Android share sheet (PWA share_target) and links land here as ?title=&text=&url=.
+  const SHARE_PARAMS = ['title', 'text', 'url'];
   const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', reconnecting: 'text-warn', offline: 'text-bad' };
   // Literal class strings so Tailwind sees them. Colors come from theme tokens.
   const BUCKET_CLASSES = {
@@ -33,15 +41,72 @@
     noise: 'text-muted border-line',
   };
 
-  const client = new TradingClient();
+  /** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
+  function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
+    try {
+      return localStorage.getItem(key) ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  let runnerUrl = $state(stored(STORE_RUNNER, DEFAULT_RUNNER));
+  let runnerSecret = $state(stored(STORE_SECRET, ''));
+  let client = $state(new TradingClient(runnerUrl, runnerSecret));
+  /** The post id (or raw text) of the last share, so its journal line opens when it lands. */
+  let awaiting = '';
+  /** A share that arrived through the share sheet, prefilled into the box and sent once. */
+  const sharedIn = SHARE_PARAMS.map((k) => new URLSearchParams(location.search).get(k) ?? '').filter(Boolean).join(' ');
   let now = $state(Date.now());
   let filter = $state(ALL);
   let tab = $state(TAB_JOURNAL);
   let selectedId = $state(0);
 
-  onMount(() => {
+  function connect() {
+    client.onEntry = (e) => {
+      if (!awaiting || (e.signal.post_id || e.signal.raw) !== awaiting) return;
+      awaiting = '';
+      pick(e.id);
+    };
     client.start();
+  }
+
+  function saveRunner(/** @type {string} */ url, /** @type {string} */ secret) {
+    try {
+      localStorage.setItem(STORE_RUNNER, url || DEFAULT_RUNNER);
+      localStorage.setItem(STORE_SECRET, secret);
+    } catch {
+      // Not persisted on this device; still used for this visit.
+    }
+    client.stop();
+    runnerUrl = url || DEFAULT_RUNNER;
+    runnerSecret = secret;
+    client = new TradingClient(runnerUrl, runnerSecret);
+    connect();
+  }
+
+  /** Sends one post to the runner and reports how it was read. Its plan opens when the journal line lands. */
+  async function share(/** @type {string} */ input) {
+    const sig = await client.share(input);
+    tab = TAB_JOURNAL;
+    awaiting = sig.post_id || sig.raw;
+    // The stream can beat the HTTP reply: open the plan now if its line already landed.
+    const landed = client.items.find((e) => (e.signal.post_id || e.signal.raw) === awaiting);
+    if (landed) {
+      awaiting = '';
+      pick(landed.id);
+    }
+    if (sig.kind === 'noise') return strings.shareNoise;
+    return `${strings.shareRead} ${strings.actions[sig.kind] ?? sig.kind} · ${contractLabel(sig)} · ${sig.source_id}`;
+  }
+
+  onMount(() => {
+    connect();
     const tick = setInterval(() => { now = Date.now(); }, CLOCK_TICK_MS);
+    if (sharedIn) {
+      history.replaceState(null, '', location.pathname);
+      share(sharedIn).catch(() => {});
+    }
     return () => {
       clearInterval(tick);
       client.stop();
@@ -65,7 +130,9 @@
   function span(/** @type {number} */ ms) {
     const m = Math.max(0, Math.round(ms / MS_PER_MINUTE));
     if (m < MINUTES_PER_HOUR) return `${m}m`;
-    return `${Math.floor(m / MINUTES_PER_HOUR)}h ${m % MINUTES_PER_HOUR}m`;
+    const h = Math.floor(m / MINUTES_PER_HOUR);
+    if (h >= HOURS_SHOWN_MAX) return `${Math.floor(h / HOURS_PER_DAY)}d`;
+    return `${h}h ${m % MINUTES_PER_HOUR}m`;
   }
 
   /** New journal lines slide down into place and fade in. Transform and opacity only. */
@@ -130,10 +197,14 @@
         </ul>
       {/each}
     </div>
+    <div class="hidden md:block landscape-phone:hidden! {tab === TAB_SOURCES ? 'max-md:block!' : ''}">
+      <RunnerSettings url={runnerUrl} secret={runnerSecret} onSave={saveRunner} />
+    </div>
   </aside>
 
   <!-- JOURNAL -->
   <main class="flex min-h-0 flex-col border-line md:border-r landscape-phone:flex! {tab === TAB_JOURNAL ? '' : 'max-md:hidden'}">
+    <ShareBox onShare={share} initial={sharedIn} />
     <div class="flex flex-wrap gap-1.5 border-b border-line px-4 py-2 short:py-1 md:hidden landscape-phone:flex!" role="group" aria-label="Filter">
       {#each [ALL, ...BUCKETS] as b (b)}
         <button type="button" aria-pressed={filter === b} onclick={() => { filter = b; }}
@@ -155,6 +226,9 @@
                 <span class="rounded-sm border px-1.5 py-px text-[0.68rem] font-bold uppercase tracking-wider {BUCKET_CLASSES[b]}">{strings.actions[b]}</span>
                 <span class="font-mono font-semibold text-white">{contractLabel(e.signal)}</span>
                 <span class="truncate text-muted">{e.signal.source_id}</span>
+                {#if e.signal.manual}
+                  <span class="rounded-sm bg-white/8 px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-white/70">{strings.shared}</span>
+                {/if}
               </span>
               {#if e.plan}
                 <span class="mt-1 block font-mono text-xs tabular-nums text-white/80">
@@ -184,7 +258,13 @@
           <h2 class="font-mono text-xl font-bold text-white">{contractLabel(s)}</h2>
           <span class="rounded-sm border px-1.5 py-px text-[0.68rem] font-bold uppercase tracking-wider {BUCKET_CLASSES[bucket(selected)]}">{strings.actions[bucket(selected)]}</span>
         </div>
-        <p class="mt-1 text-xs text-muted">{s.source_id} · {new Date(selected.at).toLocaleString()}</p>
+        <p class="mt-1 text-xs text-muted">
+          {s.source_id} · {new Date(selected.at).toLocaleString()}
+          {#if s.url}· <a href={s.url} target="_blank" rel="noopener noreferrer" class="spring text-white/70 underline-offset-4 hover:text-white hover:underline">{strings.openPost}</a>{/if}
+        </p>
+        {#if selected.as_of}
+          <p class="mt-1 text-xs text-warn">{strings.asOf}: {new Date(selected.as_of).toLocaleString()} ({span(now - Date.parse(selected.as_of))} ago)</p>
+        {/if}
 
         {#if selected.plan}
           {@const p = selected.plan}

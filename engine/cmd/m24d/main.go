@@ -131,8 +131,14 @@ func main() {
 		defer close(done)
 		for sig := range queue {
 			e := signals.Entry{At: time.Now().UTC(), Action: string(sig.Kind), Signal: sig}
+			// A manual share is planned as of its post time, so the clock rules start when the source posted.
+			asOf, planSig := time.Now(), sig
+			if sig.Manual && !sig.PostedAt.IsZero() {
+				asOf, planSig.SeenAt = sig.PostedAt, sig.PostedAt
+				e.AsOf = asOf.UTC()
+			}
 			if sig.Kind == signals.KIND_ENTRY {
-				plan, err := signals.Build(sig, catalog.SettingsFor(sig.SourceID), 0, time.Now())
+				plan, err := signals.Build(planSig, catalog.SettingsFor(sig.SourceID), 0, asOf)
 				if err != nil {
 					e.Rejected = err.Error()
 				} else {
@@ -150,10 +156,11 @@ func main() {
 	if *hosts != "" {
 		allowedHosts = strings.Split(*hosts, ",")
 	}
-	handler := signals.API(journal, catalog, signals.Webhook(secret, queue), signals.APIOptions{
-		Origins: strings.Split(*origins, ","),
-		Hosts:   allowedHosts,
-	})
+	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts}
+	resolver := func(ctx context.Context, statusURL string) (signals.Tweet, error) {
+		return signals.ResolveTweet(ctx, http.DefaultClient, statusURL)
+	}
+	handler := signals.API(journal, catalog, signals.Webhook(secret, opts.TrustsLocalDesk, resolver, queue), opts)
 	// Request contexts end with ctx, so open UI streams close on shutdown instead of holding it up.
 	srv := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: HEADER_TIMEOUT,
 		BaseContext: func(net.Listener) context.Context { return ctx }}

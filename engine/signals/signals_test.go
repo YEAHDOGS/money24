@@ -1,7 +1,11 @@
 package signals
 
 import (
+	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -186,5 +190,75 @@ func TestDefaultCatalog(t *testing.T) {
 	}
 	if got := c.SettingsFor("x:MATTSMATTED"); got.StopLossPct != 20 {
 		t.Fatalf("settings %+v", got)
+	}
+}
+
+func TestXStatusURL(t *testing.T) {
+	tw, err := ParseXStatusURL("https://x.com/MATTSMATTED/status/1985841080431321088?s=46&t=abc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tw.Handle != "MATTSMATTED" || tw.ID != "1985841080431321088" || !tw.At.Equal(time.UnixMilli(1762296383374)) {
+		t.Fatalf("%+v", tw)
+	}
+	if got := FindXStatusURL("Check this out https://twitter.com/a_b/status/123456789 🔥"); got != "https://twitter.com/a_b/status/123456789" {
+		t.Fatalf("find: %q", got)
+	}
+	if _, err := ParseXStatusURL("https://x.com/MATTSMATTED"); err == nil {
+		t.Fatal("profile link is not a status")
+	}
+}
+
+func TestTweetTextFromEmbed(t *testing.T) {
+	embed := `<blockquote class="twitter-tweet"><p lang="en" dir="ltr">BTO <a href="https://twitter.com/search?q=%24SPY">$SPY</a> 600C 11/21 @ 1.20<br>Let&#39;s go &amp; size small</p>&mdash; Matt (@MATTSMATTED) <a href="https://twitter.com/x/status/1">November 9, 2026</a></blockquote>`
+	if got, want := tweetTextFromEmbed(embed), "BTO $SPY 600C 11/21 @ 1.20\nLet's go & size small"; got != want {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestWebhookResolvesSharedLink(t *testing.T) {
+	out := make(chan Signal, 1)
+	resolve := func(_ context.Context, u string) (Tweet, error) {
+		tw, _ := ParseXStatusURL(u)
+		tw.Text = "BTO $SPY 600C 11/21 @ 1.20"
+		return tw, nil
+	}
+	h := Webhook("s3cret", func(*http.Request) bool { return false }, resolve, out)
+
+	req := httptest.NewRequest(http.MethodPost, "/signals", strings.NewReader(`{"text":"https://x.com/MATTSMATTED/status/1985841080431321088","manual":true}`))
+	rec := httptest.NewRecorder()
+	h(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("no secret: %d", rec.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/signals", strings.NewReader(`{"text":"https://x.com/MATTSMATTED/status/1985841080431321088","manual":true}`))
+	req.Header.Set("Authorization", "Bearer s3cret")
+	rec = httptest.NewRecorder()
+	h(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	sig := <-out
+	if sig.SourceID != "x:MATTSMATTED" || sig.Kind != KIND_ENTRY || !sig.Manual || sig.PostedAt.IsZero() || sig.PostID != "1985841080431321088" {
+		t.Fatalf("%+v", sig)
+	}
+}
+
+func TestTrustsLocalDesk(t *testing.T) {
+	o := APIOptions{Origins: []string{"http://localhost:5173"}, Hosts: []string{"127.0.0.1:8025"}}
+	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8025/signals", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	if !o.TrustsLocalDesk(req) {
+		t.Fatal("local desk should be trusted")
+	}
+	req.Header.Set("Origin", "https://evil.example")
+	if o.TrustsLocalDesk(req) {
+		t.Fatal("foreign origin trusted")
+	}
+	o.Hosts = nil // bound to a public interface: always need the secret
+	req.Header.Set("Origin", "http://localhost:5173")
+	if o.TrustsLocalDesk(req) {
+		t.Fatal("non-loopback runner trusted")
 	}
 }

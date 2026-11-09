@@ -128,6 +128,35 @@ Every signal can override the defaults of its source.
 The client manages sources and settings. The chart shows the live price
 with the ladder and stop drawn on it, and there's a scoreboard per source.
 
+## Share to paper-trade (built)
+
+From the trading desk (desktop app, website, or the Android share sheet once
+the desk is installed as an app from Chrome), share an X post or paste a
+callout. The runner reads the post through X's public oEmbed endpoint (no API
+key), takes the author as the source and the post time from the post id, and
+plans it with that source's rules **as of the post time**. Fresh posts become
+live paper trades; old posts show what the rules would have planned back then.
+Phones need the runner's URL and webhook secret once. The local desktop app
+needs neither.
+
+## Profile backtest: is this account worth copying? (next)
+
+Window: **the last ~30 days** of a profile's posts.
+
+1. **Collect** the profile's posts from the last 30 days (X scraper).
+2. **Parse** each one with the same parser. Keep entries and their exits/trims
+   by thread.
+3. **Replay** each entry against historical prices: option minute bars from
+   the post time, run through the same bracket (stop, ladder, time exits) and
+   the source's own exits.
+4. **Score** the account on win rate, average win/loss, expectancy per trade,
+   max drawdown, how fast the price ran past the callout (slippage risk), and
+   callouts per day. Then set a risk grade that sets probation and size.
+
+Blocker: **historical option prices.** Free quotes don't go back with minute
+detail. Candidates are Alpaca options data (indicative feed free, OPRA paid),
+Polygon/Massive, and ThetaData. This is a cost decision for the owner.
+
 ## Long-term: prop-firm capital
 
 Run proven strategies on funded prop-firm accounts. Copy-trading is banned
