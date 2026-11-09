@@ -110,6 +110,16 @@ addresses are never hardcoded.
 | `max_chase_pct` | 15 | Skip if the price has run past the called price by this much |
 | `min_confidence` | 0.8 | Classifier threshold |
 | `max_usd_per_trade` / `max_usd_per_day` / `max_open_positions` | set per account | Hard caps |
+| `max_signal_age_sec` | 120 | Skip callouts that are already this old when we see them |
+| `max_hold_minutes` | 240 | Close whatever is left after this long, win or lose |
+| `time_stop` | 45 min, 0% | Not up by this point? Close: dead trades bleed theta |
+| `exit_days_before_expiry` | 0 | Options: close this many days before expiry (0 = same day) |
+| `exit_minutes_before_close` | 30 | Options: out this long before the expiry-day close |
+
+Every plan carries an `exit_by` time: the earlier of the max hold and the
+expiry exit. A callout that arrives after its own expiry exit is skipped.
+Day-trade sources want short holds; swing sources want days. Set it per
+source.
 
 Every signal can override the defaults of its source.
 

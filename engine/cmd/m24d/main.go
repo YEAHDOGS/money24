@@ -81,7 +81,7 @@ func main() {
 		for sig := range queue {
 			line := entry{At: time.Now().UTC(), Action: string(sig.Kind), Signal: sig}
 			if sig.Kind == signals.KIND_ENTRY {
-				plan, err := signals.Build(sig, catalog.SettingsFor(sig.SourceID), 0)
+				plan, err := signals.Build(sig, catalog.SettingsFor(sig.SourceID), 0, time.Now())
 				if err != nil {
 					line.Rejected = err.Error()
 				} else {

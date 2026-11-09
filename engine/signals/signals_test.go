@@ -60,7 +60,7 @@ var SETTINGS = Settings{
 
 func TestBuildBracket(t *testing.T) {
 	sig := Parse("BTO $SPY 600C 11/21 @ 1.20", NOW)
-	p, err := Build(sig, SETTINGS, 0)
+	p, err := Build(sig, SETTINGS, 0, NOW)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestBuildBracket(t *testing.T) {
 func TestBuildOneContractStillHasATakeProfit(t *testing.T) {
 	s := SETTINGS
 	s.MaxUSDPerTrade = 150
-	p, err := Build(Parse("BTO $SPY 600C 11/21 @ 1.20", NOW), s, 0)
+	p, err := Build(Parse("BTO $SPY 600C 11/21 @ 1.20", NOW), s, 0, NOW)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,19 +116,63 @@ func TestBuildRejects(t *testing.T) {
 		{"no price anywhere", Parse("$SPY 600C 11/21", NOW), SETTINGS, 0, ErrNoPrice},
 	}
 	for _, c := range cases {
-		if _, err := Build(c.sig, c.s, c.quote); !errors.Is(err, c.want) {
+		if _, err := Build(c.sig, c.s, c.quote, NOW); !errors.Is(err, c.want) {
 			t.Errorf("%s: got %v, want %v", c.name, err, c.want)
 		}
 	}
 }
 
 func TestBuildUsesQuoteInsideChase(t *testing.T) {
-	p, err := Build(Parse("BTO $SPY 600C 11/21 @ 1.20", NOW), SETTINGS, 1.30)
+	p, err := Build(Parse("BTO $SPY 600C 11/21 @ 1.20", NOW), SETTINGS, 1.30, NOW)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if p.Entry != 1.30 || p.Stop != 1.04 {
 		t.Fatalf("plan %+v", p)
+	}
+}
+
+func TestTimeRules(t *testing.T) {
+	s := SETTINGS
+	s.MaxSignalAgeSec = 120
+	s.MaxHoldMinutes = 240
+	s.ExitMinutesBeforeClose = 30
+	s.TimeStop = TimeStop{AfterMinutes: 45, MinGainPct: 0}
+	sig := Parse("BTO $SPY 600C 11/21 @ 1.20", NOW)
+
+	p, err := Build(sig, s, 0, NOW)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := NOW.Add(240 * time.Minute); !p.ExitBy.Equal(want) {
+		t.Errorf("max hold: exit by %v, want %v", p.ExitBy, want)
+	}
+	if want := NOW.Add(45 * time.Minute); !p.TimeStopAt.Equal(want) || p.TimeStopAbove != 1.20 {
+		t.Errorf("time stop: %v above %v", p.TimeStopAt, p.TimeStopAbove)
+	}
+
+	// Close to expiry the expiry exit wins: 11/21 3:30pm New York.
+	late := time.Date(2026, 11, 21, 13, 0, 0, 0, MARKET)
+	sig.SeenAt = late
+	p, err = Build(sig, s, 0, late)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := time.Date(2026, 11, 21, 15, 30, 0, 0, MARKET); !p.ExitBy.Equal(want) {
+		t.Errorf("expiry exit: %v, want %v", p.ExitBy, want)
+	}
+
+	// After the expiry exit there is no time left to trade it.
+	tooLate := time.Date(2026, 11, 21, 15, 45, 0, 0, MARKET)
+	sig.SeenAt = tooLate
+	if _, err := Build(sig, s, 0, tooLate); !errors.Is(err, ErrNoTime) {
+		t.Errorf("after expiry exit: %v", err)
+	}
+
+	// A callout seen 3 minutes ago is stale at 120 seconds.
+	sig.SeenAt = NOW.Add(-3 * time.Minute)
+	if _, err := Build(sig, s, 0, NOW); !errors.Is(err, ErrStale) {
+		t.Errorf("stale: %v", err)
 	}
 }
 

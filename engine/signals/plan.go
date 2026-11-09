@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"time"
+	_ "time/tzdata" // market hours resolve the same on Windows, Linux and distroless
 )
 
 const (
@@ -11,7 +13,18 @@ const (
 	SHARE_MULTIPLIER  = 1
 	PRICE_TICK        = 0.01
 	PERCENT           = 100.0
+	MARKET_TZ         = "America/New_York"
+	MARKET_CLOSE_HOUR = 16
 )
+
+// MARKET is where US stock and option sessions are clocked.
+var MARKET = func() *time.Location {
+	loc, err := time.LoadLocation(MARKET_TZ)
+	if err != nil {
+		panic(err)
+	}
+	return loc
+}()
 
 // Rung is one ladder exit: sell PctOfPosition of the position at AtGainPct above entry.
 type Rung struct {
@@ -29,6 +42,19 @@ type Settings struct {
 	MaxChasePct      float64 `json:"max_chase_pct"`
 	MinConfidence    float64 `json:"min_confidence"`
 	MaxUSDPerTrade   float64 `json:"max_usd_per_trade"`
+
+	// Time rules. Zero turns a rule off.
+	MaxSignalAgeSec        int      `json:"max_signal_age_sec"`        // skip callouts older than this when we see them
+	MaxHoldMinutes         int      `json:"max_hold_minutes"`          // close whatever is left after this long
+	TimeStop               TimeStop `json:"time_stop"`                 // not working yet? get out
+	ExitDaysBeforeExpiry   int      `json:"exit_days_before_expiry"`   // options: dodge the last days of time decay
+	ExitMinutesBeforeClose int      `json:"exit_minutes_before_close"` // options: out before the expiry-day close
+}
+
+// TimeStop closes the position if it isn't up MinGainPct after AfterMinutes.
+type TimeStop struct {
+	AfterMinutes int     `json:"after_minutes"`
+	MinGainPct   float64 `json:"min_gain_pct"`
 }
 
 // Target is one resting limit sell.
@@ -46,6 +72,10 @@ type Plan struct {
 	Targets []Target `json:"targets"`
 	Runner  int      `json:"runner"`
 	CostUSD float64  `json:"cost_usd"`
+
+	ExitBy        time.Time `json:"exit_by"`                   // hard time exit for everything left
+	TimeStopAt    time.Time `json:"time_stop_at,omitzero"`     // check point for the time stop
+	TimeStopAbove float64   `json:"time_stop_above,omitempty"` // must be above this at TimeStopAt, or close
 }
 
 var (
@@ -55,10 +85,13 @@ var (
 	ErrChased         = errors.New("price already ran past max chase")
 	ErrNoExits        = errors.New("no stop or no take-profit: no exits, no trade")
 	ErrBudgetTooSmall = errors.New("max_usd_per_trade buys less than one unit")
+	ErrStale          = errors.New("callout is older than max_signal_age_sec")
+	ErrNoTime         = errors.New("no time left before the expiry exit")
 )
 
-// Build turns an entry signal into a full bracket. quote is the live price, or 0 when unknown.
-func Build(sig Signal, s Settings, quote float64) (Plan, error) {
+// Build turns an entry signal into a full bracket, price exits and time exits together.
+// quote is the live price, or 0 when unknown. now is when we would place the order.
+func Build(sig Signal, s Settings, quote float64, now time.Time) (Plan, error) {
 	if sig.Kind != KIND_ENTRY {
 		return Plan{}, ErrNotEntry
 	}
@@ -67,6 +100,9 @@ func Build(sig Signal, s Settings, quote float64) (Plan, error) {
 	}
 	if s.StopLossPct <= 0 || s.StopLossPct >= PERCENT || len(s.Ladder) == 0 {
 		return Plan{}, ErrNoExits
+	}
+	if s.MaxSignalAgeSec > 0 && now.Sub(sig.SeenAt) > time.Duration(s.MaxSignalAgeSec)*time.Second {
+		return Plan{}, ErrStale
 	}
 
 	entry := quote
@@ -111,5 +147,25 @@ func Build(sig Signal, s Settings, quote float64) (Plan, error) {
 		left = 0
 	}
 	plan.Runner = left
+
+	if s.MaxHoldMinutes > 0 {
+		plan.ExitBy = now.Add(time.Duration(s.MaxHoldMinutes) * time.Minute)
+	}
+	if sig.Expiry != "" {
+		day, err := time.ParseInLocation(EXPIRY_LAYOUT, sig.Expiry, MARKET)
+		if err == nil {
+			last := day.AddDate(0, 0, -s.ExitDaysBeforeExpiry).Add(MARKET_CLOSE_HOUR*time.Hour - time.Duration(s.ExitMinutesBeforeClose)*time.Minute)
+			if plan.ExitBy.IsZero() || last.Before(plan.ExitBy) {
+				plan.ExitBy = last
+			}
+		}
+	}
+	if !plan.ExitBy.IsZero() && !plan.ExitBy.After(now) {
+		return Plan{}, ErrNoTime
+	}
+	if s.TimeStop.AfterMinutes > 0 {
+		plan.TimeStopAt = now.Add(time.Duration(s.TimeStop.AfterMinutes) * time.Minute)
+		plan.TimeStopAbove = math.Round((entry*(1+s.TimeStop.MinGainPct/PERCENT))/PRICE_TICK) * PRICE_TICK
+	}
 	return plan, nil
 }
