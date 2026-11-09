@@ -1,0 +1,12 @@
+[
+  {
+    "source": "x:MATTSMATTED",
+    "post_id": "2119870104871776322",
+    "posted_at": "2026-11-09T19:09:52Z",
+    "text": "ADDING HEAVY \n\n$CSV \n20 NOV 26 $30 CALL \n$0.75",
+    "want": {
+      "kind": "add", "symbol": "CSV", "right": "C", "strike": 30,
+      "expiry": "2026-11-20", "price": 0.75, "size": "heavy", "confidence": 1
+    }
+  }
+]

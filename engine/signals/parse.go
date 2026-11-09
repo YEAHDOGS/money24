@@ -29,6 +29,16 @@ const (
 	CONFIDENCE_NONE       = 0.0
 	EXPIRY_LAYOUT         = "2006-01-02"
 	TWO_DIGIT_YEAR_OFFSET = 2000
+	MAX_EXPIRY_YEARS_OUT  = 3 // a trailing number further out than this is not a year
+
+	MONTH_ABBREV_LEN = 3
+
+	SIZE_HEAVY = "heavy"
+	SIZE_LIGHT = "light"
+	SIZE_LOTTO = "lotto"
+	MONTHS     = "jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec" // monthNumber indexes into this
+	// Whole month names only, so "decent 20" or "margin 5" is not a date.
+	MONTH_NAMES = `jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?`
 )
 
 var (
@@ -43,6 +53,23 @@ var (
 	CONTRACT    = regexp.MustCompile(`(?i)\b(\d+(?:\.\d+)?)\s*(c|p|calls?|puts?)\b`)
 	EXPIRY      = regexp.MustCompile(`\b(\d{1,2})/(\d{1,2})(?:/(\d{2}|\d{4}))?\b`)
 	PRICE       = regexp.MustCompile(`(?i)(?:@|\bat\b|\bfor\b)\s*\$?(\d*\.?\d+)`)
+	// A price alone on its line ("$0.75"), the way multi-line callouts end. Needs the $ so a lone number is not a price.
+	PRICE_LINE = regexp.MustCompile(`(?m)^\s*\$(\d*\.?\d+)\s*$`)
+	// "20 NOV 26", "20NOV", "20 November 2026": day first. Checked before month-first, or "NOV 26" would win.
+	EXPIRY_DAY_MONTH = regexp.MustCompile(`(?i)\b(\d{1,2})\s*(` + MONTH_NAMES + `)\.?(?:\s*(\d{4}|\d{2}))?\b`)
+	// "NOV 20", "Nov 20th, 2026": month first.
+	EXPIRY_MONTH_DAY = regexp.MustCompile(`(?i)\b(` + MONTH_NAMES + `)\.?\s*(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b`)
+	STRIKE_SUFFIX    = regexp.MustCompile(`(?i)^\s*(c|p|calls?|puts?)\b`)
+
+	// Size words describe the caller's size, never ours. They are kept as a tag for backtests.
+	SIZE_WORDS = []struct {
+		size  string
+		words *regexp.Regexp
+	}{
+		{SIZE_LOTTO, regexp.MustCompile(`(?i)\b(lotto|lottos|lottery|yolo)\b`)},
+		{SIZE_HEAVY, regexp.MustCompile(`(?i)\b(heavy|full size|sizing up|sized up|big size)\b`)},
+		{SIZE_LIGHT, regexp.MustCompile(`(?i)\b(light|small|starter|half size|tiny)\b`)},
+	}
 )
 
 // Signal is one parsed post. Options have Right, Strike and Expiry; stocks and crypto leave them empty.
@@ -56,6 +83,7 @@ type Signal struct {
 	Strike     float64   `json:"strike,omitempty"`
 	Expiry     string    `json:"expiry,omitempty"`
 	Price      float64   `json:"price,omitempty"`
+	Size       string    `json:"size,omitempty"` // caller's size word: heavy, light or lotto
 	Confidence float64   `json:"confidence"`
 	SeenAt     time.Time `json:"seen_at"`
 	Raw        string    `json:"raw"`
@@ -82,6 +110,14 @@ func Parse(text string, now time.Time) Signal {
 	sig.Expiry = findExpiry(text, now)
 	if m := PRICE.FindStringSubmatch(text); m != nil {
 		sig.Price, _ = strconv.ParseFloat(m[1], 64)
+	} else if m := PRICE_LINE.FindStringSubmatch(text); m != nil && sig.Right != "" {
+		sig.Price, _ = strconv.ParseFloat(m[1], 64)
+	}
+	for _, s := range SIZE_WORDS {
+		if s.words.MatchString(text) {
+			sig.Size = s.size
+			break
+		}
 	}
 
 	contract := sig.Right != "" && sig.Expiry != ""
@@ -98,9 +134,9 @@ func Parse(text string, now time.Time) Signal {
 		return sig
 	}
 
+	// How much of the trade we could read. A full contract is fully read whatever the action,
+	// so an "adding" post can stand in for an entry we never saw.
 	switch {
-	case sig.Kind != KIND_ENTRY:
-		sig.Confidence = CONFIDENCE_SYMBOL
 	case contract && sig.Price > 0:
 		sig.Confidence = CONFIDENCE_FULL
 	case contract:
@@ -121,27 +157,53 @@ func findSymbol(text string) string {
 	return ""
 }
 
-// findExpiry turns "11/15" or "11/15/26" into 2026-11-15. A date without a year is the next one on or after today.
+// findExpiry reads "11/15", "11/15/26", "20 NOV 26" or "Nov 20" as 2026-11-20.
+// A date without a year is the next one on or after today.
 func findExpiry(text string, now time.Time) string {
-	m := EXPIRY.FindStringSubmatch(text)
-	if m == nil {
-		return ""
+	if m := EXPIRY.FindStringSubmatch(text); m != nil {
+		month, _ := strconv.Atoi(m[1])
+		day, _ := strconv.Atoi(m[2])
+		return expiryDate(month, day, m[3], now)
 	}
-	month, _ := strconv.Atoi(m[1])
-	day, _ := strconv.Atoi(m[2])
+	if loc := EXPIRY_DAY_MONTH.FindStringSubmatchIndex(text); loc != nil {
+		day, _ := strconv.Atoi(text[loc[2]:loc[3]])
+		year := ""
+		// "20 NOV 26C" is Nov 20 with a 26 strike; "20 NOV 26 $30 CALL" has 26 as the year.
+		if loc[6] >= 0 && !STRIKE_SUFFIX.MatchString(text[loc[7]:]) {
+			year = text[loc[6]:loc[7]]
+		}
+		return expiryDate(monthNumber(text[loc[4]:loc[5]]), day, year, now)
+	}
+	if m := EXPIRY_MONTH_DAY.FindStringSubmatch(text); m != nil {
+		day, _ := strconv.Atoi(m[2])
+		return expiryDate(monthNumber(m[1]), day, m[3], now)
+	}
+	return ""
+}
+
+// monthNumber turns "nov" (any case) into 11.
+func monthNumber(name string) int {
+	return strings.Index(MONTHS, strings.ToLower(name[:MONTH_ABBREV_LEN]))/len("jan|") + 1
+}
+
+// expiryDate validates the parts and formats them. year is "", two digits or four.
+func expiryDate(month, day int, year string, now time.Time) string {
 	if month < 1 || month > 12 || day < 1 || day > 31 {
 		return ""
 	}
-	year := now.Year()
-	if m[3] != "" {
-		year, _ = strconv.Atoi(m[3])
-		if year < 100 {
-			year += TWO_DIGIT_YEAR_OFFSET
+	y := now.Year()
+	if year != "" {
+		y, _ = strconv.Atoi(year)
+		if y < 100 {
+			y += TWO_DIGIT_YEAR_OFFSET
+		}
+		if y < now.Year() || y > now.Year()+MAX_EXPIRY_YEARS_OUT {
+			return ""
 		}
 	}
-	date := time.Date(year, time.Month(month), day, 0, 0, 0, 0, now.Location())
+	date := time.Date(y, time.Month(month), day, 0, 0, 0, 0, now.Location())
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	if m[3] == "" && date.Before(today) {
+	if year == "" && date.Before(today) {
 		date = date.AddDate(1, 0, 0)
 	}
 	return date.Format(EXPIRY_LAYOUT)

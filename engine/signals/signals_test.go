@@ -2,9 +2,11 @@ package signals
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +43,50 @@ func TestParse(t *testing.T) {
 			t.Errorf("%q\n got  %s %s %s %v %s %v\n want %s %s %s %v %s %v", c.text,
 				got.Kind, got.Symbol, got.Right, got.Strike, got.Expiry, got.Price,
 				c.kind, c.symbol, c.right, c.strike, c.expiry, c.price)
+		}
+	}
+}
+
+// Real callouts, one per format we have seen. Every parser miss becomes a new line in the file.
+func TestParseFixtures(t *testing.T) {
+	raw, err := os.ReadFile("testdata/callouts.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixtures []struct {
+		Source   string    `json:"source"`
+		PostID   string    `json:"post_id"`
+		PostedAt time.Time `json:"posted_at"`
+		Text     string    `json:"text"`
+		Want     Signal    `json:"want"`
+	}
+	if err := json.Unmarshal(raw, &fixtures); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range fixtures {
+		got, w := Parse(f.Text, f.PostedAt), f.Want
+		if got.Kind != w.Kind || got.Symbol != w.Symbol || got.Right != w.Right || got.Strike != w.Strike ||
+			got.Expiry != w.Expiry || got.Price != w.Price || got.Size != w.Size || got.Confidence != w.Confidence {
+			t.Errorf("%s %s\n got  %s %s %s %v %s %v %q %v\n want %s %s %s %v %s %v %q %v", f.Source, f.PostID,
+				got.Kind, got.Symbol, got.Right, got.Strike, got.Expiry, got.Price, got.Size, got.Confidence,
+				w.Kind, w.Symbol, w.Right, w.Strike, w.Expiry, w.Price, w.Size, w.Confidence)
+		}
+	}
+}
+
+func TestParseExpiryFormats(t *testing.T) {
+	cases := map[string]string{
+		"$CSV 20 NOV 26 $30 CALL":          "2026-11-20", // 26 is the year
+		"$CSV 20 NOV 26C @ 1.10":           "2026-11-20", // 26 is the strike
+		"$SPY Nov 20 600C":                 "2026-11-20",
+		"$SPY 600C November 20th, 2026":    "2026-11-20",
+		"$SPY 600C 16JAN":                  "2027-01-16", // past date rolls to next year
+		"$SPY 600C 20 NOV 19":              "",           // a year in the past is not an expiry
+		"$SPY 600C looks decent 20 points": "",           // "dec" inside a word is not a month
+	}
+	for text, want := range cases {
+		if got := Parse(text, NOW).Expiry; got != want {
+			t.Errorf("%q: got %q, want %q", text, got, want)
 		}
 	}
 }
