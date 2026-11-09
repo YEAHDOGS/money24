@@ -34,8 +34,9 @@ type Resolver func(ctx context.Context, statusURL string) (Tweet, error)
 
 // Webhook accepts POST /signals. Callers need "Authorization: Bearer <secret>" unless trusted(r) says
 // the request comes from the local desk UI. An x.com link is resolved to its author, time and text.
-// It answers with the parsed signal so callers see how the post was read.
-func Webhook(secret string, trusted func(*http.Request) bool, resolve Resolver, out chan<- Signal) http.HandlerFunc {
+// Every post is handed to record before it is queued, noise included, so nothing is lost to a full queue
+// or a parser miss. It answers with the parsed signal so callers see how the post was read.
+func Webhook(secret string, trusted func(*http.Request) bool, resolve Resolver, record func(Signal), out chan<- Signal) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -98,6 +99,7 @@ func Webhook(secret string, trusted func(*http.Request) bool, resolve Resolver, 
 				sig.SourceID = MANUAL_SOURCE
 			}
 		}
+		record(sig)
 		select {
 		case out <- sig:
 		default:

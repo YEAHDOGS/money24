@@ -4,6 +4,7 @@
 // server, or as the desktop app's sidecar behind the trading UI (trading.html).
 //
 //	m24d [--data DIR] [--addr 127.0.0.1:8025] [--origins a,b] [--hosts h] [--sources FILE] [--exit-with-stdin]
+//	m24d [--data DIR] --replay
 //
 // --origins and --hosts also read M24D_ORIGINS and M24D_HOSTS.
 //
@@ -17,6 +18,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -38,6 +40,7 @@ const (
 	APP_DIR          = "Money24"
 	DATA_SUBDIR      = "trading"
 	JOURNAL_FILE     = "paper-journal.jsonl"
+	POSTS_FILE       = "posts.jsonl"
 	SECRET_FILE      = "webhook-secret"
 	SECRET_BYTES     = 24
 	QUEUE_SIZE       = 256
@@ -83,12 +86,37 @@ func loopbackHosts(addr string) []string {
 	return []string{net.JoinHostPort(host, port), net.JoinHostPort(LOOPBACK_NAME, port), net.JoinHostPort("127.0.0.1", port)}
 }
 
+// printReplay shows what today's parser makes of every recorded post: a count per kind, then the
+// posts that name a ticker but were read as noise, which are the likeliest parser misses.
+func printReplay(path string) error {
+	counts := map[signals.Kind]int{}
+	missed := []string{}
+	err := signals.Replay(path, func(p signals.RawPost, sig signals.Signal) {
+		counts[sig.Kind]++
+		if sig.Kind == signals.KIND_NOISE && sig.Symbol != "" {
+			missed = append(missed, p.SourceID+" "+p.PostID+": "+strings.ReplaceAll(p.Text, "\n", " / "))
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, k := range []signals.Kind{signals.KIND_ENTRY, signals.KIND_ADD, signals.KIND_TRIM, signals.KIND_EXIT, signals.KIND_NOISE} {
+		fmt.Printf("%-6s %d\n", k, counts[k])
+	}
+	fmt.Printf("\nnoise that names a ticker (%d):\n", len(missed))
+	for _, m := range missed {
+		fmt.Println("  " + m)
+	}
+	return nil
+}
+
 func main() {
 	addr := flag.String("addr", DEFAULT_ADDR, "listen address; use 0.0.0.0:8025 on a server behind a reverse proxy")
 	dataDir := flag.String("data", "", "folder for the journal and secret (default: user config dir/Money24/trading)")
 	origins := flag.String("origins", cmp.Or(os.Getenv("M24D_ORIGINS"), DEFAULT_ORIGINS), "comma-separated browser origins allowed to call the API")
 	hosts := flag.String("hosts", os.Getenv("M24D_HOSTS"), "comma-separated Host headers to accept (default: localhost only when bound to loopback)")
 	sourcesFile := flag.String("sources", "", "override default_sources.json")
+	replay := flag.Bool("replay", false, "re-parse every recorded post with the current parser, print the result and exit")
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app)")
 	flag.Parse()
 
@@ -111,6 +139,13 @@ func main() {
 	if err := os.MkdirAll(*dataDir, DIR_PERMS); err != nil {
 		log.Fatal(err)
 	}
+	postsPath := filepath.Join(*dataDir, POSTS_FILE)
+	if *replay {
+		if err := printReplay(postsPath); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	secret, err := webhookSecret(*dataDir)
 	if err != nil {
 		log.Fatalf("webhook secret: %v", err)
@@ -124,6 +159,16 @@ func main() {
 		log.Fatal(err)
 	}
 	defer journal.Close()
+	recorder, err := signals.OpenRecorder(postsPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer recorder.Close()
+	record := func(sig signals.Signal) {
+		if err := recorder.Record(sig); err != nil {
+			log.Printf("recorder: %v", err)
+		}
+	}
 
 	// No broker yet, so no live quotes: the gate plans at the called price and notes what it could not check.
 	runner := signals.NewRunner(catalog, journal, nil)
@@ -152,7 +197,7 @@ func main() {
 	resolver := func(ctx context.Context, statusURL string) (signals.Tweet, error) {
 		return signals.ResolveTweet(ctx, http.DefaultClient, statusURL)
 	}
-	handler := signals.API(journal, catalog, signals.Webhook(secret, opts.TrustsLocalDesk, resolver, queue), opts)
+	handler := signals.API(journal, catalog, signals.Webhook(secret, opts.TrustsLocalDesk, resolver, record, queue), opts)
 	// Request contexts end with ctx, so open UI streams close on shutdown instead of holding it up.
 	srv := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: HEADER_TIMEOUT,
 		BaseContext: func(net.Listener) context.Context { return ctx }}

@@ -269,7 +269,7 @@ func TestWebhookResolvesSharedLink(t *testing.T) {
 		tw.Text = "BTO $SPY 600C 11/21 @ 1.20"
 		return tw, nil
 	}
-	h := Webhook("s3cret", func(*http.Request) bool { return false }, resolve, out)
+	h := Webhook("s3cret", func(*http.Request) bool { return false }, resolve, func(Signal) {}, out)
 
 	req := httptest.NewRequest(http.MethodPost, "/signals", strings.NewReader(`{"text":"https://x.com/MATTSMATTED/status/1985841080431321088","manual":true}`))
 	rec := httptest.NewRecorder()
@@ -391,5 +391,35 @@ func TestLiquidityGate(t *testing.T) {
 	r.catalog.Defaults = s
 	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); e.Plan == nil || e.Plan.Entry != 1.22 {
 		t.Fatalf("liquid contract: %+v", e)
+	}
+}
+
+func TestRecorderKeepsEveryPostAndReplays(t *testing.T) {
+	path := t.TempDir() + "/posts.jsonl"
+	rec, err := OpenRecorder(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	posts := []string{"BTO $SPY 600C 11/21 @ 1.20", "Good morning traders", "BTO $SPY 600C 11/21 @ 1.25"} // third is an edit
+	for i, text := range posts {
+		sig := callout(text, []string{"1", "2", "1"}[i])
+		if err := rec.Record(sig); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rec.Close()
+
+	kinds, prices := []Kind{}, []float64{}
+	err = Replay(path, func(p RawPost, sig Signal) {
+		kinds, prices = append(kinds, sig.Kind), append(prices, sig.Price)
+		if p.SourceID != "x:caller" || sig.SourceID != p.SourceID {
+			t.Errorf("source lost: %+v", p)
+		}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(kinds) != 3 || kinds[0] != KIND_ENTRY || kinds[1] != KIND_NOISE || prices[2] != 1.25 {
+		t.Fatalf("replay: %v %v", kinds, prices)
 	}
 }
