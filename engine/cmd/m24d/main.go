@@ -125,30 +125,22 @@ func main() {
 	}
 	defer journal.Close()
 
+	// No broker yet, so no live quotes: the gate plans at the called price and notes what it could not check.
+	runner := signals.NewRunner(catalog, journal, nil)
 	queue := make(chan signals.Signal, QUEUE_SIZE)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		for sig := range queue {
-			e := signals.Entry{At: time.Now().UTC(), Action: string(sig.Kind), Signal: sig}
-			// A manual share is planned as of its post time, so the clock rules start when the source posted.
-			asOf, planSig := time.Now(), sig
-			if sig.Manual && !sig.PostedAt.IsZero() {
-				asOf, planSig.SeenAt = sig.PostedAt, sig.PostedAt
-				e.AsOf = asOf.UTC()
-			}
-			if sig.Kind == signals.KIND_ENTRY {
-				plan, err := signals.Build(planSig, catalog.SettingsFor(sig.SourceID), 0, asOf)
-				if err != nil {
-					e.Rejected = err.Error()
-				} else {
-					e.Plan = &plan
-				}
-			}
-			if _, err := journal.Append(e); err != nil {
+			e, fresh, err := runner.Handle(sig, time.Now())
+			if err != nil {
 				log.Printf("journal: %v", err)
 			}
-			log.Printf("%s %s %s rejected=%q", sig.SourceID, sig.Kind, sig.Symbol, e.Rejected)
+			if !fresh {
+				log.Printf("%s %s duplicate post %s", sig.SourceID, sig.Symbol, sig.PostID)
+				continue
+			}
+			log.Printf("%s %s %s rejected=%q note=%q", sig.SourceID, sig.Kind, sig.Symbol, e.Rejected, e.Note)
 		}
 	}()
 

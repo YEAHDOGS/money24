@@ -308,3 +308,88 @@ func TestTrustsLocalDesk(t *testing.T) {
 		t.Fatal("non-loopback runner trusted")
 	}
 }
+
+func testRunner(t *testing.T, quote QuoteFunc) *Runner {
+	t.Helper()
+	j, err := OpenJournal(t.TempDir() + "/journal.jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { j.Close() })
+	return NewRunner(&Catalog{Defaults: SETTINGS}, j, quote)
+}
+
+func callout(text, postID string) Signal {
+	sig := Parse(text, NOW)
+	sig.SourceID, sig.PostID = "x:caller", postID
+	return sig
+}
+
+func TestRunnerDropsDuplicatePosts(t *testing.T) {
+	r := testRunner(t, nil)
+	if _, fresh, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); !fresh {
+		t.Fatal("first post was dropped")
+	}
+	if _, fresh, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); fresh {
+		t.Fatal("the same post traded twice")
+	}
+	// A restart replays the journal and still knows the post.
+	again := NewRunner(r.catalog, r.journal, nil)
+	if _, fresh, _ := again.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); fresh {
+		t.Fatal("the same post traded again after a restart")
+	}
+}
+
+func TestRunnerAddWithoutPositionIsAnEntry(t *testing.T) {
+	r := testRunner(t, nil)
+	add := "ADDING HEAVY\n\n$CSV\n20 NOV 26 $30 CALL\n$0.75"
+	e, _, _ := r.Handle(callout(add, "1"), NOW)
+	if e.Plan == nil || !strings.Contains(e.Note, "treated as entry") {
+		t.Fatalf("add with no position: plan %v note %q rejected %q", e.Plan, e.Note, e.Rejected)
+	}
+	// Now the position is open, so a second add is a real add, and adds are off by default.
+	e, _, _ = r.Handle(callout(add, "2"), NOW)
+	if e.Plan != nil || e.Rejected != REJECT_NOT_FOLLOWED {
+		t.Fatalf("add with a position: plan %v rejected %q", e.Plan, e.Rejected)
+	}
+	// The source exits; the next add is an entry again.
+	r.Handle(callout("All out of $CSV", "3"), NOW)
+	if e, _, _ = r.Handle(callout(add, "4"), NOW); e.Plan == nil {
+		t.Fatalf("add after exit: rejected %q", e.Rejected)
+	}
+}
+
+func TestLiquidityGate(t *testing.T) {
+	s := SETTINGS
+	s.MaxSpreadPct, s.MinOpenInterest, s.MinVolume = 10, 100, 50
+	cases := []struct {
+		name string
+		q    Quote
+		want error
+	}{
+		{"tight and liquid", Quote{1.18, 1.22, 5000, 900}, nil},
+		{"wide spread", Quote{0.60, 0.90, 5000, 900}, ErrWideSpread},
+		{"thin open interest", Quote{1.18, 1.22, 12, 900}, ErrThinInterest},
+		{"thin volume", Quote{1.18, 1.22, 5000, 3}, ErrThinVolume},
+		{"no bid", Quote{0, 0.75, 5000, 900}, ErrNoMarket},
+	}
+	for _, c := range cases {
+		if err := CheckLiquidity(c.q, s); !errors.Is(err, c.want) {
+			t.Errorf("%s: got %v, want %v", c.name, err, c.want)
+		}
+	}
+
+	// With a quote the runner fills at the ask and rejects what fails the gate.
+	wide := func(Signal) (Quote, bool) { return Quote{0.60, 0.90, 5000, 900}, true }
+	r := testRunner(t, wide)
+	r.catalog.Defaults = s
+	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 0.75", "1"), NOW); e.Plan != nil || !strings.Contains(e.Rejected, "spread") {
+		t.Fatalf("wide spread was traded: %+v", e)
+	}
+	tight := func(Signal) (Quote, bool) { return Quote{1.18, 1.22, 5000, 900}, true }
+	r = testRunner(t, tight)
+	r.catalog.Defaults = s
+	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); e.Plan == nil || e.Plan.Entry != 1.22 {
+		t.Fatalf("liquid contract: %+v", e)
+	}
+}

@@ -23,6 +23,7 @@ type Entry struct {
 	Signal   Signal    `json:"signal"`
 	Plan     *Plan     `json:"plan,omitempty"`
 	Rejected string    `json:"rejected,omitempty"`
+	Note     string    `json:"note,omitempty"` // what the gate changed or could not check
 	// AsOf is the moment the plan was built for. Manual shares are planned as of the post time,
 	// so an old callout shows what the rules would have done when it was posted.
 	AsOf time.Time `json:"as_of,omitzero"`
