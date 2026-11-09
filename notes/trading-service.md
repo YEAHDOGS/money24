@@ -114,6 +114,8 @@ with the ladder and stop drawn on it, and there's a scoreboard per source.
 - Stack: Go, an `engine/signals/` package run by `m24d`, per
   [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md). Its state goes in the
   runner's SQLite ledger. News context comes from `newsd`'s SSE stream.
+  Runs on Windows and Linux natively, and in Docker as the `trading`
+  service in the root `docker-compose.yml` (same Dockerfile, `CMD: m24d`).
   The X scraper drives headless Chrome from Go over the DevTools protocol,
   with no Node. The Telegram reader is a Go MTProto client, which needs a
   stated reason as a dependency.
