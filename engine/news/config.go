@@ -19,7 +19,7 @@ const (
 	VENUE_POLYMARKET = "polymarket"
 )
 
-//go:embed sources.json watchlist.json
+//go:embed sources.json watchlist.json calendars.json
 var defaults embed.FS
 
 // Source is one entry in sources.json. MinEvery is a politeness floor under the global poll interval.

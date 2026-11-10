@@ -57,6 +57,7 @@ func (s *Service) Handler(opts HTTPOptions) http.Handler {
 	mux.HandleFunc("GET /api/events", a.events)
 	mux.HandleFunc("GET /api/stream", a.stream)
 	mux.HandleFunc("GET /api/network", a.network)
+	mux.HandleFunc("GET /api/calendar", a.calendar)
 	mux.HandleFunc("GET /api/settings", a.getSettings)
 	mux.HandleFunc("PUT /api/settings", a.putSettings)
 	return a.meter(a.guard(mux))
@@ -159,6 +160,19 @@ func (a *api) events(w http.ResponseWriter, r *http.Request) {
 		Kind:     q.Get("kind"),
 		Tag:      q.Get("tag"),
 	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, events)
+}
+
+// calendar returns scheduled events between ?from= and ?to= (Unix ms); by default last week to four weeks ahead.
+func (a *api) calendar(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+	from := time.UnixMilli(queryInt(r, "from", now.Add(-CAL_WINDOW_BACK).UnixMilli()))
+	to := time.UnixMilli(queryInt(r, "to", now.Add(CAL_WINDOW_FORWARD).UnixMilli()))
+	events, err := a.svc.store.calendar(r.Context(), from, to, CAL_MAX_ROWS)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

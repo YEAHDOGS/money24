@@ -4,7 +4,7 @@
    * Desktop and tablet: rail | journal | plan, split by 1px lines.
    * Phones: one column with Journal / Plan / Sources tabs at the bottom, within thumb reach.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
   import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel } from './trading-client.svelte.js';
@@ -52,7 +52,7 @@
 
   let runnerUrl = $state(stored(STORE_RUNNER, DEFAULT_RUNNER));
   let runnerSecret = $state(stored(STORE_SECRET, ''));
-  let client = $state(new TradingClient(runnerUrl, runnerSecret));
+  let client = $state(untrack(() => new TradingClient(runnerUrl, runnerSecret)));
   /** The post id (or raw text) of the last share, so its journal line opens when it lands. */
   let awaiting = '';
   /** A share that arrived through the share sheet, prefilled into the box and sent once. */

@@ -22,19 +22,21 @@ type Config struct {
 	UserAgent     string
 	SourcesFile   string
 	WatchlistFile string
+	CalendarsFile string
 	HTTPTimeout   time.Duration
 }
 
 // Service ties the pollers, the store, the meter and the live hub together.
 type Service struct {
-	store    *Store
-	hub      *Hub
-	monitor  *Monitor
-	fetcher  *Fetcher
-	tagger   *Tagger
-	sources  []Source
-	schedule *Schedule
-	clock    clock
+	store     *Store
+	hub       *Hub
+	monitor   *Monitor
+	fetcher   *Fetcher
+	tagger    *Tagger
+	sources   []Source
+	calendars []CalSource
+	schedule  *Schedule
+	clock     clock
 }
 
 // Settings is what the UI can read and change.
@@ -50,6 +52,10 @@ func NewService(ctx context.Context, cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	calendars, err := LoadCalendars(cfg.CalendarsFile)
+	if err != nil {
+		return nil, err
+	}
 	tagger, err := LoadTagger(cfg.WatchlistFile)
 	if err != nil {
 		return nil, err
@@ -59,14 +65,18 @@ func NewService(ctx context.Context, cfg Config) (*Service, error) {
 		return nil, err
 	}
 	monitor := NewMonitor(sources)
+	for _, c := range calendars {
+		monitor.register(SourceStats{ID: c.ID, Label: c.Label, Kind: c.Category, Group: GROUP_CALENDAR, URL: c.URL, MinEveryMs: c.MinEvery.Milliseconds()})
+	}
 	return &Service{
-		store:    store,
-		hub:      NewHub(),
-		monitor:  monitor,
-		fetcher:  NewFetcher(cfg.HTTPTimeout, cfg.UserAgent, monitor),
-		tagger:   tagger,
-		sources:  sources,
-		schedule: NewSchedule(store.pollEvery(ctx, DEFAULT_POLL)),
+		store:     store,
+		hub:       NewHub(),
+		monitor:   monitor,
+		fetcher:   NewFetcher(cfg.HTTPTimeout, cfg.UserAgent, monitor),
+		tagger:    tagger,
+		sources:   sources,
+		calendars: calendars,
+		schedule:  NewSchedule(store.pollEvery(ctx, DEFAULT_POLL)),
 	}, nil
 }
 
@@ -79,6 +89,7 @@ func (s *Service) Summary() (sources, tags int, every time.Duration) {
 // Run polls every source on the shared schedule until ctx ends, then flushes the meter.
 func (s *Service) Run(ctx context.Context) {
 	go s.cycleLoop(ctx)
+	go s.calendarLoop(ctx)
 	go s.statsLoop(ctx)
 	s.flushLoop(ctx)
 	s.store.Close()

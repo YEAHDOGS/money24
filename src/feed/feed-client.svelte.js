@@ -12,6 +12,7 @@ const RETRY_MS = 3000;
 const HISTORY_POINTS = 100;
 const SETTINGS_DEBOUNCE_MS = 250;
 const MAX_CYCLES = 60;
+const CALENDAR_DEBOUNCE_MS = 800; // one reload per burst of calendar changes
 const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline' };
 
 /** @typedef {{id:number, seen_at:string, published_at:string|null, feed:string, source:string, kind:string,
@@ -38,6 +39,9 @@ export class FeedClient {
   report = $state(null);
   /** @type {any[]} recent round reports, newest first */
   cycles = $state([]);
+  /** @type {import('./calendar-format.js').CalEvent[]} scheduled events, soonest first */
+  calendar = $state([]);
+  calendarLoaded = $state(false);
   /** While true, new posts wait in `pending` instead of shifting what the reader is looking at. */
   holding = false;
 
@@ -49,6 +53,7 @@ export class FeedClient {
   #retry = 0;
   #prevTotals = null;
   #settingsTimer = 0;
+  #calendarTimer = 0;
 
   async start() {
     try {
@@ -70,6 +75,7 @@ export class FeedClient {
 
   stop() {
     clearTimeout(this.#retry);
+    clearTimeout(this.#calendarTimer);
     cancelAnimationFrame(this.#frame);
     this.#es?.close();
   }
@@ -77,7 +83,10 @@ export class FeedClient {
   #connect() {
     const es = new EventSource(`${API_BASE}/api/stream?after=${this.#lastId}`);
     this.#es = es;
-    es.onopen = () => { this.status = STATUS.live; };
+    es.onopen = () => {
+      this.status = STATUS.live;
+      this.#loadCalendar(); // on every (re)connect, so a sleeping laptop wakes up current
+    };
     es.onerror = () => {
       if (es.readyState !== EventSource.CLOSED) {
         this.status = STATUS.reconnecting;
@@ -89,6 +98,10 @@ export class FeedClient {
     };
     es.onmessage = (m) => this.#enqueue(JSON.parse(m.data));
     es.addEventListener('stats', (m) => this.#applyStats(JSON.parse(m.data)));
+    es.addEventListener('calendar', () => {
+      clearTimeout(this.#calendarTimer);
+      this.#calendarTimer = setTimeout(() => this.#loadCalendar(), CALENDAR_DEBOUNCE_MS);
+    });
     es.addEventListener('settings', (m) => { this.settings = JSON.parse(m.data); });
     es.addEventListener('plan', (m) => {
       const p = JSON.parse(m.data);
@@ -100,6 +113,16 @@ export class FeedClient {
       this.report = r;
       this.cycles = [r, ...this.cycles].slice(0, MAX_CYCLES);
     });
+  }
+
+  /** The engine's default window: last week to four weeks ahead. A failed load keeps what we have. */
+  async #loadCalendar() {
+    try {
+      const res = await fetch(`${API_BASE}/api/calendar`);
+      if (!res.ok) return;
+      this.calendar = await res.json();
+      this.calendarLoaded = true;
+    } catch { /* the stream reports the engine as offline on its own */ }
   }
 
   /** @param {Post} post */
