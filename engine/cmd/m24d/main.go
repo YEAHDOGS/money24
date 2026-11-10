@@ -49,12 +49,17 @@ const (
 	HEADER_TIMEOUT   = 10 * time.Second
 	SHUTDOWN_TIMEOUT = 5 * time.Second
 	ENV_SECRET       = "M24D_WEBHOOK_SECRET"
+	PLACEHOLDER      = "change-me" // the value old copies of .env.example shipped with
+	SECRET_MIN_CHARS = 16
 	LOOPBACK_NAME    = "localhost"
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
 func webhookSecret(dataDir string) (string, error) {
 	if s := os.Getenv(ENV_SECRET); s != "" {
+		if s == PLACEHOLDER || len(s) < SECRET_MIN_CHARS {
+			return "", fmt.Errorf("%s is a placeholder or shorter than %d characters; unset it to generate one", ENV_SECRET, SECRET_MIN_CHARS)
+		}
 		return s, nil
 	}
 	path := filepath.Join(dataDir, SECRET_FILE)

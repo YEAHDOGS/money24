@@ -13,6 +13,8 @@ services:
     environment:
       NEWSD_DATA: /data
       NEWSD_ADDR: 0.0.0.0:8024
+      # Only these Host headers are served, so a web page cannot reach the API by DNS rebinding.
+      NEWSD_HOSTS: localhost:8024,127.0.0.1:8024
     volumes:
       - news-data:/data
     ports:
@@ -25,6 +27,8 @@ services:
       args:
         CMD: m24d
     env_file: .env
+    environment:
+      M24D_HOSTS: localhost:8025,127.0.0.1:8025
     command: ["--data", "/data", "--addr", "0.0.0.0:8025"]
     volumes:
       - trading-data:/data
