@@ -1,10 +1,15 @@
 /* Theme: every color, theme token and custom breakpoint variant lives here, never in components.
    Each --color-* token becomes Tailwind utilities, e.g. --color-neon-red -> text-neon-red, bg-neon-red/20.
    Literal copies of these colors exist only where CSS variables can't reach: src/styles/legacy-fallback.css
-   (Chrome 40 page) and the theme-color meta in index.html. Keep them in step. */
+   (Chrome 40 page), the theme-color meta in index.html and feed.html, and WINDOW_BACKGROUND in
+   src/tauri/src/main.rs. Keep them in step. */
 
 /* Short screens (phones on their side, small phones, squat displays): compact layout variant, e.g. short:hidden */
 @custom-variant short (@media (max-height: 640px));
+/* Phones on their side: short and landscape. The feed shows feed + monitor side by side under one slim bar. */
+@custom-variant landscape-phone (@media (orientation: landscape) and (max-height: 500px) and (max-width: 1023px));
+/* Desktop monitors turned portrait: the feed stacks into rows (rail + feed on top, network monitor below). */
+@custom-variant desktop-portrait (@media (orientation: portrait) and (min-width: 1024px));
 /* Ultra-wide displays (21:9 and wider): spread content sideways instead of leaving empty bleed, e.g. ultrawide:grid-cols-4 */
 @custom-variant ultrawide (@media (min-aspect-ratio: 21/9) and (min-width: 1536px));
 
@@ -17,6 +22,19 @@
   --color-card: #0e0e12;
   --color-card-hover: #14141a;
   --color-muted: #8e8e9f;
+
+  /* News feed (src/feed/): 1px spine and grid boundaries between rail, feed and monitor columns */
+  --color-line: rgb(255 255 255 / 9%);
+  /* Category badges on feed posts and filters. Each passes WCAG AA as text on --color-app. */
+  --color-kind-news: #7cc4ff;
+  --color-kind-filing: #ffcf5c;
+  --color-kind-insider: #c9a2ff;
+  --color-kind-central-bank: #5fe3b4;
+  --color-kind-macro: #ff9d66;
+  /* Source health and connection dots in the feed rail and network monitor */
+  --color-ok: #4ade80;
+  --color-warn: #fbbf24;
+  --color-bad: #ff5566;
 }
 
 /* Money 24 panel art: full-bleed gradient "imagery" + scrims, referenced from src/App.svelte.

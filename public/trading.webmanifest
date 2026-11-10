@@ -1,0 +1,20 @@
+{
+  "name": "Money 24 Trading",
+  "short_name": "M24 Trade",
+  "description": "Paper trade social media callouts the moment you share them.",
+  "id": "/trading.html",
+  "start_url": "/trading.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050508",
+  "theme_color": "#050508",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "share_target": {
+    "action": "/trading.html",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

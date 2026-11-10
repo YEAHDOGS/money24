@@ -1,0 +1,36 @@
+# Money 24 paper trading runner on a Linux server (headless; the UI is optional).
+#   npm run engine:linux                       (on your PC: builds engine/dist/m24d-linux-amd64)
+#   scp engine/dist/m24d-linux-amd64 server:/usr/local/bin/m24d
+#   scp engine/deploy/m24d.service server:/etc/systemd/system/
+#   ssh server 'systemctl daemon-reload && systemctl enable --now m24d'
+#
+# Settings go in /etc/m24d.env, one per line:
+#   M24D_WEBHOOK_SECRET=<long random string>   (optional: otherwise one is generated into /var/lib/m24d/webhook-secret)
+#   M24D_ORIGINS=https://money24.example.com   (browser origins allowed to read the journal)
+#   M24D_HOSTS=trading.example.com             (public host name, when behind Caddy or nginx)
+#
+# m24d listens on loopback; put Caddy or nginx in front for HTTPS. The journal is /var/lib/m24d/paper-journal.jsonl.
+
+[Unit]
+Description=Money 24 paper trading runner (m24d)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/m24d --addr 127.0.0.1:8025 --data /var/lib/m24d
+EnvironmentFile=-/etc/m24d.env
+DynamicUser=yes
+StateDirectory=m24d
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

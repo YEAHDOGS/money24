@@ -1,0 +1,124 @@
+# Builds the Money 24 Android app (the trading desk in a Tauri shell; no engines run on the phone).
+#
+#   Pull requests that touch the app: build the APK and attach it to the run (Actions → run → Artifacts).
+#   Run workflow (Actions → Android APK → Run workflow, on master): build and publish it to the
+#   "android-latest" pre-release, so the newest APK is always at Releases → android-latest.
+#
+# Signing. Without secrets the APK is a debug build: it installs, but every build has a different key,
+# so uninstall the old one before installing a new one. Add these repository secrets once to get a
+# signed release build that installs over itself:
+#   ANDROID_KEYSTORE_BASE64   base64 of a .jks keystore (keytool -genkey -v -keystore m24.jks -alias m24 -keyalg RSA -keysize 2048 -validity 10000)
+#   ANDROID_KEYSTORE_PASSWORD keystore password
+#   ANDROID_KEY_ALIAS         key alias (m24 above)
+#   ANDROID_KEY_PASSWORD      key password
+name: Android APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "*.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.js"
+      - ".github/workflows/android.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NDK_VERSION: "27.2.12479018"
+  RUST_TARGET: aarch64-linux-android
+  RELEASE_TAG: android-latest
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" > /dev/null
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ env.RUST_TARGET }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/tauri -> target
+
+      - run: npm ci
+
+      - name: Generate the Android project
+        run: |
+          npx tauri android init --ci
+          npx tauri icon public/icon-512.png
+
+      - name: Build
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            npx tauri android build --apk --target aarch64
+          else
+            echo "::notice::No signing secrets: building a debug APK."
+            npx tauri android build --apk --target aarch64 --debug
+          fi
+
+      - name: Sign and name the APK
+        run: |
+          OUT=src/tauri/gen/android/app/build/outputs/apk
+          APK="money24-${GITHUB_SHA::7}.apk"
+          if [ -n "$KEYSTORE_B64" ]; then
+            BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/m24.jks"
+            SRC=$(find "$OUT" -name '*release*.apk' | head -1)
+            "$BT/zipalign" -f 4 "$SRC" "$RUNNER_TEMP/aligned.apk"
+            "$BT/apksigner" sign --ks "$RUNNER_TEMP/m24.jks" --ks-pass env:KEYSTORE_PASSWORD \
+              --ks-key-alias "$KEY_ALIAS" --key-pass env:KEY_PASSWORD --out "$APK" "$RUNNER_TEMP/aligned.apk"
+            rm "$RUNNER_TEMP/m24.jks"
+          else
+            cp "$(find "$OUT" -name '*debug*.apk' | head -1)" "$APK"
+          fi
+          ls -lh "$APK"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: money24-android
+          path: ${{ env.APK }}
+          if-no-files-found: error
+
+      - name: Publish to the android-latest release
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$RELEASE_TAG" > /dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" --prerelease --title "Money 24 Android (latest)" \
+              --notes "Newest Android build of the Money 24 trading desk. Paper trading only."
+          cp "$APK" money24.apk
+          gh release upload "$RELEASE_TAG" money24.apk --clobber

@@ -1,0 +1,37 @@
+# Money 24 news engine on a Linux server.
+#   npm run engine:linux                       (on your PC: builds engine/dist/newsd-linux-amd64)
+#   scp engine/dist/newsd-linux-amd64 server:/usr/local/bin/newsd
+#   scp engine/deploy/newsd.service server:/etc/systemd/system/
+#   ssh server 'systemctl daemon-reload && systemctl enable --now newsd'
+#
+# Settings go in /etc/newsd.env, one per line:
+#   USER_AGENT=Money24-News/0.1 contact@yourdomain.com    (SEC and BLS refuse requests without a contact email)
+#   NEWSD_ADMIN_TOKEN=<long random string>                (required to move the poll slider from a browser)
+#   NEWSD_ORIGINS=https://money24.example.com             (browser origins allowed to read the API)
+#   NEWSD_HOSTS=news.example.com                          (public host name, when behind Caddy or nginx)
+#
+# newsd listens on loopback; put Caddy or nginx in front for HTTPS. Data lives in /var/lib/newsd/news.db.
+
+[Unit]
+Description=Money 24 news engine (newsd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/newsd --addr 127.0.0.1:8024 --data /var/lib/newsd
+EnvironmentFile=-/etc/newsd.env
+DynamicUser=yes
+StateDirectory=newsd
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

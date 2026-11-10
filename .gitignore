@@ -33,3 +33,11 @@ src/tauri/gen/
 *.njsproj
 *.sln
 *.sw?
+
+# Go engine builds and the Tauri sidecar copies made from them
+engine/dist/
+src/tauri/binaries/
+
+# Local secrets for docker compose
+.env
+engine/data/

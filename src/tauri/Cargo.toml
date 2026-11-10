@@ -1,0 +1,25 @@
+[package]
+name = "money24"
+version = "0.1.0"
+description = "Money 24 app: news feed and trading desk; Go engines as desktop sidecars"
+edition = "2021"
+publish = false
+
+[lib]
+# Android loads the app as a shared library; desktop links it into the binary.
+name = "money24_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-opener = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

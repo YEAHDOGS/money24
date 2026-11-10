@@ -1,0 +1,36 @@
+{
+  "watch": [
+    { "tag": "BTC", "terms": ["bitcoin", "btc"] },
+    { "tag": "ETH", "terms": ["ethereum", "ether", "eth"] },
+    { "tag": "SOL", "terms": ["solana"] },
+    { "tag": "CRYPTO", "terms": ["crypto", "cryptocurrency", "stablecoin", "stablecoins", "crypto etf"] },
+    { "tag": "COIN", "terms": ["coinbase"] },
+    { "tag": "MSTR", "terms": ["microstrategy", "strategy inc", "michael saylor", "saylor"] },
+
+    { "tag": "TSLA", "terms": ["tesla", "tsla", "elon musk", "musk"] },
+    { "tag": "SPCX", "terms": ["spacex", "starlink", "spcx", "elon musk", "musk"] },
+    { "tag": "AAPL", "terms": ["apple inc", "apple's", "aapl", "iphone", "tim cook"] },
+    { "tag": "NVDA", "terms": ["nvidia", "nvda", "jensen huang"] },
+    { "tag": "MSFT", "terms": ["microsoft", "msft"] },
+    { "tag": "GOOGL", "terms": ["alphabet", "google", "googl"] },
+    { "tag": "AMZN", "terms": ["amazon", "amzn", "aws"] },
+    { "tag": "META", "terms": ["meta platforms", "facebook", "instagram", "zuckerberg"] },
+    { "tag": "MRNA", "terms": ["moderna", "mrna"] },
+    { "tag": "CRWD", "terms": ["crowdstrike", "crwd"] },
+
+    { "tag": "SPX", "terms": ["s&p 500", "wall street", "stock market", "dow jones", "nasdaq"] },
+    { "tag": "FED", "terms": ["fed", "federal reserve", "fomc", "fed chair", "rate cut", "rate hike", "interest rates"] },
+    { "tag": "MACRO", "terms": ["inflation", "cpi", "jobs report", "nonfarm payrolls", "unemployment rate", "gdp", "recession", "tariff", "tariffs"] },
+    { "tag": "RATES", "terms": ["treasury yields", "10-year yield", "bond market", "treasuries"] },
+    { "tag": "USD", "terms": ["us dollar", "dollar index", "greenback", "dxy"] },
+    { "tag": "EUR", "terms": ["euro", "ecb", "european central bank", "eurozone"] },
+    { "tag": "JPY", "terms": ["yen", "bank of japan", "boj"] },
+    { "tag": "GBP", "terms": ["sterling", "pound", "bank of england"] },
+    { "tag": "CNY", "terms": ["yuan", "renminbi", "pboc"] },
+    { "tag": "GOLD", "terms": ["gold price", "gold prices", "bullion", "xau"] },
+    { "tag": "OIL", "terms": ["crude oil", "oil prices", "brent", "wti", "opec"] },
+
+    { "tag": "POLITICS", "terms": ["election", "midterm", "midterms", "congress", "senate", "white house", "supreme court"] },
+    { "tag": "GEO", "terms": ["war", "sanctions", "invasion", "ceasefire", "missile"] }
+  ]
+}

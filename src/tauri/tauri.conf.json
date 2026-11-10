@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Money 24",
+  "version": "0.1.0",
+  "identifier": "red.dogs.money24",
+  "build": {
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../../dist",
+    "beforeDevCommand": { "script": "npm run engine:build && npm run dev", "cwd": "../.." },
+    "beforeBuildCommand": { "script": "npm run engine:build && npm run build", "cwd": "../.." }
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:8024 http://127.0.0.1:8025 https:; img-src 'self' data:; style-src 'self' 'unsafe-inline'",
+      "devCsp": "default-src 'self' http://localhost:5173; connect-src 'self' http://127.0.0.1:8024 http://127.0.0.1:8025 https: ws://localhost:5173 http://localhost:5173; img-src 'self' data: http://localhost:5173; style-src 'self' 'unsafe-inline' http://localhost:5173; script-src 'self' http://localhost:5173"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "externalBin": ["binaries/newsd", "binaries/m24d"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "shortDescription": "Money 24 live news and paper trading",
+    "windows": { "nsis": { "installMode": "currentUser" } }
+  }
+}
