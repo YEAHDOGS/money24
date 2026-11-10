@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/signals"
+	"github.com/YEAHDOGS/money24/engine/webull"
 )
 
 const (
@@ -52,6 +53,7 @@ const (
 	PLACEHOLDER      = "change-me" // the value old copies of .env.example shipped with
 	SECRET_MIN_CHARS = 16
 	LOOPBACK_NAME    = "localhost"
+	MAX_TICKER_CHARS = 6 // longer than this is a full option symbol, not a ticker
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -123,7 +125,22 @@ func main() {
 	sourcesFile := flag.String("sources", "", "override default_sources.json")
 	replay := flag.Bool("replay", false, "re-parse every recorded post with the current parser, print the result and exit")
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app)")
+	quote := flag.String("quote", "", "print the Webull quote for a ticker or option symbol (AAPL, AAPL260522C00300000) and exit")
 	flag.Parse()
+
+	quotes, err := webullClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if *quote != "" {
+		if quotes == nil {
+			log.Fatalf("set %s and %s first", ENV_WEBULL_KEY, ENV_WEBULL_SECRET)
+		}
+		if err := printQuote(quotes, *quote); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -175,8 +192,14 @@ func main() {
 		}
 	}
 
-	// No broker yet, so no live quotes: the gate plans at the called price and notes what it could not check.
-	runner := signals.NewRunner(catalog, journal, nil)
+	// Without a Webull key there are no live quotes: the gate plans at the called price and notes
+	// what it could not check.
+	var quoteFunc signals.QuoteFunc
+	if quotes != nil {
+		quoteFunc = webullQuotes(quotes)
+		log.Printf("live quotes: Webull (%s)", cmp.Or(os.Getenv(ENV_WEBULL_ENV), webull.ENV_SANDBOX))
+	}
+	runner := signals.NewRunner(catalog, journal, quoteFunc)
 	queue := make(chan signals.Signal, QUEUE_SIZE)
 	done := make(chan struct{})
 	go func() {

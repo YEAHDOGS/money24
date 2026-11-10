@@ -170,6 +170,9 @@ func (r *Runner) plan(sig Signal, s Settings, asOf time.Time, e *Entry) (Plan, e
 	if !ok {
 		e.Note = strings.TrimPrefix(e.Note+"; "+NOTE_NO_QUOTE, "; ")
 	} else {
+		if sig.Right == "" {
+			s.MinOpenInterest = 0 // stocks have no open interest to check
+		}
 		if err := CheckLiquidity(q, s); err != nil {
 			return Plan{}, err
 		}

@@ -79,3 +79,26 @@ Adding a calendar:
 - GDELT throttles harder than its documented 5 s limit; its four queries are spaced 20 s apart with a 5 m floor.
 - Hosting prices in `src/feed/pricing.json` are approximate list prices, not verified for this build.
 - With `--admin-token` set, the UI slider cannot change settings yet (the UI does not send the token).
+
+## m24d live quotes (Webull)
+
+`m24d` prices paper trades from Webull's OpenAPI when a key is set; without one it plans at the called
+price and notes that chase and liquidity went unchecked. The client (`engine/webull/`) only reads market
+data. It places no orders.
+
+| Env | Meaning |
+|---|---|
+| `WEBULL_APP_KEY`, `WEBULL_APP_SECRET` | from the Webull Developer Console |
+| `WEBULL_ENV` | `sandbox` (default) or `production` |
+| `WEBULL_ACCESS_TOKEN` | only for apps with 2FA on (the production default) |
+
+Check a key with `m24d --quote AAPL` or `m24d --quote AAPL260522C00300000`.
+
+- Stocks and ETFs use the stock snapshot (pre-market and after-hours included); option callouts use the
+  option snapshot for the exact contract, which also brings volume and open interest for the liquidity gate.
+- The sandbox serves 15-minute delayed or synthetic data. Real-time needs an OpenAPI market-data
+  subscription bought for OpenAPI itself (app subscriptions do not carry over): Nasdaq Basic for stocks,
+  OPRA Real-Time Non-display for options.
+- Limits: 300 requests per minute in production, 30 in the sandbox. One lookup per callout stays far under.
+- Not built yet: watching prices after entry. Nothing closes a paper trade on its stop, target or time
+  exit, so the scoreboard has no finished trades to score.
