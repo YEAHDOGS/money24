@@ -81,6 +81,7 @@ func main() {
 	adminToken := flag.String("admin-token", os.Getenv("NEWSD_ADMIN_TOKEN"), "bearer token required to change settings (set this on a server)")
 	sourcesFile := flag.String("sources", os.Getenv("SOURCES_FILE"), "override sources.json")
 	watchlistFile := flag.String("watchlist", os.Getenv("WATCHLIST_FILE"), "override watchlist.json")
+	calendarsFile := flag.String("calendars", os.Getenv("CALENDARS_FILE"), "override calendars.json")
 	hosts := flag.String("hosts", os.Getenv("NEWSD_HOSTS"), "comma-separated Host headers to accept, e.g. news.example.com behind a reverse proxy (default: localhost only when bound to loopback)")
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app, so newsd dies with it)")
 	flag.Parse()
@@ -102,6 +103,7 @@ func main() {
 		UserAgent:     *userAgent,
 		SourcesFile:   *sourcesFile,
 		WatchlistFile: *watchlistFile,
+		CalendarsFile: *calendarsFile,
 		HTTPTimeout:   FETCH_TIMEOUT,
 	})
 	if err != nil {

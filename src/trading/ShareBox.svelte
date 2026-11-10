@@ -3,12 +3,13 @@
    * Paper-trade a post right now: paste (or share from the X app) a status link, or paste the callout text.
    * The runner reads the post, plans it with the source's rules as of its post time, and the plan opens.
    */
+  import { untrack } from 'svelte';
   import strings from './strings.json';
 
   /** @type {{ onShare: (input: string) => Promise<string>, initial?: string }} */
   let { onShare, initial = '' } = $props();
 
-  let input = $state(initial);
+  let input = $state(untrack(() => initial)); // a starting value only; the box is the reader's after that
   let busy = $state(false);
   let message = $state('');
   let failed = $state(false);

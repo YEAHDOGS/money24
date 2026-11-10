@@ -53,5 +53,78 @@
     "failed": "failed"
   },
   "tabNews": "News",
-  "tabCalendar": "Calendar"
+  "tabCalendar": "Calendar",
+  "net": {
+    "perRequest": "Per request",
+    "sent": "sent",
+    "perRound": "Per round",
+    "rounds": "rounds",
+    "sourcesHit": "Sources hit",
+    "answered": "answered",
+    "notModifiedShort": "unchanged",
+    "atInterval": "at",
+    "roundsTitle": "Data per round",
+    "urlsTitle": "Sources and URLs",
+    "groups": "Source groups",
+    "group": {
+      "all": "All",
+      "news": "News",
+      "calendar": "Calendar"
+    },
+    "columns": [
+      "Source",
+      "URL",
+      "Status",
+      "Every",
+      "Requests",
+      "Avg",
+      "Last",
+      "304",
+      "Month",
+      "Cost / req"
+    ]
+  },
+  "views": "Views",
+  "calendar": {
+    "categories": {
+      "all": "All",
+      "macro": "Economy",
+      "earnings": "Earnings",
+      "auction": "Auctions",
+      "holiday": "Holidays",
+      "other": "Other"
+    },
+    "categoriesLabel": "Event types",
+    "impact": "Impact",
+    "impacts": {
+      "all": "All",
+      "medium": "Medium +",
+      "high": "High"
+    },
+    "impactNames": {
+      "low": "Low impact",
+      "medium": "Medium impact",
+      "high": "High impact"
+    },
+    "regions": "Regions",
+    "nextUp": "Next up",
+    "comingUp": "Coming up",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "allDay": "All day",
+    "now": "Now",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "thisWeek": "This week",
+    "week": "Week",
+    "forecast": "Fcst",
+    "previous": "Prev",
+    "actual": "Act",
+    "empty": "Nothing scheduled for this filter this week.",
+    "loading": "Loading the calendar…",
+    "nothingNext": "No timed events ahead in this filter.",
+    "in": "in",
+    "events": "events",
+    "sources": "Calendar sources"
+  }
 }
