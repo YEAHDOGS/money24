@@ -96,6 +96,9 @@ func (c *Catalog) IsCrypto(sig Signal) bool {
 	if sig.Right != "" {
 		return false
 	}
+	if sig.Address != "" {
+		return true
+	}
 	for _, s := range c.Sources {
 		if strings.EqualFold(s.ID(), sig.SourceID) && len(s.Markets) == 1 && s.Markets[0] == MARKET_CRYPTO {
 			return true

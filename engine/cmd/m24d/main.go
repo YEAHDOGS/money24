@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/coinbase"
+	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -128,9 +129,17 @@ func main() {
 	replay := flag.Bool("replay", false, "re-parse every recorded post with the current parser, print the result and exit")
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app)")
 	quote := flag.String("quote", "", "print the Webull quote for a ticker or option symbol (AAPL, AAPL260522C00300000) and exit")
-	coin := flag.String("coin", "", "print the Coinbase quote for a coin (BTC, PEPE) and exit")
+	coin := flag.String("coin", "", "print the quote for a listed coin (BTC, PEPE) or an on-chain token address and exit")
 	flag.Parse()
 
+	if dexscreener.ADDRESS.MatchString(*coin) {
+		pair, err := dexscreener.Fetch(context.Background(), &http.Client{Timeout: QUOTE_TIMEOUT}, *coin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s (%s) on %s  price $%g  pool $%.0f  24h volume $%.0f\n", pair.Base.Symbol, pair.Base.Name, pair.Venue, pair.PriceUSD, pair.Liquidity.USD, pair.Volume.Day)
+		return
+	}
 	if *coin != "" {
 		ticker, err := coinbase.Fetch(context.Background(), &http.Client{Timeout: QUOTE_TIMEOUT}, *coin)
 		if err != nil {
@@ -206,7 +215,7 @@ func main() {
 
 	// Coins are always priced live. Without a Webull key stocks and options have no quote: the gate
 	// plans those at the called price and notes what it could not check.
-	log.Printf("live quotes: Coinbase for %d coins", len(catalog.CryptoSymbols))
+	log.Printf("live quotes: Coinbase for %d coins, DEX Screener for token addresses", len(catalog.CryptoSymbols))
 	if quotes != nil {
 		log.Printf("live quotes: Webull (%s)", cmp.Or(os.Getenv(ENV_WEBULL_ENV), webull.ENV_SANDBOX))
 	}

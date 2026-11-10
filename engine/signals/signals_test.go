@@ -367,11 +367,11 @@ func TestLiquidityGate(t *testing.T) {
 		q    Quote
 		want error
 	}{
-		{"tight and liquid", Quote{1.18, 1.22, 5000, 900}, nil},
-		{"wide spread", Quote{0.60, 0.90, 5000, 900}, ErrWideSpread},
-		{"thin open interest", Quote{1.18, 1.22, 12, 900}, ErrThinInterest},
-		{"thin volume", Quote{1.18, 1.22, 5000, 3}, ErrThinVolume},
-		{"no bid", Quote{0, 0.75, 5000, 900}, ErrNoMarket},
+		{"tight and liquid", Quote{Bid: 1.18, Ask: 1.22, OpenInterest: 5000, Volume: 900}, nil},
+		{"wide spread", Quote{Bid: 0.60, Ask: 0.90, OpenInterest: 5000, Volume: 900}, ErrWideSpread},
+		{"thin open interest", Quote{Bid: 1.18, Ask: 1.22, OpenInterest: 12, Volume: 900}, ErrThinInterest},
+		{"thin volume", Quote{Bid: 1.18, Ask: 1.22, OpenInterest: 5000, Volume: 3}, ErrThinVolume},
+		{"no bid", Quote{Bid: 0, Ask: 0.75, OpenInterest: 5000, Volume: 900}, ErrNoMarket},
 	}
 	for _, c := range cases {
 		if err := CheckLiquidity(c.q, s); !errors.Is(err, c.want) {
@@ -380,13 +380,13 @@ func TestLiquidityGate(t *testing.T) {
 	}
 
 	// With a quote the runner fills at the ask and rejects what fails the gate.
-	wide := func(Signal) (Quote, bool) { return Quote{0.60, 0.90, 5000, 900}, true }
+	wide := func(Signal) (Quote, bool) { return Quote{Bid: 0.60, Ask: 0.90, OpenInterest: 5000, Volume: 900}, true }
 	r := testRunner(t, wide)
 	r.catalog.Defaults = s
 	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 0.75", "1"), NOW); e.Plan != nil || !strings.Contains(e.Rejected, "spread") {
 		t.Fatalf("wide spread was traded: %+v", e)
 	}
-	tight := func(Signal) (Quote, bool) { return Quote{1.18, 1.22, 5000, 900}, true }
+	tight := func(Signal) (Quote, bool) { return Quote{Bid: 1.18, Ask: 1.22, OpenInterest: 5000, Volume: 900}, true }
 	r = testRunner(t, tight)
 	r.catalog.Defaults = s
 	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); e.Plan == nil || e.Plan.Entry != 1.22 {
@@ -482,7 +482,9 @@ func TestRecapPostsAreNeverTraded(t *testing.T) {
 // between picks the position up from the journal with the first rung already sold.
 func TestWatcherClosesPaperTrades(t *testing.T) {
 	bid := 1.18
-	quote := func(Signal) (Quote, bool) { return Quote{bid, bid + 0.04, 5000, 900}, true }
+	quote := func(Signal) (Quote, bool) {
+		return Quote{Bid: bid, Ask: bid + 0.04, OpenInterest: 5000, Volume: 900}, true
+	}
 	r := testRunner(t, quote)
 	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); e.Plan == nil || e.Plan.Qty != 8 {
 		t.Fatalf("plan: %+v", e)

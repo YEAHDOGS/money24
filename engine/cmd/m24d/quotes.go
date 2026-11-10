@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/coinbase"
+	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -19,6 +20,9 @@ const (
 	ENV_WEBULL_TOKEN  = "WEBULL_ACCESS_TOKEN" // only for apps with 2FA on
 	ENV_WEBULL_ENV    = "WEBULL_ENV"          // sandbox (default) or production
 	QUOTE_TIMEOUT     = 6 * time.Second
+	// Assumed venue fee on each side of an on-chain trade. A round number on the high side of what
+	// pump.fun and the Solana pools charge, so paper results do not flatter.
+	POOL_FEE_PCT = 1.0
 )
 
 // webullClient builds the quote client from the environment, or returns nil when no key is set.
@@ -42,13 +46,21 @@ func snapshotFor(ctx context.Context, client *webull.Client, sig signals.Signal)
 	return client.OptionSnapshot(ctx, webull.OCCSymbol(sig.Symbol, sig.Right, sig.Strike, expiry))
 }
 
-// liveQuotes prices coins from Coinbase, which needs no key, and everything else from Webull when
-// a key is set. A failed lookup is logged and reported as "no quote", so the runner plans at the
+// liveQuotes prices on-chain tokens from DEX Screener and listed coins from Coinbase, neither of
+// which needs a key, and everything else from Webull when a key is set. A failed lookup is logged and reported as "no quote", so the runner plans at the
 // called price and notes what it could not check.
 func liveQuotes(client *webull.Client) signals.QuoteFunc {
 	return func(sig signals.Signal) (signals.Quote, bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), QUOTE_TIMEOUT)
 		defer cancel()
+		if sig.Address != "" {
+			pair, err := dexscreener.Fetch(ctx, http.DefaultClient, sig.Address)
+			if err != nil {
+				log.Printf("quote %s: %v", sig.Symbol, err)
+				return signals.Quote{}, false
+			}
+			return signals.Quote{Bid: pair.PriceUSD, Ask: pair.PriceUSD, Volume: int(pair.Volume.Day), LiquidityUSD: pair.Liquidity.USD, FeePct: POOL_FEE_PCT}, true
+		}
 		if sig.Market == signals.MARKET_CRYPTO {
 			coin, err := coinbase.Fetch(ctx, http.DefaultClient, sig.Symbol)
 			if err != nil {

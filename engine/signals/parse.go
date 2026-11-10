@@ -32,7 +32,8 @@ const (
 	TWO_DIGIT_YEAR_OFFSET = 2000
 	MAX_EXPIRY_YEARS_OUT  = 3 // a trailing number further out than this is not a year
 
-	MONTH_ABBREV_LEN = 3
+	MONTH_ABBREV_LEN    = 3
+	ADDRESS_LABEL_CHARS = 6 // a token with no ticker in the post is labelled by the start of its address
 
 	SIZE_HEAVY = "heavy"
 	SIZE_LIGHT = "light"
@@ -51,6 +52,10 @@ var (
 	BOUGHT_WORDS = regexp.MustCompile(`(?i)\b(bto|bought|buying|entered|opened)\b`)
 	ENTRY_WORDS  = regexp.MustCompile(`(?i)\b(bto|bought|buying|entry|entered|opened|long|in)\b`)
 
+	// A Solana token address (pump.fun coins end in "pump"): 32 to 44 base58 characters standing alone.
+	SOLANA_ADDRESS = regexp.MustCompile(`\b[1-9A-HJ-NP-Za-km-z]{32,44}\b`)
+	// On-chain coins have longer tickers than stocks ($DACITY, $USELESS). Only read beside an address.
+	TOKEN_TAG   = regexp.MustCompile(`\$([A-Za-z][A-Za-z0-9]{0,11})\b`)
 	CASHTAG     = regexp.MustCompile(`\$([A-Za-z]{1,5})\b`)
 	BARE_TICKER = regexp.MustCompile(`\b(?i:bto|stc|bought|sold|out of|trimmed|added)\s+([A-Z]{1,5})\b`)
 	CONTRACT    = regexp.MustCompile(`(?i)\b(\d+(?:\.\d+)?)\s*(c|p|calls?|puts?)\b`)
@@ -85,7 +90,8 @@ type Signal struct {
 	ThreadID   string    `json:"thread_id,omitempty"`
 	Kind       Kind      `json:"kind"`
 	Symbol     string    `json:"symbol,omitempty"`
-	Market     string    `json:"market,omitempty"` // "crypto" when the runner prices it as a coin; empty for stocks and options
+	Address    string    `json:"address,omitempty"` // on-chain token address, when the post names one
+	Market     string    `json:"market,omitempty"`  // "crypto" when the runner prices it as a coin; empty for stocks and options
 	Right      string    `json:"right,omitempty"`
 	Strike     float64   `json:"strike,omitempty"`
 	Expiry     string    `json:"expiry,omitempty"`
@@ -103,7 +109,18 @@ type Signal struct {
 // Parse reads one post. now resolves expiries written without a year.
 func Parse(text string, now time.Time) Signal {
 	sig := Signal{Kind: KIND_NOISE, Raw: text, SeenAt: now, Confidence: CONFIDENCE_NONE}
+	// The address is cut out before the rest is read, so its letters and digits are never taken
+	// for a ticker, a strike or a date.
+	if sig.Address = SOLANA_ADDRESS.FindString(text); sig.Address != "" {
+		text = strings.Replace(text, sig.Address, "", 1)
+	}
 	sig.Symbol = findSymbol(text)
+	if m := TOKEN_TAG.FindStringSubmatch(text); m != nil && sig.Address != "" {
+		sig.Symbol = strings.ToUpper(m[1])
+	}
+	if sig.Symbol == "" && sig.Address != "" {
+		sig.Symbol = sig.Address[:ADDRESS_LABEL_CHARS]
+	}
 	if sig.Symbol == "" {
 		return sig
 	}
@@ -120,6 +137,9 @@ func Parse(text string, now time.Time) Signal {
 		sig.Price, _ = strconv.ParseFloat(m[1], 64)
 	} else if m := PRICE_LINE.FindStringSubmatch(text); m != nil && sig.Right != "" {
 		sig.Price, _ = strconv.ParseFloat(m[1], 64)
+	}
+	if sig.Address != "" {
+		sig.Price = 0 // numbers beside a token address are market caps, not a price to hold the fill to
 	}
 	for _, s := range SIZE_WORDS {
 		if s.words.MatchString(text) {
@@ -147,6 +167,8 @@ func Parse(text string, now time.Time) Signal {
 		sig.Kind = KIND_ADD
 	case contract || ENTRY_WORDS.MatchString(text) && sig.Price > 0 || plain && BOUGHT_WORDS.MatchString(text):
 		sig.Kind = KIND_ENTRY
+	case sig.Address != "":
+		sig.Kind = KIND_ENTRY // a bare token address is the callout: that is how on-chain coins are shared
 	default:
 		return sig
 	}

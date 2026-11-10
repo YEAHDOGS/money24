@@ -118,6 +118,23 @@ all day. Check one with `m24d --coin BTC`.
 - The default stop, ladder and four-hour hold were set for options. Give crypto sources their own
   `settings` in the sources file.
 
+## m24d on-chain token quotes (pump.fun and Solana pools)
+
+A post that carries a Solana token address is priced from DEX Screener's public API
+(`engine/dexscreener/`): pump.fun, PumpSwap, Raydium and the rest, with no key. Check one with
+`m24d --coin <address>`.
+
+- A bare address or a `pump.fun/coin/<address>` link is read as an entry, because that is how these
+  coins are called. A chart link carries the pool's address; that is looked up too.
+- A pool has no bid and ask. Fills are modelled instead: the price moves against a trade by its size
+  over half the pool, plus an assumed 1% venue fee each way. Buying and selling at once costs about
+  9% on a $500 trade in a $42,000 pool.
+- `min_liquidity_usd` (default 10000) refuses thin pools. A pump.fun coin still on its bonding curve
+  reports no pool size, so it is refused until it graduates. Set the rule to 0 to paper trade those
+  too; their fills then carry the fee only and will look better than real ones.
+- Prices lag the chain by a few seconds and the API allows about 300 requests a minute.
+- Nothing here checks whether a token can be sold, who holds it or whether liquidity is locked.
+
 ## m24d exit watcher
 
 Every 30 seconds `m24d` prices each open paper position and journals what the plan's exits would have

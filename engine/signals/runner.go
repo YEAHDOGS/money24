@@ -10,6 +10,7 @@ import (
 
 const (
 	SEEN_POSTS_MAX      = 10000 // post ids remembered for dedupe
+	POOL_SIDES          = 2     // a pool holds half its value in the token and half in what it trades against
 	NOTE_ADD_AS_ENTRY   = "add with no open position: treated as entry (the source's cost is lower than ours)"
 	NOTE_NO_QUOTE       = "no live quote: chase and liquidity unchecked"
 	REJECT_DUPLICATE    = "duplicate post"
@@ -21,6 +22,7 @@ var (
 	ErrThinInterest = errors.New("open interest below min_open_interest")
 	ErrThinVolume   = errors.New("volume below min_volume")
 	ErrNoMarket     = errors.New("no bid or no ask")
+	ErrThinPool     = errors.New("pool liquidity below min_liquidity_usd")
 )
 
 // Quote is the live market for one contract or symbol.
@@ -29,6 +31,22 @@ type Quote struct {
 	Ask          float64 `json:"ask"`
 	OpenInterest int     `json:"open_interest"`
 	Volume       int     `json:"volume"`
+	// On-chain pools only. A pool has no order book: the price moves against every trade by the
+	// trade's share of the pool, and the venue takes a fee. Zero liquidity means the size is unknown.
+	LiquidityUSD float64 `json:"liquidity_usd,omitempty"`
+	FeePct       float64 `json:"fee_pct,omitempty"`
+}
+
+// Sized returns the quote a trade of usd dollars would really get. Order-book quotes come back
+// unchanged. In a pool, half the liquidity is on each side, so a trade moves the price by about
+// its size over that half; the fee comes on top, both when buying and when selling.
+func (q Quote) Sized(usd float64) Quote {
+	slip := q.FeePct / PERCENT
+	if q.LiquidityUSD > 0 {
+		slip += POOL_SIDES * usd / q.LiquidityUSD
+	}
+	q.Bid, q.Ask = max(0, q.Bid*(1-slip)), q.Ask*(1+slip)
+	return q
 }
 
 // QuoteFunc looks up the live market for a signal. ok is false when there is no quote source yet.
@@ -46,6 +64,9 @@ func CheckLiquidity(q Quote, s Settings) error {
 	}
 	if s.MinOpenInterest > 0 && q.OpenInterest < s.MinOpenInterest {
 		return fmt.Errorf("%w: %d", ErrThinInterest, q.OpenInterest)
+	}
+	if s.MinLiquidityUSD > 0 && q.LiquidityUSD < s.MinLiquidityUSD {
+		return fmt.Errorf("%w: $%.0f", ErrThinPool, q.LiquidityUSD)
 	}
 	if s.MinVolume > 0 && q.Volume < s.MinVolume {
 		return fmt.Errorf("%w: %d", ErrThinVolume, q.Volume)
@@ -86,7 +107,7 @@ func postKey(sig Signal) string {
 }
 
 func positionKey(sig Signal) string {
-	return fmt.Sprintf("%s|%s|%s|%v|%s", strings.ToLower(sig.SourceID), sig.Symbol, sig.Right, sig.Strike, sig.Expiry)
+	return fmt.Sprintf("%s|%s|%s|%v|%s|%s", strings.ToLower(sig.SourceID), sig.Symbol, sig.Right, sig.Strike, sig.Expiry, sig.Address)
 }
 
 // remember records a post id and reports whether it was new.
@@ -179,6 +200,10 @@ func (r *Runner) plan(sig Signal, s Settings, asOf time.Time, e *Entry) (Plan, e
 		if sig.Right == "" {
 			s.MinOpenInterest = 0 // stocks have no open interest to check
 		}
+		if sig.Address == "" {
+			s.MinLiquidityUSD = 0 // only on-chain tokens trade in a pool
+		}
+		q = q.Sized(s.MaxUSDPerTrade)
 		if err := CheckLiquidity(q, s); err != nil {
 			return Plan{}, err
 		}

@@ -54,6 +54,7 @@ type Settings struct {
 	MaxSpreadPct    float64 `json:"max_spread_pct"`    // bid-ask spread as a percent of the mid
 	MinOpenInterest int     `json:"min_open_interest"` // options: contracts open
 	MinVolume       int     `json:"min_volume"`        // traded today
+	MinLiquidityUSD float64 `json:"min_liquidity_usd"` // on-chain tokens: dollars in the pool; unknown counts as none
 
 	// Time rules. Zero turns a rule off.
 	MaxSignalAgeSec        int      `json:"max_signal_age_sec"`        // skip callouts older than this when we see them

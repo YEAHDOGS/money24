@@ -147,7 +147,7 @@ func (r *Runner) Tick(now time.Time) ([]Entry, error) {
 			continue
 		}
 		q, priced := quotes[id]
-		for _, e := range p.step(q, priced, now) {
+		for _, e := range p.step(q.Sized(p.left*q.Bid), priced, now) {
 			e, err := r.journal.Append(e)
 			if err != nil {
 				return out, err
