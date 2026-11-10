@@ -96,7 +96,7 @@ func (f *Fetcher) get(ctx context.Context, sourceID, rawURL string) ([]byte, err
 	usage := Usage{Out: requestSize(req)}
 	started := time.Now()
 	status := 0
-	defer func() { f.monitor.recordRequest(sourceID, usage, status, time.Since(started), err) }()
+	defer func() { f.monitor.recordRequest(sourceID, rawURL, usage, status, time.Since(started), err) }()
 
 	res, err := f.client.Do(req)
 	if err != nil {

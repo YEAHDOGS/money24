@@ -25,7 +25,6 @@
   "emptyOffline": "The news engine isn't running. Start the desktop app, or run newsd.",
   "emptyFilter": "No posts match this filter yet.",
   "clearFilter": "Clear",
-  "tabFeed": "Feed",
   "tabNetwork": "Network",
   "sources": "Sources",
   "network": "Network",
@@ -42,5 +41,17 @@
   "perRequest": "per request",
   "costMonth": "Est. cost / month",
   "ingressFree": "Fetching is inbound data: free on most hosts. Egress is what the server sends out.",
-  "clients": "open streams"
+  "clients": "open streams",
+  "ring": {
+    "waiting": "First round…",
+    "article": "article",
+    "articles": "articles",
+    "noNew": "No new articles",
+    "noChange": "No changes",
+    "source": "source",
+    "sources": "sources",
+    "failed": "failed"
+  },
+  "tabNews": "News",
+  "tabCalendar": "Calendar"
 }

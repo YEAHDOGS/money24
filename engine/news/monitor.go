@@ -8,6 +8,8 @@ import (
 
 const (
 	EWMA_WEIGHT    = 0.2 // how fast the per-request average follows new requests
+	GROUP_NEWS     = "news"
+	GROUP_CALENDAR = "calendar"
 	CHANNEL_WIRE   = "_wire"
 	CHANNEL_SERVED = "_served"
 	DAY_LAYOUT     = "2006-01-02"
@@ -38,6 +40,9 @@ type SourceStats struct {
 	ID          string     `json:"id"`
 	Label       string     `json:"label"`
 	Kind        string     `json:"kind"`
+	Group       string     `json:"group"`
+	URL         string     `json:"url"`
+	LastURL     string     `json:"last_url,omitempty"`
 	MinEveryMs  int64      `json:"min_every_ms"`
 	Requests    int64      `json:"requests"`
 	NotModified int64      `json:"not_modified"`
@@ -77,9 +82,33 @@ func NewMonitor(sources []Source) *Monitor {
 	m := &Monitor{started: time.Now().UTC(), sources: map[string]*SourceStats{}, pending: map[string]*Tally{}}
 	for _, src := range sources {
 		m.order = append(m.order, src.ID)
-		m.sources[src.ID] = &SourceStats{ID: src.ID, Label: src.Label, Kind: src.Kind, MinEveryMs: src.MinEvery.Milliseconds()}
+		m.sources[src.ID] = &SourceStats{ID: src.ID, Label: src.Label, Kind: src.Kind, Group: GROUP_NEWS, URL: src.URL, MinEveryMs: src.MinEvery.Milliseconds()}
 	}
 	return m
+}
+
+// register adds a meter for a source outside sources.json, such as a calendar feed.
+func (m *Monitor) register(stats SourceStats) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.sources[stats.ID]; ok {
+		return
+	}
+	m.order = append(m.order, stats.ID)
+	m.sources[stats.ID] = &stats
+}
+
+// groupBytes sums request bytes in and out over every source in a group.
+func (m *Monitor) groupBytes(group string) (in, out int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, s := range m.sources {
+		if s.Group == group {
+			in += s.BytesIn
+			out += s.BytesOut
+		}
+	}
+	return in, out
 }
 
 func ewma(avg float64, sample int64, first bool) float64 {
@@ -89,7 +118,7 @@ func ewma(avg float64, sample int64, first bool) float64 {
 	return avg + EWMA_WEIGHT*(float64(sample)-avg)
 }
 
-func (m *Monitor) recordRequest(sourceID string, u Usage, status int, took time.Duration, err error) {
+func (m *Monitor) recordRequest(sourceID, url string, u Usage, status int, took time.Duration, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	s, ok := m.sources[sourceID]
@@ -102,6 +131,7 @@ func (m *Monitor) recordRequest(sourceID string, u Usage, status int, took time.
 	s.BytesIn += u.In
 	s.BytesOut += u.Out
 	s.LastIn, s.LastOut = u.In, u.Out
+	s.LastURL = url
 	s.AvgIn = ewma(s.AvgIn, u.In, first)
 	s.AvgOut = ewma(s.AvgOut, u.Out, first)
 	s.LastStatus = status

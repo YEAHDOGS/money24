@@ -55,10 +55,11 @@ type Market struct {
 	Tags     []string
 }
 
-// Batch is what one poll found. Empty means nothing new (for example a 304).
+// Batch is what one poll found. Unchanged means the source answered 304 Not Modified.
 type Batch struct {
-	Events  []Event
-	Markets []Market
+	Events    []Event
+	Markets   []Market
+	Unchanged bool
 }
 
 type poller func(ctx context.Context, src Source, f *Fetcher, tagger *Tagger) (Batch, error)
@@ -106,7 +107,7 @@ type feedDoc struct {
 func pollFeed(ctx context.Context, src Source, f *Fetcher, tagger *Tagger) (Batch, error) {
 	body, err := f.get(ctx, src.ID, src.URL)
 	if err != nil || body == nil {
-		return Batch{}, err
+		return Batch{Unchanged: err == nil}, err
 	}
 	events, err := parseFeed(body, src)
 	if err != nil {
@@ -188,7 +189,7 @@ type gdeltDoc struct {
 func pollGDELT(ctx context.Context, src Source, f *Fetcher, tagger *Tagger) (Batch, error) {
 	body, err := f.getGDELT(ctx, src.ID, src.URL)
 	if err != nil || body == nil {
-		return Batch{}, err
+		return Batch{Unchanged: err == nil}, err
 	}
 	trimmed := bytes.TrimSpace(body)
 	if len(trimmed) == 0 {
@@ -232,7 +233,7 @@ type polymarketMarket struct {
 func pollPolymarket(ctx context.Context, src Source, f *Fetcher, tagger *Tagger) (Batch, error) {
 	body, err := f.get(ctx, src.ID, src.URL)
 	if err != nil || body == nil {
-		return Batch{}, err
+		return Batch{Unchanged: err == nil}, err
 	}
 	var raw []polymarketMarket
 	if err := json.Unmarshal(body, &raw); err != nil {
