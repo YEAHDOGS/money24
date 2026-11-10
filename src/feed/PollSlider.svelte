@@ -2,6 +2,7 @@
   /** Global poll interval slider: drag, arrow keys or scroll wheel. Shows what the choice costs. */
   import strings from './strings.json';
   import { formatBytes, formatCost, formatInterval } from './net-math.js';
+  import PollRing from './PollRing.svelte';
 
   const SECOND = 1000;
   const MINUTE = 60 * SECOND;
@@ -11,8 +12,8 @@
   const FAST_BELOW = 15 * SECOND;
   const MINUTES_PER_MONTH = 30 * 24 * 60;
 
-  /** @type {{ everyMs: number|null, onChange: (ms: number) => void, projection: {requests:number, in:number, out:number, served:number}, cost: number, floored: string[], providerName: string }} */
-  let { everyMs, onChange, projection, cost, floored, providerName } = $props();
+  /** @type {{ everyMs: number|null, onChange: (ms: number) => void, projection: {requests:number, in:number, out:number, served:number}, cost: number, floored: string[], providerName: string, plan: any, report: any }} */
+  let { everyMs, onChange, projection, cost, floored, providerName, plan, report } = $props();
 
   const index = $derived.by(() => {
     if (everyMs == null) return STEPS.indexOf(MINUTE);
@@ -52,7 +53,9 @@
       {formatInterval(STEPS[index])}
     </output>
   </div>
-  <p class="truncate font-mono text-[0.7rem] tabular-nums text-muted" aria-live="polite">
+  <div class="flex items-center gap-3">
+  <div class="flex min-w-0 flex-1 flex-col gap-1">
+  <p class="truncate font-mono text-[0.7rem] tabular-nums text-muted">
     ≈ {Math.round(projection.requests / MINUTES_PER_MONTH)} req/min
     · {formatBytes(projection.in)}/mo in
     · {formatBytes(projection.out + projection.served)}/mo out
@@ -64,4 +67,7 @@
   {#if floored.length}
     <p class="truncate text-[0.7rem] text-muted" title={floored.join(', ')}>{strings.pollFloor} {floored.join(', ')}</p>
   {/if}
+  </div>
+  <PollRing {plan} {report} />
+  </div>
 </div>

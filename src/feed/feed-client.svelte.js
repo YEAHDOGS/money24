@@ -11,6 +11,7 @@ const FRESH_PER_BATCH = 10; // only the first few of a burst animate, so a flood
 const RETRY_MS = 3000;
 const HISTORY_POINTS = 100;
 const SETTINGS_DEBOUNCE_MS = 250;
+const MAX_CYCLES = 60;
 const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline' };
 
 /** @typedef {{id:number, seen_at:string, published_at:string|null, feed:string, source:string, kind:string,
@@ -31,6 +32,12 @@ export class FeedClient {
   totals = $state(null);
   /** @type {{inRate:number, outRate:number, servedRate:number}[]} bytes per second, oldest first */
   history = $state([]);
+  /** @type {{last_at:string, next_at:string, every_ms:number, offsetMs:number} | null} engine clock; offsetMs = engine time - local time */
+  plan = $state(null);
+  /** @type {any} the latest round report */
+  report = $state(null);
+  /** @type {any[]} recent round reports, newest first */
+  cycles = $state([]);
   /** While true, new posts wait in `pending` instead of shifting what the reader is looking at. */
   holding = false;
 
@@ -83,6 +90,16 @@ export class FeedClient {
     es.onmessage = (m) => this.#enqueue(JSON.parse(m.data));
     es.addEventListener('stats', (m) => this.#applyStats(JSON.parse(m.data)));
     es.addEventListener('settings', (m) => { this.settings = JSON.parse(m.data); });
+    es.addEventListener('plan', (m) => {
+      const p = JSON.parse(m.data);
+      this.plan = { ...p, offsetMs: Date.parse(p.now) - Date.now() };
+    });
+    es.addEventListener('cycle', (m) => {
+      const r = JSON.parse(m.data);
+      if (this.cycles[0]?.at === r.at) return; // the replay sent on reconnect
+      this.report = r;
+      this.cycles = [r, ...this.cycles].slice(0, MAX_CYCLES);
+    });
   }
 
   /** @param {Post} post */

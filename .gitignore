@@ -41,3 +41,7 @@ src/tauri/binaries/
 # Local secrets for docker compose
 .env
 engine/data/
+
+# Agent worktrees and local service runs
+.claude/
+.run/

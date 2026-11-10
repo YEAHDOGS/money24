@@ -229,6 +229,13 @@ func (a *api) stream(w http.ResponseWriter, r *http.Request) {
 	writeSSE(w, Message{Event: EVENT_SETTINGS, Data: settings})
 	stats, _ := json.Marshal(a.svc.Snapshot(ctx, 0))
 	writeSSE(w, Message{Event: EVENT_STATS, Data: stats})
+	plan, report := a.svc.clock.snapshot()
+	planData, _ := json.Marshal(plan)
+	writeSSE(w, Message{Event: EVENT_PLAN, Data: planData})
+	if report != nil {
+		reportData, _ := json.Marshal(report)
+		writeSSE(w, Message{Event: EVENT_CYCLE, Data: reportData})
+	}
 
 	lastSent, err := strconv.ParseInt(r.Header.Get("Last-Event-ID"), 10, 64)
 	if err != nil {

@@ -143,3 +143,9 @@ body {
     animation: none;
   }
 }
+
+/* Poll ring parts rotate and scale around the ring's own center */
+.ring-part {
+  transform-box: view-box;
+  transform-origin: center;
+}

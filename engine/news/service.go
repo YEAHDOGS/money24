@@ -34,6 +34,7 @@ type Service struct {
 	tagger   *Tagger
 	sources  []Source
 	schedule *Schedule
+	clock    clock
 }
 
 // Settings is what the UI can read and change.
@@ -77,61 +78,34 @@ func (s *Service) Summary() (sources, tags int, every time.Duration) {
 
 // Run polls every source on the shared schedule until ctx ends, then flushes the meter.
 func (s *Service) Run(ctx context.Context) {
-	for _, src := range s.sources {
-		go s.runSource(ctx, src)
-	}
+	go s.cycleLoop(ctx)
 	go s.statsLoop(ctx)
 	s.flushLoop(ctx)
 	s.store.Close()
 }
 
-func (s *Service) runSource(ctx context.Context, src Source) {
-	for {
-		started := time.Now()
-		s.pollOnce(ctx, src)
-		if !s.waitNext(ctx, src, started) {
-			return
-		}
-	}
-}
-
-// waitNext sleeps until the next poll is due. A slider change re-plans the wait at once.
-func (s *Service) waitNext(ctx context.Context, src Source, started time.Time) bool {
-	for {
-		every, changed := s.schedule.Every()
-		wait := max(every, src.MinEvery) - time.Since(started)
-		if wait <= 0 {
-			return true
-		}
-		timer := time.NewTimer(wait)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return false
-		case <-changed:
-			timer.Stop()
-		case <-timer.C:
-			return true
-		}
-	}
-}
-
-func (s *Service) pollOnce(ctx context.Context, src Source) {
+// pollOnce polls one source, stores what is new and streams it to every open window.
+func (s *Service) pollOnce(ctx context.Context, src Source) pollOutcome {
+	outcome := pollOutcome{id: src.ID}
 	batch, err := POLLERS[src.Type](ctx, src, s.fetcher, s.tagger)
 	if err != nil {
 		if ctx.Err() == nil {
 			log.Printf("[%s] %v", src.ID, err)
 		}
-		return
+		outcome.err = err
+		return outcome
 	}
+	outcome.unchanged = batch.Unchanged
 	if err := s.store.upsertMarkets(ctx, batch.Markets); err != nil {
 		log.Printf("[%s] markets: %v", src.ID, err)
 	}
 	added, err := s.store.insertEvents(ctx, batch.Events)
 	if err != nil {
 		log.Printf("[%s] store: %v", src.ID, err)
-		return
+		outcome.err = err
+		return outcome
 	}
+	outcome.added = len(added)
 	s.monitor.recordAdded(src.ID, len(added))
 	for _, e := range added {
 		data, _ := json.Marshal(e)
@@ -140,6 +114,7 @@ func (s *Service) pollOnce(ctx context.Context, src Source) {
 	if len(added) > 0 {
 		log.Printf("[%s] +%d", src.ID, len(added))
 	}
+	return outcome
 }
 
 // flushLoop writes the meter into the daily usage ledger, and once more on shutdown.
@@ -217,6 +192,9 @@ func (s *Service) SetPollEvery(ctx context.Context, every time.Duration) (Settin
 	settings := s.Settings()
 	data, _ := json.Marshal(settings)
 	s.hub.broadcast(Message{Event: EVENT_SETTINGS, Data: data})
+	// Re-plan the ring now; the clock confirms with its own plan once the current round reports.
+	plan, _ := s.clock.snapshot()
+	s.announcePlan(Plan{LastAt: plan.LastAt, NextAt: maxTime(plan.LastAt.Add(every), time.Now().UTC()), EveryMs: every.Milliseconds()})
 	log.Printf("poll interval set to %s", every)
 	return settings, nil
 }
