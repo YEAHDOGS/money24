@@ -135,6 +135,25 @@ A post that carries a Solana token address is priced from DEX Screener's public 
 - Prices lag the chain by a few seconds and the API allows about 300 requests a minute.
 - Nothing here checks whether a token can be sold, who holds it or whether liquidity is locked.
 
+## m24d market data (the Markets page)
+
+`m24d` also serves the quotes and candles behind `markets.html` (`engine/market/`). It only reads.
+
+| Route | Returns |
+|---|---|
+| `GET /api/market/chart?symbol=&range=&interval=` | candles. Ranges: `1d 5d 1mo 6mo ytd 1y 5y max`; each has its own candle sizes |
+| `GET /api/market/summary?symbol=` | quote, statistics, company profile, last four quarters |
+| `GET /api/market/search?q=` | matching tickers and news stories |
+| `GET /api/market/quotes?symbols=A,B` | short quotes for a list (30 at most) |
+| `GET /api/market/related?symbol=` | short quotes for related tickers |
+
+- The source is Yahoo Finance's web API. It is unofficial: no key, but it can change, throttle or
+  block without notice. US stock quotes are delayed by up to 15 minutes.
+- Answers are cached (10 seconds for quotes and candles, longer for search and related), so any
+  number of open windows costs the provider the same.
+- Symbols follow Yahoo: `NVDA`, `BTC-USD`, `^GSPC`, `ES=F`, `EURUSD=X`.
+- This feed is for looking. Paper trades are still priced by Coinbase, DEX Screener and Webull.
+
 ## m24d exit watcher
 
 Every 30 seconds `m24d` prices each open paper position and journals what the plan's exits would have

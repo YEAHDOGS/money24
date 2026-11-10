@@ -25,13 +25,15 @@
 
   /* News feed (src/feed/): 1px spine and grid boundaries between rail, feed and monitor columns */
   --color-line: rgb(255 255 255 / 9%);
-  /* Category badges on feed posts and filters. Each passes WCAG AA as text on --color-app. */
+  /* Category badges on feed posts and filters. Each passes WCAG AA as text on --color-app.
+     The markets chart (src/markets/chart-engine.js) reuses them as indicator line colors. */
   --color-kind-news: #7cc4ff;
   --color-kind-filing: #ffcf5c;
   --color-kind-insider: #c9a2ff;
   --color-kind-central-bank: #5fe3b4;
   --color-kind-macro: #ff9d66;
-  /* Source health and connection dots in the feed rail and network monitor */
+  /* Source health and connection dots in the feed rail and network monitor.
+     Also up (ok), down (bad) and drawings (warn) on the markets page and its chart. */
   --color-ok: #4ade80;
   --color-warn: #fbbf24;
   --color-bad: #ff5566;

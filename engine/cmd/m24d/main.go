@@ -32,6 +32,7 @@ import (
 
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
+	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -261,7 +262,8 @@ func main() {
 	if *hosts != "" {
 		allowedHosts = strings.Split(*hosts, ",")
 	}
-	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts}
+	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts,
+		Mount: map[string]http.Handler{market.ROUTE_PREFIX: market.Handler(market.NewClient())}}
 	resolver := func(ctx context.Context, statusURL string) (signals.Tweet, error) {
 		return signals.ResolveTweet(ctx, http.DefaultClient, statusURL)
 	}

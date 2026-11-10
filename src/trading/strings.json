@@ -5,6 +5,7 @@
   "section": "TRADING",
   "paper": "Paper only",
   "newsLink": "News",
+  "marketsLink": "Markets",
   "status": {
     "connecting": "Connecting",
     "live": "Live",

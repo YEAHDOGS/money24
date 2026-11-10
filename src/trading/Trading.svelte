@@ -169,6 +169,7 @@
           {strings.status[client.status]}
         </p>
         <span class="whitespace-nowrap rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-warn">{strings.paper}</span>
+        <a href="markets.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.marketsLink}&nbsp;→</a>
         <a href="feed.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.newsLink}&nbsp;→</a>
       </div>
     </div>

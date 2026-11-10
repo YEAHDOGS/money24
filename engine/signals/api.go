@@ -23,6 +23,9 @@ const (
 type APIOptions struct {
 	Origins []string
 	Hosts   []string
+	// Mount adds other read-only routes (ServeMux pattern to handler) behind the same origin and
+	// host checks, such as the market data the Markets page reads.
+	Mount map[string]http.Handler
 }
 
 // TrustsLocalDesk lets the desk UI post signals without the secret, but only when the runner is bound
@@ -56,6 +59,9 @@ func API(j *Journal, c *Catalog, webhook http.Handler, opts APIOptions) http.Han
 
 	mux := http.NewServeMux()
 	mux.Handle("POST /signals", webhook)
+	for pattern, h := range opts.Mount {
+		mux.Handle(pattern, h)
+	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /api/sources", func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, c) })
 	mux.HandleFunc("GET /api/journal", func(w http.ResponseWriter, r *http.Request) {
