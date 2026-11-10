@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -16,6 +17,8 @@ import (
 const (
 	SUMMARY_MAX_CHARS = 600
 	ERROR_SNIPPET     = 160
+	SCHEME_HTTP       = "http"
+	SCHEME_HTTPS      = "https"
 )
 
 var (
@@ -147,7 +150,9 @@ func parseFeed(body []byte, src Source) ([]Event, error) {
 func newEvent(src Source, title, link, summary, published string) (Event, bool) {
 	title = clean(title, 0)
 	link = strings.TrimSpace(link)
-	if title == "" || !strings.HasPrefix(link, "http") {
+	// Only web links: the desktop shell hands clicked links to the OS, so no other scheme may pass.
+	u, err := url.Parse(link)
+	if title == "" || err != nil || (u.Scheme != SCHEME_HTTP && u.Scheme != SCHEME_HTTPS) {
 		return Event{}, false
 	}
 	return Event{
