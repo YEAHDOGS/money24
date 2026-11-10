@@ -30,6 +30,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -127,7 +128,17 @@ func main() {
 	replay := flag.Bool("replay", false, "re-parse every recorded post with the current parser, print the result and exit")
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app)")
 	quote := flag.String("quote", "", "print the Webull quote for a ticker or option symbol (AAPL, AAPL260522C00300000) and exit")
+	coin := flag.String("coin", "", "print the Coinbase quote for a coin (BTC, PEPE) and exit")
 	flag.Parse()
+
+	if *coin != "" {
+		ticker, err := coinbase.Fetch(context.Background(), &http.Client{Timeout: QUOTE_TIMEOUT}, *coin)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s  bid %g  ask %g  last %g  24h volume %g\n", strings.ToUpper(*coin), ticker.Bid, ticker.Ask, ticker.Price, ticker.Volume)
+		return
+	}
 
 	quotes, err := webullClient()
 	if err != nil {
@@ -193,14 +204,13 @@ func main() {
 		}
 	}
 
-	// Without a Webull key there are no live quotes: the gate plans at the called price and notes
-	// what it could not check.
-	var quoteFunc signals.QuoteFunc
+	// Coins are always priced live. Without a Webull key stocks and options have no quote: the gate
+	// plans those at the called price and notes what it could not check.
+	log.Printf("live quotes: Coinbase for %d coins", len(catalog.CryptoSymbols))
 	if quotes != nil {
-		quoteFunc = webullQuotes(quotes)
 		log.Printf("live quotes: Webull (%s)", cmp.Or(os.Getenv(ENV_WEBULL_ENV), webull.ENV_SANDBOX))
 	}
-	runner := signals.NewRunner(catalog, journal, quoteFunc)
+	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes))
 	queue := make(chan signals.Signal, QUEUE_SIZE)
 	done := make(chan struct{})
 	go func() {

@@ -24,7 +24,7 @@ const (
 	RIGHT_CALL = "C"
 	RIGHT_PUT  = "P"
 
-	CONFIDENCE_FULL       = 1.0  // symbol, right, strike, expiry and price all found
+	CONFIDENCE_FULL       = 1.0  // the whole trade and its price found: a full contract, or a share or coin entry
 	CONFIDENCE_NO_PRICE   = 0.85 // contract found, price missing: we use the live quote
 	CONFIDENCE_SYMBOL     = 0.6  // exit/trim/add with a symbol only
 	CONFIDENCE_NONE       = 0.0
@@ -44,10 +44,12 @@ const (
 
 var (
 	// Order matters: exit and trim words are checked before entry words ("sold half" is a trim).
-	TRIM_WORDS  = regexp.MustCompile(`(?i)\b(trim(med|ming)?|scal(e|ed|ing) out|took (some )?profits?|sold (half|some|\d+%))\b`)
-	EXIT_WORDS  = regexp.MustCompile(`(?i)\b(stc|sold|all out|out of|closed|stopped( out)?|exited|cut)\b`)
-	ADD_WORDS   = regexp.MustCompile(`(?i)\b(add(ed|ing)?( more)?|averag(ed|ing) (down|up))\b`)
-	ENTRY_WORDS = regexp.MustCompile(`(?i)\b(bto|bought|buying|entry|entered|opened|long|in)\b`)
+	TRIM_WORDS = regexp.MustCompile(`(?i)\b(trim(med|ming)?|scal(e|ed|ing) out|took (some )?profits?|sold (half|some|\d+%))\b`)
+	EXIT_WORDS = regexp.MustCompile(`(?i)\b(stc|sold|all out|out of|closed|stopped( out)?|exited|cut)\b`)
+	ADD_WORDS  = regexp.MustCompile(`(?i)\b(add(ed|ing)?( more)?|averag(ed|ing) (down|up))\b`)
+	// Verbs that say a buy happened, clear enough to act on without a price ("Bought $PEPE").
+	BOUGHT_WORDS = regexp.MustCompile(`(?i)\b(bto|bought|buying|entered|opened)\b`)
+	ENTRY_WORDS  = regexp.MustCompile(`(?i)\b(bto|bought|buying|entry|entered|opened|long|in)\b`)
 
 	CASHTAG     = regexp.MustCompile(`\$([A-Za-z]{1,5})\b`)
 	BARE_TICKER = regexp.MustCompile(`\b(?i:bto|stc|bought|sold|out of|trimmed|added)\s+([A-Z]{1,5})\b`)
@@ -83,6 +85,7 @@ type Signal struct {
 	ThreadID   string    `json:"thread_id,omitempty"`
 	Kind       Kind      `json:"kind"`
 	Symbol     string    `json:"symbol,omitempty"`
+	Market     string    `json:"market,omitempty"` // "crypto" when the runner prices it as a coin; empty for stocks and options
 	Right      string    `json:"right,omitempty"`
 	Strike     float64   `json:"strike,omitempty"`
 	Expiry     string    `json:"expiry,omitempty"`
@@ -126,6 +129,8 @@ func Parse(text string, now time.Time) Signal {
 	}
 
 	contract := sig.Right != "" && sig.Expiry != ""
+	// A share or a coin: with no strike or expiry in the post, symbol and price are the whole trade.
+	plain := sig.Right == "" && sig.Expiry == ""
 	move := RECAP_MOVE.FindStringSubmatch(text)
 	switch {
 	case TRIM_WORDS.MatchString(text):
@@ -140,7 +145,7 @@ func Parse(text string, now time.Time) Signal {
 		}
 	case ADD_WORDS.MatchString(text):
 		sig.Kind = KIND_ADD
-	case contract || ENTRY_WORDS.MatchString(text) && sig.Price > 0:
+	case contract || ENTRY_WORDS.MatchString(text) && sig.Price > 0 || plain && BOUGHT_WORDS.MatchString(text):
 		sig.Kind = KIND_ENTRY
 	default:
 		return sig
@@ -148,10 +153,11 @@ func Parse(text string, now time.Time) Signal {
 
 	// How much of the trade we could read. A full contract is fully read whatever the action,
 	// so an "adding" post can stand in for an entry we never saw.
+	read := contract || plain && sig.Kind == KIND_ENTRY
 	switch {
-	case contract && sig.Price > 0:
+	case read && sig.Price > 0:
 		sig.Confidence = CONFIDENCE_FULL
-	case contract:
+	case read:
 		sig.Confidence = CONFIDENCE_NO_PRICE
 	default:
 		sig.Confidence = CONFIDENCE_SYMBOL

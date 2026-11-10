@@ -9,12 +9,19 @@ import (
 )
 
 const (
-	OPTION_MULTIPLIER = 100
-	SHARE_MULTIPLIER  = 1
-	PRICE_TICK        = 0.01
-	PERCENT           = 100.0
-	MARKET_TZ         = "America/New_York"
-	MARKET_CLOSE_HOUR = 16
+	OPTION_MULTIPLIER  = 100
+	SHARE_MULTIPLIER   = 1
+	PRICE_TICK         = 0.01
+	PRICE_SCALE        = 100 // stocks and options are priced to the cent
+	WHOLE_UNITS        = 1   // shares and contracts trade in whole units
+	MARKET_CRYPTO      = "crypto"
+	FRACTIONS_FROM_USD = 1.0  // coins under a dollar are bought whole; dearer ones in fractions
+	CRYPTO_QTY_SCALE   = 1e8  // coins are bought in fractions, to eight decimals
+	CRYPTO_DIGITS      = 6    // significant digits kept in a coin price, so $0.00000531 survives
+	QTY_EPSILON        = 1e-9 // less than this left is nothing left
+	PERCENT            = 100.0
+	MARKET_TZ          = "America/New_York"
+	MARKET_CLOSE_HOUR  = 16
 )
 
 // MARKET is where US stock and option sessions are clocked.
@@ -64,18 +71,18 @@ type TimeStop struct {
 
 // Target is one resting limit sell.
 type Target struct {
-	Qty   int     `json:"qty"`
+	Qty   float64 `json:"qty"`
 	Price float64 `json:"price"`
 }
 
 // Plan is the whole order, entry and exits together. It is never sent without its exits.
 type Plan struct {
 	Signal  Signal   `json:"signal"`
-	Qty     int      `json:"qty"`
+	Qty     float64  `json:"qty"`
 	Entry   float64  `json:"entry"`
 	Stop    float64  `json:"stop"`
 	Targets []Target `json:"targets"`
-	Runner  int      `json:"runner"`
+	Runner  float64  `json:"runner"`
 	CostUSD float64  `json:"cost_usd"`
 
 	ExitBy        time.Time `json:"exit_by"`                   // hard time exit for everything left
@@ -118,37 +125,44 @@ func Build(sig Signal, s Settings, quote float64, now time.Time) (Plan, error) {
 		return Plan{}, ErrNoPrice
 	}
 	if sig.Price > 0 && entry > sig.Price*(1+s.MaxChasePct/PERCENT) {
-		return Plan{}, fmt.Errorf("%w: called %.2f, now %.2f", ErrChased, sig.Price, entry)
+		return Plan{}, fmt.Errorf("%w: called %g, now %g", ErrChased, sig.Price, entry)
 	}
 
 	multiplier := float64(SHARE_MULTIPLIER)
 	if sig.Right != "" {
 		multiplier = OPTION_MULTIPLIER
 	}
-	qty := int(s.MaxUSDPerTrade / (entry * multiplier))
-	if qty < 1 {
+	priceScale, qtyScale := float64(PRICE_SCALE), float64(WHOLE_UNITS)
+	if sig.Market == MARKET_CRYPTO {
+		if entry >= FRACTIONS_FROM_USD {
+			qtyScale = CRYPTO_QTY_SCALE
+		}
+		priceScale = max(priceScale, math.Pow(10, CRYPTO_DIGITS-1-math.Floor(math.Log10(entry))))
+	}
+	qty := math.Floor(s.MaxUSDPerTrade/(entry*multiplier)*qtyScale) / qtyScale
+	if qty <= 0 {
 		return Plan{}, ErrBudgetTooSmall
 	}
 
 	plan := Plan{
 		Signal:  sig,
 		Qty:     qty,
-		Entry:   math.Round((entry)/PRICE_TICK) * PRICE_TICK,
-		Stop:    math.Round((entry*(1-s.StopLossPct/PERCENT))/PRICE_TICK) * PRICE_TICK,
-		CostUSD: math.Round((entry*multiplier*float64(qty))/PRICE_TICK) * PRICE_TICK,
+		Entry:   math.Round(entry*priceScale) / priceScale,
+		Stop:    math.Round(entry*(1-s.StopLossPct/PERCENT)*priceScale) / priceScale,
+		CostUSD: math.Round(entry*multiplier*qty*PRICE_SCALE) / PRICE_SCALE,
 	}
 	left := qty
 	for _, r := range s.Ladder {
-		n := min(int(float64(qty)*r.PctOfPosition/PERCENT), left)
-		if n < 1 {
+		n := min(math.Floor(qty*r.PctOfPosition/PERCENT*qtyScale)/qtyScale, left)
+		if n <= 0 {
 			continue
 		}
-		plan.Targets = append(plan.Targets, Target{Qty: n, Price: math.Round((entry*(1+r.AtGainPct/PERCENT))/PRICE_TICK) * PRICE_TICK})
-		left -= n
+		plan.Targets = append(plan.Targets, Target{Qty: n, Price: math.Round(entry*(1+r.AtGainPct/PERCENT)*priceScale) / priceScale})
+		left = math.Round((left-n)*qtyScale) / qtyScale
 	}
 	// Too few units to split: the whole position exits at the first rung, so a take-profit always exists.
 	if len(plan.Targets) == 0 {
-		plan.Targets = []Target{{Qty: qty, Price: math.Round((entry*(1+s.Ladder[0].AtGainPct/PERCENT))/PRICE_TICK) * PRICE_TICK}}
+		plan.Targets = []Target{{Qty: qty, Price: math.Round(entry*(1+s.Ladder[0].AtGainPct/PERCENT)*priceScale) / priceScale}}
 		left = 0
 	}
 	plan.Runner = left
@@ -170,7 +184,7 @@ func Build(sig Signal, s Settings, quote float64, now time.Time) (Plan, error) {
 	}
 	if s.TimeStop.AfterMinutes > 0 {
 		plan.TimeStopAt = now.Add(time.Duration(s.TimeStop.AfterMinutes) * time.Minute)
-		plan.TimeStopAbove = math.Round((entry*(1+s.TimeStop.MinGainPct/PERCENT))/PRICE_TICK) * PRICE_TICK
+		plan.TimeStopAbove = math.Round(entry*(1+s.TimeStop.MinGainPct/PERCENT)*priceScale) / priceScale
 	}
 	return plan, nil
 }

@@ -103,6 +103,21 @@ Check a key with `m24d --quote AAPL` or `m24d --quote AAPL260522C00300000`.
 - Not built yet: watching prices after entry. Nothing closes a paper trade on its stop, target or time
   exit, so the scoreboard has no finished trades to score.
 
+## m24d crypto quotes (Coinbase)
+
+Coins are priced from Coinbase Exchange's public ticker (`engine/coinbase/`): no key, no account, open
+all day. Check one with `m24d --coin BTC`.
+
+- A signal is a coin when its ticker is in `crypto_symbols` in the sources file, or when its source's
+  only market is `crypto`. The journal marks it `"market": "crypto"`. Option callouts are never coins.
+- Tickers that are both a coin and a stock (ETH, SOL, LINK) go to whichever the list says. Take a ticker
+  out of `crypto_symbols` to have it priced as a stock again.
+- Coins of a dollar or more are sized in fractions to eight decimals; cheaper ones in whole coins. Prices
+  keep six significant digits.
+- Only coins with a USD market on Coinbase have a quote. New on-chain tokens are not covered yet.
+- The default stop, ladder and four-hour hold were set for options. Give crypto sources their own
+  `settings` in the sources file.
+
 ## m24d exit watcher
 
 Every 30 seconds `m24d` prices each open paper position and journals what the plan's exits would have

@@ -19,7 +19,7 @@ type Result struct {
 	PnLUSD float64 `json:"pnl_usd"`
 	PnLPct float64 `json:"pnl_pct"`
 	Reason string  `json:"reason,omitempty"` // stop, target, time, time stop, source exit
-	Qty    int     `json:"qty,omitempty"`    // units sold on this line
+	Qty    float64 `json:"qty,omitempty"`    // units sold on this line
 	Price  float64 `json:"price,omitempty"`  // what they sold at
 }
 

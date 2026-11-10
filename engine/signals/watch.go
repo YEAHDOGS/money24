@@ -25,18 +25,18 @@ const (
 type position struct {
 	planID     int64
 	plan       Plan
-	left       int     // units not sold yet
+	left       float64 // units not sold yet
 	next       int     // index of the next unfilled target
 	realized   float64 // USD banked by filled targets
 	exitCalled bool    // the source said it is out, and we follow its exits
 }
 
-func (p *position) pnl(price float64, qty int) float64 {
+func (p *position) pnl(price, qty float64) float64 {
 	multiplier := float64(SHARE_MULTIPLIER)
 	if p.plan.Signal.Right != "" {
 		multiplier = OPTION_MULTIPLIER
 	}
-	return (price - p.plan.Entry) * float64(qty) * multiplier
+	return (price - p.plan.Entry) * qty * multiplier
 }
 
 func (p *position) line(action string, now time.Time, res *Result, note string) Entry {
@@ -75,7 +75,7 @@ func (p *position) step(q Quote, priced bool, now time.Time) []Entry {
 		qty := min(t.Qty, left)
 		gain := p.pnl(t.Price, qty)
 		left, realized = left-qty, realized+gain
-		if left == 0 {
+		if left < QTY_EPSILON {
 			return append(out, p.line(ACTION_CLOSE, now, &Result{PnLUSD: realized, Reason: REASON_TARGET, Qty: qty, Price: t.Price}, ""))
 		}
 		out = append(out, p.line(ACTION_FILL, now, &Result{PnLUSD: gain, Reason: REASON_TARGET, Qty: qty, Price: t.Price}, ""))

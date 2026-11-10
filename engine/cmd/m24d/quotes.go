@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -40,12 +42,24 @@ func snapshotFor(ctx context.Context, client *webull.Client, sig signals.Signal)
 	return client.OptionSnapshot(ctx, webull.OCCSymbol(sig.Symbol, sig.Right, sig.Strike, expiry))
 }
 
-// webullQuotes adapts the client to the runner. A failed lookup is logged and reported as "no
-// quote", so the runner plans at the called price and notes what it could not check.
-func webullQuotes(client *webull.Client) signals.QuoteFunc {
+// liveQuotes prices coins from Coinbase, which needs no key, and everything else from Webull when
+// a key is set. A failed lookup is logged and reported as "no quote", so the runner plans at the
+// called price and notes what it could not check.
+func liveQuotes(client *webull.Client) signals.QuoteFunc {
 	return func(sig signals.Signal) (signals.Quote, bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), QUOTE_TIMEOUT)
 		defer cancel()
+		if sig.Market == signals.MARKET_CRYPTO {
+			coin, err := coinbase.Fetch(ctx, http.DefaultClient, sig.Symbol)
+			if err != nil {
+				log.Printf("quote %s: %v", sig.Symbol, err)
+				return signals.Quote{}, false
+			}
+			return signals.Quote{Bid: coin.Bid, Ask: coin.Ask, Volume: int(coin.Volume)}, true
+		}
+		if client == nil {
+			return signals.Quote{}, false
+		}
 		snap, err := snapshotFor(ctx, client, sig)
 		if err != nil {
 			log.Printf("quote %s: %v", sig.Symbol, err)

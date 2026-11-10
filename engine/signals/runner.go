@@ -132,6 +132,9 @@ func (r *Runner) Handle(sig Signal, now time.Time) (Entry, bool, error) {
 		return Entry{Rejected: REJECT_DUPLICATE, Signal: sig}, false, nil
 	}
 
+	if r.catalog.IsCrypto(sig) {
+		sig.Market = MARKET_CRYPTO
+	}
 	settings := r.catalog.SettingsFor(sig.SourceID)
 	e := Entry{At: now.UTC(), Action: string(sig.Kind), Signal: sig}
 	// A manual share is planned as of its post time, so the clock rules start when the source posted.

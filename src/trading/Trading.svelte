@@ -7,7 +7,7 @@
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
-  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel, resultLabel } from './trading-client.svelte.js';
+  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel, priceLabel, resultLabel } from './trading-client.svelte.js';
   import PlanLadder from './PlanLadder.svelte';
   import ShareBox from './ShareBox.svelte';
   import RunnerSettings from './RunnerSettings.svelte';
@@ -233,7 +233,7 @@
               </span>
               {#if e.plan}
                 <span class="mt-1 block font-mono text-xs tabular-nums text-white/80">
-                  {e.plan.qty} @ {e.plan.entry.toFixed(2)} · {strings.stop} {e.plan.stop.toFixed(2)} · {e.plan.targets.map((t) => `${t.qty}→${t.price.toFixed(2)}`).join(' ')}
+                  {e.plan.qty} @ {priceLabel(e.plan.entry)} · {strings.stop} {priceLabel(e.plan.stop)} · {e.plan.targets.map((t) => `${t.qty}→${priceLabel(t.price)}`).join(' ')}
                 </span>
               {:else if e.rejected}
                 <span class="mt-1 block text-xs text-bad/90">{e.rejected}</span>
@@ -276,14 +276,14 @@
           <div class="mt-5"><PlanLadder plan={p} /></div>
           <dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <dt class="text-muted">{strings.entry}</dt>
-            <dd class="text-right font-mono tabular-nums">{p.qty} {s.right ? strings.contracts : strings.units} @ {p.entry.toFixed(2)}</dd>
+            <dd class="text-right font-mono tabular-nums">{p.qty} {s.right ? strings.contracts : strings.units} @ {priceLabel(p.entry)}</dd>
             <dt class="text-muted">{strings.cost}</dt>
             <dd class="text-right font-mono tabular-nums">${p.cost_usd.toFixed(2)}</dd>
             <dt class="text-muted">{strings.stop}</dt>
-            <dd class="text-right font-mono tabular-nums text-bad">{p.stop.toFixed(2)} ({(((p.stop - p.entry) / p.entry) * PERCENT).toFixed(0)}%)</dd>
+            <dd class="text-right font-mono tabular-nums text-bad">{priceLabel(p.stop)} ({(((p.stop - p.entry) / p.entry) * PERCENT).toFixed(0)}%)</dd>
             {#each p.targets as t, i (i)}
               <dt class="text-muted">T{i + 1}</dt>
-              <dd class="text-right font-mono tabular-nums text-ok">{t.qty} → {t.price.toFixed(2)} (+{(((t.price - p.entry) / p.entry) * PERCENT).toFixed(0)}%)</dd>
+              <dd class="text-right font-mono tabular-nums text-ok">{t.qty} → {priceLabel(t.price)} (+{(((t.price - p.entry) / p.entry) * PERCENT).toFixed(0)}%)</dd>
             {/each}
             <dt class="text-muted">{strings.runner}</dt>
             <dd class="text-right font-mono tabular-nums">{p.runner}</dd>
@@ -300,7 +300,7 @@
               <dt class="text-muted">{strings.timeStop}</dt>
               <dd class="text-right font-mono tabular-nums">
                 {new Date(p.time_stop_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                <span class="text-muted">{strings.timeStopRule} {p.time_stop_above?.toFixed(2)}</span>
+                <span class="text-muted">{strings.timeStopRule} {priceLabel(p.time_stop_above ?? 0)}</span>
               </dd>
             {/if}
           </dl>
@@ -315,7 +315,7 @@
         <dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-4 text-sm">
           {#if s.price}
             <dt class="text-muted">{strings.called}</dt>
-            <dd class="text-right font-mono tabular-nums">{s.price.toFixed(2)}</dd>
+            <dd class="text-right font-mono tabular-nums">{priceLabel(s.price)}</dd>
           {/if}
           <dt class="text-muted">{strings.confidence}</dt>
           <dd class="text-right font-mono tabular-nums">{(s.confidence * PERCENT).toFixed(0)}%</dd>

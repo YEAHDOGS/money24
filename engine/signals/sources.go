@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -46,10 +47,13 @@ func (s Source) ID() string {
 
 // Catalog is the loaded source list.
 type Catalog struct {
-	Defaults  Settings `json:"defaults"`
-	GoLive    GoLive   `json:"go_live"`
-	Sources   []Source `json:"sources"`
-	Blocklist []Source `json:"blocklist"`
+	Defaults Settings `json:"defaults"`
+	GoLive   GoLive   `json:"go_live"`
+	Sources  []Source `json:"sources"`
+	// CryptoSymbols are tickers priced as coins from any source. A source whose only market is
+	// crypto has every symbol priced that way.
+	CryptoSymbols []string `json:"crypto_symbols"`
+	Blocklist     []Source `json:"blocklist"`
 }
 
 // LoadCatalog reads path, or the embedded defaults when path is empty.
@@ -85,6 +89,19 @@ func LoadCatalog(path string) (*Catalog, error) {
 	}
 	c.Sources = kept
 	return &c, nil
+}
+
+// IsCrypto reports whether a signal should be priced and sized as a coin, not a stock.
+func (c *Catalog) IsCrypto(sig Signal) bool {
+	if sig.Right != "" {
+		return false
+	}
+	for _, s := range c.Sources {
+		if strings.EqualFold(s.ID(), sig.SourceID) && len(s.Markets) == 1 && s.Markets[0] == MARKET_CRYPTO {
+			return true
+		}
+	}
+	return slices.Contains(c.CryptoSymbols, sig.Symbol)
 }
 
 // SettingsFor returns a source's own settings, or the catalog defaults.

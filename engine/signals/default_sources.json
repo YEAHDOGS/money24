@@ -28,6 +28,7 @@
     "max_drawdown_pct": 20,
     "paper_capital_usd": 1000
   },
+  "crypto_symbols": ["BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "AVAX", "LINK", "LTC", "BCH", "DOT", "SHIB", "PEPE", "BONK", "WIF", "SUI"],
   "sources": [
     { "type": "x", "handle": "MATTSMATTED", "markets": ["options"], "role": "callouts", "note": "Owner's template account for the callout format" },
     { "type": "x", "handle": "InvestorsLive", "markets": ["stocks"], "role": "callouts", "note": "Posts entries, exits and reasoning" },

@@ -7,6 +7,7 @@ const RECAP_ACTION = 'recap';
 const PLUS = '+';
 const MINUS = '-';
 const CURRENCY = '$';
+const SMALL_PRICE_DIGITS = 4; // significant digits for prices under a dollar, so a $0.00000531 coin is readable
 export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || DEFAULT_API;
 const INITIAL_LIMIT = 300;
 const MAX_ITEMS = 1000;
@@ -115,7 +116,7 @@ export function bucket(/** @type {Entry} */ e) {
 /** "6 @ 0.90 · stop · -$118.00": what the watcher sold, why, and what it made or lost. */
 export function resultLabel(/** @type {Result} */ r) {
   const sign = r.pnl_usd < 0 ? MINUS : PLUS;
-  return `${r.qty} @ ${r.price?.toFixed(2)} · ${r.reason} · ${sign}${CURRENCY}${Math.abs(r.pnl_usd).toFixed(2)}`;
+  return `${r.qty} @ ${priceLabel(r.price ?? 0)} · ${r.reason} · ${sign}${CURRENCY}${Math.abs(r.pnl_usd).toFixed(2)}`;
 }
 
 /** "SPY 600C 11/21" for options, "SPY" otherwise. */
@@ -124,4 +125,9 @@ export function contractLabel(/** @type {Signal} */ s) {
   if (!s.right) return s.symbol;
   const [, mm, dd] = (s.expiry ?? '').split('-');
   return `${s.symbol} ${s.strike}${s.right} ${Number(mm)}/${Number(dd)}`;
+}
+
+/** Cents for prices of a dollar or more; four significant digits below that. */
+export function priceLabel(/** @type {number} */ n) {
+  return n >= 1 || n <= 0 ? n.toFixed(2) : n.toPrecision(SMALL_PRICE_DIGITS);
 }
