@@ -7,7 +7,7 @@
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
-  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel } from './trading-client.svelte.js';
+  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel, resultLabel } from './trading-client.svelte.js';
   import PlanLadder from './PlanLadder.svelte';
   import ShareBox from './ShareBox.svelte';
   import RunnerSettings from './RunnerSettings.svelte';
@@ -21,7 +21,7 @@
   const HOURS_SHOWN_MAX = 48; // past two days, ages read in days
   const PERCENT = 100;
   const ALL = 'all';
-  const BUCKETS = ['entry', 'exit', 'trim', 'add', 'rejected', 'noise'];
+  const BUCKETS = ['entry', 'close', 'exit', 'trim', 'add', 'rejected', 'noise'];
   const TAB_JOURNAL = 'journal';
   const TAB_DETAIL = 'detail';
   const TAB_SOURCES = 'sources';
@@ -38,6 +38,7 @@
     trim: 'text-kind-filing border-kind-filing',
     add: 'text-kind-insider border-kind-insider',
     rejected: 'text-bad border-bad',
+    close: 'text-warn border-warn',
     noise: 'text-muted border-line',
   };
 
@@ -236,6 +237,10 @@
                 </span>
               {:else if e.rejected}
                 <span class="mt-1 block text-xs text-bad/90">{e.rejected}</span>
+              {:else if e.result}
+                <span class="mt-1 block font-mono text-xs tabular-nums {e.result.pnl_usd < 0 ? 'text-bad' : 'text-ok'}">{resultLabel(e.result)}</span>
+              {:else if e.plan_id}
+                <span class="mt-1 block text-xs text-muted">{e.note}</span>
               {/if}
               <span class="mt-1 block truncate text-[0.8rem] text-white/55">{e.signal.raw}</span>
             </span>
@@ -302,6 +307,9 @@
         {:else if selected.rejected}
           <h3 class="mt-5 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.reason}</h3>
           <p class="mt-1 text-sm text-bad">{selected.rejected}</p>
+        {:else if selected.plan_id}
+          <h3 class="mt-5 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.result}</h3>
+          <p class="mt-1 font-mono text-sm tabular-nums {selected.result ? (selected.result.pnl_usd < 0 ? 'text-bad' : 'text-ok') : 'text-muted'}">{selected.result ? resultLabel(selected.result) : selected.note}</p>
         {/if}
 
         <dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-4 text-sm">

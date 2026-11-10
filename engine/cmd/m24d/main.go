@@ -49,6 +49,7 @@ const (
 	SECRET_PERMS     = 0o600
 	HEADER_TIMEOUT   = 10 * time.Second
 	SHUTDOWN_TIMEOUT = 5 * time.Second
+	WATCH_INTERVAL   = 30 * time.Second // how often open paper positions are priced; one quote request each
 	ENV_SECRET       = "M24D_WEBHOOK_SECRET"
 	PLACEHOLDER      = "change-me" // the value old copies of .env.example shipped with
 	SECRET_MIN_CHARS = 16
@@ -214,6 +215,26 @@ func main() {
 				continue
 			}
 			log.Printf("%s %s %s rejected=%q note=%q", sig.SourceID, sig.Kind, sig.Symbol, e.Rejected, e.Note)
+		}
+	}()
+
+	// The exit watcher: prices open positions and closes them on the stop, a target or the clock.
+	go func() {
+		tick := time.NewTicker(WATCH_INTERVAL)
+		defer tick.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case now := <-tick.C:
+				closed, err := runner.Tick(now)
+				if err != nil {
+					log.Printf("watcher: %v", err)
+				}
+				for _, e := range closed {
+					log.Printf("%s %s %s %+v %s", e.Signal.SourceID, e.Action, e.Signal.Symbol, e.Result, e.Note)
+				}
+			}
 		}
 	}()
 

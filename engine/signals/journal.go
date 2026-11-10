@@ -22,7 +22,8 @@ type Entry struct {
 	Action   string    `json:"action"`
 	Signal   Signal    `json:"signal"`
 	Plan     *Plan     `json:"plan,omitempty"`
-	Result   *Result   `json:"result,omitempty"` // set on "close" lines
+	Result   *Result   `json:"result,omitempty"`  // set on "fill" and "close" lines
+	PlanID   int64     `json:"plan_id,omitempty"` // fill, close and void lines: the id of the plan they act on
 	Rejected string    `json:"rejected,omitempty"`
 	Note     string    `json:"note,omitempty"` // what the gate changed or could not check
 	// AsOf is the moment the plan was built for. Manual shares are planned as of the post time,

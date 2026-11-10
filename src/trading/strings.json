@@ -11,6 +11,7 @@
     "reconnecting": "Reconnecting",
     "offline": "Runner offline"
   },
+  "result": "Result",
   "actions": {
     "all": "All",
     "entry": "Entry",
@@ -19,7 +20,8 @@
     "add": "Add",
     "recap": "Recap",
     "noise": "Noise",
-    "rejected": "Rejected"
+    "rejected": "Rejected",
+    "close": "Closed"
   },
   "tabs": {
     "journal": "Journal",

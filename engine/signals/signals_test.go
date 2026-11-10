@@ -477,3 +477,50 @@ func TestRecapPostsAreNeverTraded(t *testing.T) {
 		}
 	}
 }
+
+// The watcher sells a target at its price, then stops the rest out at the bid, and a restart in
+// between picks the position up from the journal with the first rung already sold.
+func TestWatcherClosesPaperTrades(t *testing.T) {
+	bid := 1.18
+	quote := func(Signal) (Quote, bool) { return Quote{bid, bid + 0.04, 5000, 900}, true }
+	r := testRunner(t, quote)
+	if e, _, _ := r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW); e.Plan == nil || e.Plan.Qty != 8 {
+		t.Fatalf("plan: %+v", e)
+	}
+	if out, _ := r.Tick(NOW.Add(time.Minute)); len(out) != 0 {
+		t.Fatalf("nothing should happen at the entry price: %+v", out)
+	}
+	bid = 1.60
+	out, _ := r.Tick(NOW.Add(2 * time.Minute))
+	if len(out) != 1 || out[0].Action != ACTION_FILL || out[0].Result.Qty != 2 || out[0].Result.PnLUSD != 74 {
+		t.Fatalf("first target: %+v", out)
+	}
+
+	bid = 0.90
+	again := NewRunner(r.catalog, r.journal, quote)
+	out, _ = again.Tick(NOW.Add(3 * time.Minute))
+	if len(out) != 1 || out[0].Action != ACTION_CLOSE || out[0].Result.Reason != REASON_STOP || out[0].Result.PnLUSD != -118 {
+		t.Fatalf("stop after restart: %+v %+v", out, out[0].Result)
+	}
+	if out, _ = again.Tick(NOW.Add(4 * time.Minute)); len(out) != 0 {
+		t.Fatalf("closed position traded again: %+v", out)
+	}
+	all := Scoreboard(r.journal.All(), GoLive{PaperCapitalUSD: 1000})[0]
+	if all.Trades != 1 || all.Wins != 0 || all.PnLUSD != -118 || all.Posts != 1 {
+		t.Fatalf("scoreboard: %+v", all)
+	}
+
+	// Follow the source out, and close on the clock when nothing else fires.
+	bid = 1.18
+	r = testRunner(t, quote)
+	r.catalog.Defaults.FollowSourceExit, r.catalog.Defaults.MaxHoldMinutes = true, 60
+	r.Handle(callout("BTO $SPY 600C 11/21 @ 1.20", "1"), NOW)
+	r.Handle(callout("BTO $AMD 150C 11/21 @ 1.20", "2"), NOW)
+	r.Handle(callout("All out of $SPY", "3"), NOW)
+	if out, _ = r.Tick(NOW.Add(time.Minute)); len(out) != 1 || out[0].Result.Reason != REASON_SOURCE_EXIT || out[0].Signal.Symbol != "SPY" {
+		t.Fatalf("source exit: %+v", out)
+	}
+	if out, _ = r.Tick(NOW.Add(61 * time.Minute)); len(out) != 1 || out[0].Result.Reason != REASON_TIME || out[0].Result.PnLUSD != -32 {
+		t.Fatalf("time exit: %+v", out)
+	}
+}

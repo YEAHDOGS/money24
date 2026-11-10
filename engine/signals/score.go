@@ -13,11 +13,14 @@ const (
 )
 
 // Result is how one paper trade ended. PnLUSD is after slippage: fills are scored at the price
-// we could really have had, never at the called price.
+// we could really have had, never at the called price. On a close line PnLUSD is the whole trade,
+// earlier fills included; on a fill line it is that rung alone.
 type Result struct {
 	PnLUSD float64 `json:"pnl_usd"`
 	PnLPct float64 `json:"pnl_pct"`
-	Reason string  `json:"reason,omitempty"` // stop, target, time, source exit
+	Reason string  `json:"reason,omitempty"` // stop, target, time, time stop, source exit
+	Qty    int     `json:"qty,omitempty"`    // units sold on this line
+	Price  float64 `json:"price,omitempty"`  // what they sold at
 }
 
 // GoLive is the bar paper trading must clear before real money. It is set before the results are in.
@@ -102,8 +105,8 @@ func (t *tally) add(e Entry) {
 		t.days[e.At.In(time.UTC).Format(DAY_LAYOUT)] = true
 		return
 	}
-	if e.Signal.Kind == KIND_NOISE {
-		return
+	if e.Signal.Kind == KIND_NOISE || e.PlanID != 0 {
+		return // watcher lines repeat the plan's signal: not a new post
 	}
 	t.Posts++
 	switch {

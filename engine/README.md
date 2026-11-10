@@ -102,3 +102,21 @@ Check a key with `m24d --quote AAPL` or `m24d --quote AAPL260522C00300000`.
 - Limits: 300 requests per minute in production, 30 in the sandbox. One lookup per callout stays far under.
 - Not built yet: watching prices after entry. Nothing closes a paper trade on its stop, target or time
   exit, so the scoreboard has no finished trades to score.
+
+## m24d exit watcher
+
+Every 30 seconds `m24d` prices each open paper position and journals what the plan's exits would have
+done. These lines carry `plan_id`, the journal id of the plan they act on.
+
+| Action | Meaning |
+|---|---|
+| `fill` | a take-profit rung sold at its limit price; the rest is still open |
+| `close` | the trade is over. `result.pnl_usd` is the whole trade, earlier fills included |
+| `void` | no quote ever arrived by the exit time, so the trade is dropped and not scored |
+
+- A close has a `reason`: `stop`, `target`, `time`, `time stop` or `source exit`. Every sell except a
+  target is scored at the bid.
+- Only `close` lines count as trades on the scoreboard. Without a quote source nothing can be closed.
+- Open positions are rebuilt from the journal on start. The time stop is judged once, in the five
+  minutes after its check point; a runner that was down for that window skips it.
+- One quote request per open position per tick: the Webull sandbox allows 30 a minute.

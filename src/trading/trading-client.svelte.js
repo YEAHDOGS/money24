@@ -4,6 +4,9 @@
 
 const DEFAULT_API = 'http://127.0.0.1:8025';
 const RECAP_ACTION = 'recap';
+const PLUS = '+';
+const MINUS = '-';
+const CURRENCY = '$';
 export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || DEFAULT_API;
 const INITIAL_LIMIT = 300;
 const MAX_ITEMS = 1000;
@@ -15,7 +18,8 @@ const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnec
  *   price?:number, confidence:number, seen_at:string, raw:string, posted_at?:string, url?:string, manual?:boolean}} Signal */
 /** @typedef {{qty:number, entry:number, stop:number, targets:Target[], runner:number, cost_usd:number,
  *   exit_by?:string, time_stop_at?:string, time_stop_above?:number}} Plan */
-/** @typedef {{id:number, at:string, action:string, signal:Signal, plan?:Plan, rejected?:string, as_of?:string, fresh?:boolean}} Entry */
+/** @typedef {{pnl_usd:number, pnl_pct:number, reason?:string, qty?:number, price?:number}} Result */
+/** @typedef {{id:number, at:string, action:string, signal:Signal, plan?:Plan, result?:Result, plan_id?:number, note?:string, rejected?:string, as_of?:string, fresh?:boolean}} Entry */
 
 export class TradingClient {
   /** @type {Entry[]} newest first */
@@ -104,7 +108,14 @@ export class TradingClient {
  *  recap (a caller's victory lap) sits with noise because nothing is traded on it. */
 export function bucket(/** @type {Entry} */ e) {
   if (e.rejected) return 'rejected';
+  if (e.plan_id) return 'close'; // the exit watcher's lines: a rung sold, the trade closed, or dropped unpriced
   return e.action === RECAP_ACTION ? 'noise' : e.action;
+}
+
+/** "6 @ 0.90 · stop · -$118.00": what the watcher sold, why, and what it made or lost. */
+export function resultLabel(/** @type {Result} */ r) {
+  const sign = r.pnl_usd < 0 ? MINUS : PLUS;
+  return `${r.qty} @ ${r.price?.toFixed(2)} · ${r.reason} · ${sign}${CURRENCY}${Math.abs(r.pnl_usd).toFixed(2)}`;
 }
 
 /** "SPY 600C 11/21" for options, "SPY" otherwise. */

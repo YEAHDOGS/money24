@@ -62,16 +62,18 @@ type Runner struct {
 
 	mu    sync.Mutex
 	seen  map[string]bool
-	order []string        // seen keys, oldest first, so the set stays bounded
-	open  map[string]bool // source + contract with a planned entry and no exit yet
+	order []string            // seen keys, oldest first, so the set stays bounded
+	open  map[string]bool     // source + contract with a planned entry and no exit yet
+	held  map[int64]*position // planned entries the watcher has not closed, by journal id
 }
 
 // NewRunner replays the journal so a restart keeps its dedupe set and open positions.
 func NewRunner(c *Catalog, j *Journal, quote QuoteFunc) *Runner {
-	r := &Runner{catalog: c, journal: j, quote: quote, seen: map[string]bool{}, open: map[string]bool{}}
+	r := &Runner{catalog: c, journal: j, quote: quote, seen: map[string]bool{}, open: map[string]bool{}, held: map[int64]*position{}}
 	for _, e := range j.Recent(0, JOURNAL_RECENT) {
 		r.remember(e.Signal)
 		r.track(e)
+		r.hold(e)
 	}
 	return r
 }
@@ -157,6 +159,7 @@ func (r *Runner) Handle(sig Signal, now time.Time) (Entry, bool, error) {
 	}
 	r.track(e)
 	e, err := r.journal.Append(e)
+	r.hold(e)
 	return e, true, err
 }
 
