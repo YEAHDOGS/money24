@@ -58,6 +58,7 @@ const (
 	SECRET_MIN_CHARS = 16
 	LOOPBACK_NAME    = "localhost"
 	MAX_TICKER_CHARS = 6 // longer than this is a full option symbol, not a ticker
+	BEARER           = "Bearer "
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -262,8 +263,15 @@ func main() {
 	if *hosts != "" {
 		allowedHosts = strings.Split(*hosts, ",")
 	}
-	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts,
-		Mount: map[string]http.Handler{market.ROUTE_PREFIX: market.Handler(market.NewClient())}}
+	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts}
+	prices := market.NewClient()
+	tracker := signals.NewTracker(recorder, catalog, priceHistory(prices))
+	// Loading a source's history reaches out to X, so it takes the local desk or the webhook secret.
+	mayLoad := func(r *http.Request) bool {
+		return opts.TrustsLocalDesk(r) || r.Header.Get("Authorization") == BEARER+secret
+	}
+	opts.Mount = tracker.Routes(http.DefaultClient, mayLoad)
+	opts.Mount[market.ROUTE_PREFIX] = market.Handler(prices)
 	resolver := func(ctx context.Context, statusURL string) (signals.Tweet, error) {
 		return signals.ResolveTweet(ctx, http.DefaultClient, statusURL)
 	}

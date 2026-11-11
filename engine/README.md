@@ -154,6 +154,42 @@ A post that carries a Solana token address is priced from DEX Screener's public 
 - Symbols follow Yahoo: `NVDA`, `BTC-USD`, `^GSPC`, `ES=F`, `EURUSD=X`.
 - This feed is for looking. Paper trades are still priced by Coinbase, DEX Screener and Webull.
 
+## m24d source records (who to trust)
+
+Every post that reaches `m24d` is kept in `posts.jsonl`. The tracker (`signals/trust.go`) re-reads
+those posts and scores each source on the entries it called. The trading desk shows the result when
+a source is picked in the rail; `trading.html?source=x:Handle` links straight to one.
+
+| Route | Returns |
+|---|---|
+| `GET /api/trust` | every source with posts on record, most trusted first |
+| `GET /api/trust/source?id=x:Handle` | one source's record and each entry with its outcome |
+| `POST /api/trust/load?id=x:Handle` | pulls an X account's public sample of posts into the record |
+
+How a call is judged:
+
+1. The entry price is the market price when the post was made (the first candle at or after it),
+   not the price the caller claimed.
+2. If the source later posted an exit for the same symbol (within 30 days), the call is judged on
+   the price at that exit: above the entry is a win.
+3. Otherwise it is judged on the next five trading days (five calendar days for coins). It is a
+   win when the price ran at least 2% in the called direction at any point. This is generous, so
+   the record also carries the worst moment and where the window ended.
+4. Trust is the win rate's lower 95% confidence bound (Wilson), so a short record cannot outrank a
+   long one on luck. Calls whose window is still open, or that have no price history, are not counted.
+
+Limits:
+
+- Loading history uses X's embedded-timeline page. Without a login it returns about a hundred of
+  the account's best-known posts from any year, not its latest ones. It is a first look, not a fair
+  record; that needs the paid X API or posts recorded live. Loaded posts never reach the runner.
+- Option calls are followed on the underlying stock (puts as shorts). Old option prices have no
+  free source.
+- On-chain tokens have no price history source yet, so calls that carry a token address are not scored.
+- Candles come from Yahoo: five-minute for the last 55 days, hourly to 700 days, daily before that,
+  so the entry price of an old call is the next day's open.
+- A source's score is only as good as the parser: a post misread as an entry is scored as one.
+
 ## m24d exit watcher
 
 Every 30 seconds `m24d` prices each open paper position and journals what the plan's exits would have

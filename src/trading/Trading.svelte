@@ -7,7 +7,8 @@
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
-  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel, priceLabel, resultLabel } from './trading-client.svelte.js';
+  import { TradingClient, DEFAULT_RUNNER, bucket, contractLabel, priceLabel, resultLabel, sourceId } from './trading-client.svelte.js';
+  import SourcePanel from './SourcePanel.svelte';
   import PlanLadder from './PlanLadder.svelte';
   import ShareBox from './ShareBox.svelte';
   import RunnerSettings from './RunnerSettings.svelte';
@@ -30,6 +31,7 @@
   const STORE_SECRET = 'm24.trading.secret';
   // Android share sheet (PWA share_target) and links land here as ?title=&text=&url=.
   const SHARE_PARAMS = ['title', 'text', 'url'];
+  const SOURCE_PARAM = 'source';
   const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', reconnecting: 'text-warn', offline: 'text-bad' };
   // Literal class strings so Tailwind sees them. Colors come from theme tokens.
   const BUCKET_CLASSES = {
@@ -60,8 +62,21 @@
   const sharedIn = SHARE_PARAMS.map((k) => new URLSearchParams(location.search).get(k) ?? '').filter(Boolean).join(' ');
   let now = $state(Date.now());
   let filter = $state(ALL);
-  let tab = $state(TAB_JOURNAL);
+  let tab = $state(new URLSearchParams(location.search).has(SOURCE_PARAM) ? TAB_DETAIL : TAB_JOURNAL);
   let selectedId = $state(0);
+  /** The source whose record is open in the detail pane; empty shows the picked journal entry. */
+  let openSource = $state(new URLSearchParams(location.search).get(SOURCE_PARAM) ?? ''); // trading.html?source=x:Handle opens a record
+  /** @type {any[]} every source with posts on record, most trusted first */
+  let ranking = $state([]);
+
+  function loadRanking() {
+    client.ranking().then((r) => { ranking = r; }).catch(() => {});
+  }
+
+  function pickSource(/** @type {string} */ id) {
+    openSource = id;
+    tab = TAB_DETAIL;
+  }
 
   function connect() {
     client.onEntry = (e) => {
@@ -70,6 +85,7 @@
       pick(e.id);
     };
     client.start();
+    loadRanking();
   }
 
   function saveRunner(/** @type {string} */ url, /** @type {string} */ secret) {
@@ -121,6 +137,8 @@
   }, /** @type {Record<string, number>} */ ({})));
   const visible = $derived(filter === ALL ? client.items : client.items.filter((e) => bucket(e) === filter));
   const selected = $derived(client.items.find((e) => e.id === selectedId) ?? client.items.find((e) => e.plan));
+  const trustOf = $derived(Object.fromEntries(ranking.map((r) => [r.source_id.toLowerCase(), r])));
+  const rankedCount = $derived(ranking.filter((r) => r.rank).length);
   const sourcesByRole = $derived(client.sources.reduce((acc, src) => {
     const role = src.role ?? 'callouts';
     (acc[role] ??= []).push(src);
@@ -147,6 +165,7 @@
   }
 
   function pick(/** @type {number} */ id) {
+    openSource = '';
     selectedId = id;
     tab = TAB_DETAIL;
   }
@@ -191,9 +210,17 @@
         <h3 class="px-4 pt-2 pb-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-white/40">{strings.roles[role] ?? role}</h3>
         <ul>
           {#each list as s (s.type + (s.handle ?? s.venue ?? ''))}
-            <li class="flex items-center gap-2 px-4 py-0.5 text-xs text-white/70" title={s.note ?? ''}>
-              <span class="flex-1 truncate">{s.handle ? `@${s.handle}` : s.venue ?? s.type}</span>
-              <span class="truncate font-mono text-[0.62rem] uppercase text-muted">{s.markets?.join(' ')}</span>
+            {@const sid = sourceId(s)}
+            {@const t = trustOf[sid.toLowerCase()]}
+            <li>
+              <button type="button" onclick={() => pickSource(sid)} aria-pressed={openSource === sid} title={s.note ?? ''}
+                class="spring flex w-full items-center gap-2 px-4 py-1 text-left text-xs hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none {openSource === sid ? 'bg-white/5 text-white' : 'text-white/70'}">
+                <span class="flex-1 truncate">{s.handle ? `@${s.handle}` : s.venue ?? s.type}</span>
+                {#if t?.scored}
+                  <span class="font-mono text-[0.68rem] font-bold tabular-nums text-neon-red" title={strings.trustTitle}>{t.trust_pct.toFixed(0)}</span>
+                {/if}
+                <span class="truncate font-mono text-[0.62rem] uppercase text-muted">{s.markets?.join(' ')}</span>
+              </button>
             </li>
           {/each}
         </ul>
@@ -257,7 +284,9 @@
 
   <!-- PLAN DETAIL -->
   <section aria-label={strings.tabs.detail} class="list-scroll min-h-0 overflow-y-auto border-t border-line md:border-t-0 desktop-portrait:col-span-2 desktop-portrait:border-t! landscape-phone:block {tab === TAB_DETAIL ? '' : 'max-md:hidden'}">
-    {#if selected}
+    {#if openSource}
+      <SourcePanel id={openSource} source={client.sources.find((src) => sourceId(src) === openSource)} {client} ranked={rankedCount} onLoaded={loadRanking} />
+    {:else if selected}
       {@const s = selected.signal}
       <div class="px-4 py-4 lg:px-6">
         <div class="flex items-baseline justify-between gap-3">

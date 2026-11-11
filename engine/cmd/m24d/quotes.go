@@ -10,6 +10,7 @@ import (
 
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
+	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -22,7 +23,8 @@ const (
 	QUOTE_TIMEOUT     = 6 * time.Second
 	// Assumed venue fee on each side of an on-chain trade. A round number on the high side of what
 	// pump.fun and the Solana pools charge, so paper results do not flatter.
-	POOL_FEE_PCT = 1.0
+	POOL_FEE_PCT     = 1.0
+	COIN_PAIR_SUFFIX = "-USD"
 )
 
 // webullClient builds the quote client from the environment, or returns nil when no key is set.
@@ -96,4 +98,25 @@ func printQuote(client *webull.Client, symbol string) error {
 	fmt.Printf("%s  bid %.3f x %.0f  ask %.3f x %.0f  last %.3f  volume %.0f  open interest %.0f\n",
 		snap.Symbol, snap.Bid, snap.BidSize, snap.Ask, snap.AskSize, snap.Price, snap.Volume, snap.OpenInterest)
 	return nil
+}
+
+// priceHistory reads past candles for scoring a source's old calls. Coins are looked up as their
+// US dollar pair. An option call is followed on its underlying stock: old option prices have no
+// free source, and the stock's direction is what the call was betting on.
+func priceHistory(client *market.Client) signals.HistoryFunc {
+	return func(ctx context.Context, sig signals.Signal, from, to time.Time) ([]signals.PriceBar, error) {
+		symbol := sig.Symbol
+		if sig.Market == signals.MARKET_CRYPTO {
+			symbol += COIN_PAIR_SUFFIX
+		}
+		chart, err := client.History(ctx, symbol, from, to)
+		if err != nil {
+			return nil, err
+		}
+		bars := make([]signals.PriceBar, 0, len(chart.Candles))
+		for _, c := range chart.Candles {
+			bars = append(bars, signals.PriceBar{At: time.Unix(c.T, 0), Open: c.O, High: c.H, Low: c.L, Close: c.C})
+		}
+		return bars, nil
+	}
 }

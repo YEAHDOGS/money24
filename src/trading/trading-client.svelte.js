@@ -60,6 +60,28 @@ export class TradingClient {
     return /** @type {Promise<Signal>} */ (res.json());
   }
 
+  /** Every source with posts on record, most trusted first. @returns {Promise<any[]>} */
+  async ranking() {
+    const res = await fetch(`${this.#base}/api/trust`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  /** One source's trust record and every entry it called. @returns {Promise<{trust:any, outcomes:any[]}>} */
+  async sourceRecord(/** @type {string} */ id) {
+    const res = await fetch(`${this.#base}/api/trust/source?${new URLSearchParams({ id })}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  /** Pulls an X source's public sample of posts into the record. @returns {Promise<{added:number}>} */
+  async loadHistory(/** @type {string} */ id) {
+    const headers = this.#secret ? { Authorization: `Bearer ${this.#secret}` } : {};
+    const res = await fetch(`${this.#base}/api/trust/load?${new URLSearchParams({ id })}`, { method: 'POST', headers });
+    if (!res.ok) throw new Error((await res.text()).trim() || `HTTP ${res.status}`);
+    return res.json();
+  }
+
   async start() {
     try {
       const [journal, catalog] = await Promise.all([
@@ -103,6 +125,12 @@ export class TradingClient {
       this.onEntry(e);
     };
   }
+}
+
+/** A catalog source's id, as the runner writes it on signals: "x:Handle", "leaderboard:venue", "webhook". */
+export function sourceId(/** @type {any} */ s) {
+  const name = s.handle ?? s.venue;
+  return name ? `${s.type}:${name}` : s.type;
 }
 
 /** Journal entries are bucketed by what happened: a skipped entry shows as "rejected", and a

@@ -24,6 +24,7 @@ import (
 const (
 	YAHOO_API     = "https://query1.finance.yahoo.com"
 	CHART_PATH    = "/v8/finance/chart/%s?range=%s&interval=%s&includePrePost=%t"
+	HISTORY_PATH  = "/v8/finance/chart/%s?period1=%d&period2=%d&interval=%s"
 	SUMMARY_PATH  = "/v10/finance/quoteSummary/%s?modules=price,summaryDetail,earnings,assetProfile"
 	SEARCH_PATH   = "/v1/finance/search?q=%s&quotesCount=%d&newsCount=%d"
 	QUOTES_PATH   = "/v7/finance/quote?symbols=%s"
@@ -45,7 +46,9 @@ const (
 	SEARCH_NEWS     = 8
 	MAX_QUOTES      = 30
 	MAX_QUERY_CHARS = 60
-	THUMB_MIN_WIDTH = 300 // the smallest thumbnail that still looks sharp on the news card
+	HISTORY_5M      = 55 * 24 * time.Hour  // Yahoo keeps 5-minute candles for 60 days
+	HISTORY_1H      = 700 * 24 * time.Hour // and hourly candles for 730
+	THUMB_MIN_WIDTH = 300                  // the smallest thumbnail that still looks sharp on the news card
 )
 
 var (
@@ -270,6 +273,32 @@ func (c *Client) Chart(ctx context.Context, symbol, rng, interval string) (Chart
 	if !valid || !SYMBOL.MatchString(symbol) {
 		return Chart{}, ErrBadInput
 	}
+	out, err := c.candles(ctx, fmt.Sprintf(CHART_PATH, url.PathEscape(symbol), rng, interval, EXTENDED_RANGES[rng]))
+	out.Range, out.Interval = rng, interval
+	return out, err
+}
+
+// History returns the candles between two moments, for scoring a call made in the past. Yahoo
+// keeps small candles only for a while, so the size steps up with the age of the start: five
+// minutes inside HISTORY_5M, an hour inside HISTORY_1H, a day beyond that.
+func (c *Client) History(ctx context.Context, symbol string, from, to time.Time) (Chart, error) {
+	if !SYMBOL.MatchString(symbol) || !to.After(from) {
+		return Chart{}, ErrBadInput
+	}
+	interval := "1d"
+	switch age := time.Since(from); {
+	case age < HISTORY_5M:
+		interval = "5m"
+	case age < HISTORY_1H:
+		interval = "1h"
+	}
+	out, err := c.candles(ctx, fmt.Sprintf(HISTORY_PATH, url.PathEscape(symbol), from.Unix(), to.Unix(), interval))
+	out.Interval = interval
+	return out, err
+}
+
+// candles fetches and decodes one chart route.
+func (c *Client) candles(ctx context.Context, path string) (Chart, error) {
 	var res struct {
 		Chart struct {
 			Result []struct {
@@ -295,7 +324,6 @@ func (c *Client) Chart(ctx context.Context, symbol, rng, interval string) (Chart
 			} `json:"result"`
 		} `json:"chart"`
 	}
-	path := fmt.Sprintf(CHART_PATH, url.PathEscape(symbol), rng, interval, EXTENDED_RANGES[rng])
 	if err := c.get(ctx, path, false, &res); err != nil {
 		return Chart{}, err
 	}
@@ -303,7 +331,7 @@ func (c *Client) Chart(ctx context.Context, symbol, rng, interval string) (Chart
 		return Chart{}, ErrNotFound
 	}
 	r := res.Chart.Result[0]
-	out := Chart{Symbol: r.Meta.Symbol, Range: rng, Interval: interval, Timezone: r.Meta.Timezone, Price: r.Meta.Price,
+	out := Chart{Symbol: r.Meta.Symbol, Timezone: r.Meta.Timezone, Price: r.Meta.Price,
 		PreviousClose: r.Meta.ChartPreviousClose, Regular: r.Meta.Periods.Regular, Candles: []Candle{}}
 	if len(r.Indicators.Quote) == 0 {
 		return out, nil
