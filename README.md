@@ -19,6 +19,11 @@ SQLite database. Cloudflare is only the control plane, later on.
 
 ## Run it
 
+**The whole app on your own machine:** install Node 22+ and Go 1.26+, then run `start.bat` (Windows)
+or `./start.sh` (macOS, Linux). Full steps, settings and fixes: [docs/RUNNING.md](docs/RUNNING.md).
+
+The sections below run one part at a time.
+
 ### Client
 
 ```sh
