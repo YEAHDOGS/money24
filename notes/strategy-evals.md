@@ -113,3 +113,19 @@ Source: https://x.com/Raphael1402X/status/2119866081091240093 — his send with 
 **On his thesis (dollars -> hundreds):** that narrower claim is the defensible one, and this post is not its evidence. Dollars-to-millions here is a 1,100,000x lottery/insider outcome. Dollars-to-hundreds is a 10-100x — a different, repeatable-in-principle game (early entry + disciplined exits), consistent with the wallet-level data already on file: a minority of memecoin wallets profit (~15-20% depending on the study), the median buyer loses, and the edge sits in entry timing and exit discipline, not in screenshots of winners. If anything in this post is copyable, it is the seller's exit pattern (80 staged sells into strength), not the $2 entry.
 
 **Filed:** Wordsmith money24 note; this entry; money-makers README source URLs. No action, no signup, no Telegram join.
+
+### @savipww — "Grok Bot" $36.40 → $3,320.19 overnight in the fomo app (evaluated Nov 11, 2026)
+
+Source: https://x.com/savipww/status/2120543076137521434 — posted Nov 11, 2026, 9:44 AM. Author savip. (@savipww, 17.1K followers, "deep into AI & Quant since 2022"); bio link celebex.notpeople.ai; the post pushes his Nov 1 article "My Six Figure Grok Bot Trencher Setup (Free Prompt)". Read in full via browser (post text, attached ~32s video frames, visible replies).
+
+**The claim:** a 5-agent "Grok Bot" (Scanner, Analyst, Brain, Executor, Risk) trading his account in the fomo app (fomo.family) overnight: cut losers at -6%, take profit in parts, roll every win into the next buy. $36.40 became $3,320.19 (91.21x). The key trade: a cat coin bought at a $1.54M market cap at 12:16am because Ansem had put that cat on his profile picture, sold at $10.76M at 1:32am. The token (from his own first-reply referral link): 4CxjZyMNoF1p6eXHXHv1TWpS2X47CuUmLwtGe18spump.
+
+**The proof offered:** a montage of in-app screens — a $36.40 deposit, terminal balances stepping up ($366.80 at 1:32am, $994.49 at 5:13am), and a "Withdrew $3,320.19 USDC" screen. NO wallet address appears anywhere — not in the post text, not in the video frames. The only address published is the token's, via a fomo link carrying his referral parameter (r=savipww): he gains when readers join through it.
+
+**Inconsistencies inside his own materials:** the start is $36.40, yet the cat-coin buy is "$52.50 — every cent I had," with the increase unexplained; the text says 8 trades while his own terminal frame shows 12; his in-app profile stats (2.2K followers, joined Aug 2026, 70 trades) differ from his X profile.
+
+**Verdict: NOT LEGIT as evidence — same class as @Hrundel75 (Nov 7).** The "Grok Bot inside fomo" genre proves P&L with screenshots of an app's own UI. An app screen can display any numbers, the withdrawal screen lives inside the same app, and with no wallet address there is nothing on-chain to audit: the token's price move is checkable, but it proves the token moved, not that his bot bought or sold it. The monetization is visible (article funnel + referral link + "dm open" bio). No download link or key request appears in this post, so the risk class is belief, not theft.
+
+**Fit for Money 24:** the pitch is an X-reading narrative-chaser (it "caught" an influencer's profile-picture change), not copy trading and not the indicator — and even taken at face value, one overnight 91x run at full-bankroll sizing is a lottery path, not a repeatable system. There is no wallet to copy and no record to grade.
+
+**Status:** evaluated and filed at his order. No signup, no referral click-through action, no spend.
