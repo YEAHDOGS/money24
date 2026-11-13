@@ -129,3 +129,15 @@ Source: https://x.com/savipww/status/2120543076137521434 — posted Nov 11, 2026
 **Fit for Money 24:** the pitch is an X-reading narrative-chaser (it "caught" an influencer's profile-picture change), not copy trading and not the indicator — and even taken at face value, one overnight 91x run at full-bankroll sizing is a lottery path, not a repeatable system. There is no wallet to copy and no record to grade.
 
 **Status:** evaluated and filed at his order. No signup, no referral click-through action, no spend.
+
+## 2026-11-13 — @thetawarriorpro NVDA whale spread reel (Instagram)
+
+Source: https://www.instagram.com/reel/DffryJ4Pv__/ — @thetawarriorpro ("Theta Warrior", full-time options trader / flow educator). The reel funnels viewers to comment "FLOW" for a free flow-setup checklist by DM — a lead magnet for his paid pipeline.
+
+The trade shown: a whale's NVDA bull call debit spread — long 105,000 contracts of the Feb 19, 2027 $210 call ($56.6M), short 105,000 contracts of the Feb 19, 2027 $255 call ($11.2M collected), net debit $45.402M. Per-contract math from the reel's own numbers: $432.40 debit per spread, max profit $40.68/share, breakeven $214.32 at expiration, upside capped at $255.
+
+**Verdict: STRUCTURE IS SANE, COPY IS UNVERIFIED, SIZE IS IMPOSSIBLE.** A defined-risk debit spread with a far expiry and ~9.4:1 max risk/reward is the respectable end of options copying, and options-flow copying sits inside the standing strategy family. But: (1) the minimum ticket is one contract at ~$432 — over 4x the entire $100 float, so the trade cannot be taken live at any size; (2) flow shows a print, not intent — a spread this size can be a hedge, a roll, or one leg of a larger book, and the reel's own comment thread debates opening vs closing while mocking the timing after NVDA dropped on gossip headlines; (3) the source monetizes the audience, not the trade.
+
+**Fit for Money 24:** paper-desk candidate only — one paper contract of the identical structure, graded on the scoreboard like any other source. No live trade, no FLOW checklist, no DM funnel.
+
+**Status:** evaluated and filed at his order (he asked "should we do this on NVDA"). No spend, no signup, no trade.
