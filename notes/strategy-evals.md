@@ -141,3 +141,15 @@ The trade shown: a whale's NVDA bull call debit spread — long 105,000 contract
 **Fit for Money 24:** paper-desk candidate only — one paper contract of the identical structure, graded on the scoreboard like any other source. No live trade, no FLOW checklist, no DM funnel.
 
 **Status:** evaluated and filed at his order (he asked "should we do this on NVDA"). No spend, no signup, no trade.
+
+## 2026-11-13 — @julias.algos box spread borrowing reel (Instagram)
+
+Source: https://www.instagram.com/reel/DfF8GmMyfs-/ — @julias.algos ("Wall Street Trading Concepts Made Simple"). Educational reel: sell a box spread on SPX to borrow ~$100K at ~4.6% — cheaper than a mortgage (~7%), roughly 0.4% over the 2-year Treasury (SPX box yield curve, Mar 2025). She includes the correct safety warning herself: European-style options only (SPX), never American (SPY) — early assignment risk.
+
+**Verdict: REAL — the rare reel that is textbook-true.** A short box spread is a synthetic loan: credit received now, fixed obligation of the strike width at expiry, the difference is the interest. SPX is European-style and cash-settled, so the payoff is locked. Implied box rates genuinely print a few tenths over matched Treasuries, and the same structure run long is literally a traded product (the BOXX ETF lends via box spreads).
+
+**The correction:** "$0 cash down" is marketing. Brokers only let you extract cash against account equity you already own — in practice this needs a six-figure portfolio and usually portfolio margin; the borrowed cash is leverage on your own assets (commonly used to get liquidity without selling appreciated stock and triggering capital gains). The loan is also short-dated and callable in effect: if the rest of the account falls, margin clerks can force-close the box at bad prices, and at expiry the loan comes due.
+
+**Fit for Money 24:** none as a strategy — a box spread makes nothing; it borrows cheaply. Worth remembering as the legitimate financing move if a large portfolio ever exists. Not runnable at any current scale (his account is $200). No action, no spend.
+
+**Status:** evaluated and filed at his order (he asked "is this possible?").
