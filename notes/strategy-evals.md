@@ -153,3 +153,15 @@ Source: https://www.instagram.com/reel/DfF8GmMyfs-/ — @julias.algos ("Wall Str
 **Fit for Money 24:** none as a strategy — a box spread makes nothing; it borrows cheaply. Worth remembering as the legitimate financing move if a large portfolio ever exists. Not runnable at any current scale (his account is $200). No action, no spend.
 
 **Status:** evaluated and filed at his order (he asked "is this possible?").
+
+## 2026-11-13 — @algo.jan VWAP x EMA9 crossover scalp (Instagram) — paper-source spec
+
+Source: https://www.instagram.com/reel/DfkBJy3vBQd/ — @algo.jan (Jan Hottiger, algo trader) reviewing another trader's day-trading system. The origin trader claims $200K+ in October 2026; the reel's own backtest (3-minute timeframe, 2 years) shows +200.1%, $20,010 net, 174 trades, 55.8% win rate, Sharpe 1.80, max drawdown 22.2%, profit factor 2.17; a prop-firm simulator reports an 85.9% pass probability on a $50K My Funded Futures challenge.
+
+The system as stated: session-anchored VWAP + EMA9. Buy puts when VWAP crosses above EMA9; buy calls when it crosses below; stop when price breaks EMA9 or the position hits -30%. (As narrated the legs may be compressed or inverted vs the origin trader's real spec — treat the rules as a hypothesis to pin down in paper, not gospel.)
+
+**Skeptic's read:** 174 trades over two years is very few for a 3-minute crossover system — heavy filtering or parameter fitting is likely; backtest fills ignore options spreads and slippage, which a -30%-stop scalping system pays on every trade; the $200K month is unverified; the 85.9% prop-pass figure is a simulator run on the backtest's own statistics (circular). Decisive local fact: the advertised max drawdown, 22.2%, already exceeds Money 24's own go-live gate (max DD 20% of the $1,000 paper capital).
+
+**Fit for Money 24:** NOT copy trading — this is an own-signal indicator strategy. It fits only under the Nov 6 "an indicator with good paper trading" shape, as a new SOURCE on the paper desk: id `vwap-ema9-scalp`, starts on probation like every source, scored by the scoreboard, auto-disabled if it loses, same go-live gate (100 trades / 30 trading days / profitable after slippage / max DD 20%). Spec for the builder: instrument MES futures or SPY options (pick one per run, record which); 3-minute bars; session-anchored VWAP; EMA9; entries on cross per the rules above; exits on EMA9 break, -30% stop, or session close; every signal emitted through the existing callout/webhook contract so the journal and scoreboard grade it unchanged. Requires his explicit exception to the copy-trading-only rule (Nov 5) or classification under the indicator family (Nov 6). Muse files the spec; his Claude builds; nothing live.
+
+**Status:** evaluated and filed at his order (he asked "can we try this with money24?"). Paper only. No build by Muse, no live trading, no spend.
