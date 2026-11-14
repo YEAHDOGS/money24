@@ -98,6 +98,8 @@
       </a>
       <p class="fineprint">&copy; {CURRENT_YEAR} DOGS. Not financial advice.</p>
     </div>
+    <!-- Out of the flex column on purpose: absolutely placed, so the wordmark and badge never move. -->
+    <p class="legal"><a href="terms.html">Terms of Use</a></p>
   </section>
 </main>
 
@@ -253,6 +255,30 @@
     letter-spacing: 0.14em;
     color: var(--color-muted);
   }
+
+  /* Terms link: pinned under the last panel content, outside its flex column, so adding it reflows nothing */
+  .legal {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 1.4rem;
+    z-index: 1;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding-inline: 1.25rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+  @media (min-width: 768px) {
+    .legal { padding-inline: 3rem; }
+  }
+  .legal a {
+    color: var(--color-muted);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+    transition: color 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .legal a:hover, .legal a:focus-visible { color: white; }
+  .legal a:focus-visible { outline: 2px solid var(--color-neon-red); outline-offset: 3px; }
 
   .cue {
     position: absolute;

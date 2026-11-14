@@ -1,0 +1,359 @@
+@import "tailwindcss" source(none); /* no utility scan: this page uses only the plain CSS below */
+/* Colors, theme tokens and custom variants. Every color below is a theme token; none are written here. */
+@import "../styles/theme.css";
+
+/* Terms of Use page (terms.html). Plain CSS on purpose: the page has no JavaScript, and on browsers too old for
+   cascade layers the semantic HTML still reads top to bottom unstyled. Layout per screen class:
+   phones stack contents above the text; tablets and up put the contents in a sticky side rail; TVs get larger
+   type; ultra-wide spreads the rail and text apart instead of leaving empty bleed. */
+
+/* Fluid type, same curve as the desk pages: phones stay readable, a 4K TV at ten feet gets bigger text. */
+html {
+  font-size: clamp(15px, 0.4vw + 10px, 26px);
+  scroll-behavior: smooth;
+  scroll-padding-top: 4.5rem; /* anchored headings land below the sticky masthead */
+}
+
+body.terms {
+  margin: 0;
+  background: var(--color-app);
+  color: var(--color-white);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+.terms a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--color-neon-red);
+  text-underline-offset: 0.2em;
+  transition: color 150ms cubic-bezier(0.34, 1.56, 0.64, 1), text-decoration-color 150ms ease;
+}
+.terms a:hover {
+  color: var(--color-neon-red);
+}
+/* Focus is never color alone: a red outline with an offset ring. */
+.terms a:focus-visible {
+  outline: 2px solid var(--color-neon-red);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 20;
+  padding: 0.5rem 0.9rem;
+  background: var(--color-card);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.skip:focus-visible {
+  transform: translateY(5rem);
+}
+
+/* ── Masthead ───────────────────────────────────────────────────────────── */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1.25rem;
+  background: var(--color-app);
+  border-bottom: 1px solid var(--color-line);
+}
+.brand {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-decoration: none !important;
+}
+.accent {
+  color: var(--color-neon-red);
+}
+.top-links {
+  display: flex;
+  gap: 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.top-links a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+/* Contents: a compact list above the text on phones. */
+.toc {
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.toc-title,
+.meta {
+  margin: 0 0 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.toc ol {
+  margin: 0;
+  padding-left: 1.6em;
+  list-style: decimal;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.toc li {
+  break-inside: avoid;
+  padding: 0.1rem 0;
+  color: var(--color-muted);
+}
+.toc a {
+  text-decoration: none;
+  color: var(--color-white);
+}
+
+/* ── The document, hanging from a 1px spine ─────────────────────────────── */
+.doc {
+  position: relative;
+  min-width: 0;
+  padding: 1.5rem 1.25rem 3rem 1.6rem;
+  max-width: 46rem;
+}
+.doc::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0.55rem;
+  width: 1px;
+  background: var(--color-line);
+}
+.doc-title {
+  margin: 0 0 0.3rem;
+  font-size: clamp(2rem, 7vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.doc p,
+.doc li {
+  overflow-wrap: anywhere;
+  color: var(--color-white);
+}
+.doc ul {
+  margin: 0.6rem 0 1rem;
+  padding-left: 1.2em;
+  list-style: disc;
+}
+.doc li {
+  margin: 0.4rem 0;
+}
+.doc li::marker {
+  color: var(--color-neon-red);
+}
+.doc p {
+  margin: 0.6rem 0;
+}
+
+.doc section {
+  position: relative;
+  padding-top: 1.6rem;
+}
+.doc h2 {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+/* A node on the spine for each section. */
+.doc h2::before {
+  content: "";
+  position: absolute;
+  left: -1.4rem;
+  top: 0.45em;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--color-app);
+  border: 2px solid var(--color-neon-red);
+}
+.num {
+  font-family: ui-monospace, "IBM Plex Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--color-neon-red);
+}
+.doc h3 {
+  margin: 1.2rem 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* The required risk line, set apart so nobody misses it. */
+.callout {
+  margin: 0.8rem 0 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--color-warn);
+  border-left-width: 4px;
+  border-radius: 0.4rem;
+  background: var(--color-card);
+}
+.callout p {
+  margin: 0.3rem 0;
+}
+.callout-lead {
+  font-weight: 700;
+  color: var(--color-warn) !important;
+}
+
+.caps-note {
+  padding: 0.8rem 1rem;
+  border-left: 2px solid var(--color-muted);
+  background: var(--color-card);
+}
+
+.draft {
+  padding: 0.6rem 0.9rem;
+  border: 1px dashed var(--color-warn);
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+}
+
+/* Unfilled placeholders: loud on purpose, so the page cannot ship with them unnoticed. */
+.ph {
+  padding: 0 0.3em;
+  border: 1px solid var(--color-warn);
+  border-radius: 0.2em;
+  background: var(--color-card);
+  color: var(--color-warn);
+  font-family: ui-monospace, "IBM Plex Mono", Consolas, monospace;
+  font-size: 0.85em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.doc-foot {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+  font-size: 0.8rem;
+}
+.doc-foot p {
+  color: var(--color-muted);
+}
+
+/* ── Short screens (phones on their side, tiny windows down to 320×320): no sticky bar eating the height. ── */
+@media (max-height: 500px) {
+  .masthead {
+    position: static;
+    padding-block: 0.4rem;
+  }
+  html {
+    scroll-padding-top: 0.5rem;
+  }
+}
+
+/* Phones on their side: contents in two columns. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .toc ol {
+    column-count: 2;
+    column-gap: 2rem;
+  }
+}
+
+/* Wider phones and small tablets in portrait: two columns of contents. */
+@media (min-width: 480px) and (max-width: 767px) {
+  .toc ol {
+    column-count: 2;
+    column-gap: 2rem;
+  }
+}
+
+/* ── Tablet and up: sticky contents rail on the left, the text beside it. ─────────────────────────── */
+@media (min-width: 768px) and (min-height: 501px) {
+  .masthead {
+    padding-inline: 2rem;
+  }
+  .layout {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+  .toc {
+    position: sticky;
+    top: 3.6rem;
+    align-self: start;
+    max-height: calc(100vh - 3.6rem);
+    overflow-y: auto;
+    padding: 2rem 1.5rem;
+    border-bottom: 0;
+    border-right: 1px solid var(--color-line);
+  }
+  .doc {
+    padding: 2rem 2.5rem 4rem 3rem;
+  }
+  .doc::before {
+    left: 1.5rem;
+  }
+  .doc h2::before {
+    left: -1.82rem;
+  }
+}
+
+/* Desktop portrait: the text gets the width, contents stay in the rail. */
+@media (orientation: portrait) and (min-width: 1024px) {
+  .doc {
+    max-width: 52rem;
+  }
+}
+
+/* TV: bigger type and spacing for ten-foot viewing (the html clamp already scales rem up). */
+@media (min-width: 1920px) {
+  .layout {
+    max-width: 96rem;
+    grid-template-columns: 20rem minmax(0, 1fr);
+  }
+  .doc {
+    max-width: 52rem;
+  }
+}
+
+/* Ultra-wide: spread the rail and text across the width instead of a narrow centred column. */
+@media (min-aspect-ratio: 21/9) and (min-width: 1536px) {
+  .layout {
+    max-width: none;
+    grid-template-columns: minmax(18rem, 1fr) minmax(0, 56rem) minmax(0, 1fr);
+  }
+  /* The rail hugs the text from the left instead of floating at the screen edge. */
+  .toc {
+    justify-self: end;
+    width: 22rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .terms a,
+  .skip {
+    transition: none;
+  }
+}

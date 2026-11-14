@@ -53,6 +53,28 @@
   margin: 0 auto;
 }
 
+/* Terms link: pinned to the bottom edge, out of the centred column, so the logo and title never move */
+.legacy-fallback__legal {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  width: 100%;
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+}
+
+.legacy-fallback__legal a {
+  color: #8e8e9f; /* --color-muted */
+}
+
+/* Very short windows: the centred column already fills the height, so the link would sit on the badge */
+@media (max-height: 420px) {
+  .legacy-fallback__legal {
+    display: none;
+  }
+}
+
 /* Tablet & desktop */
 @media (min-width: 768px) {
   .legacy-fallback__logo {
