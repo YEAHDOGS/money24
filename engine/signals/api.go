@@ -13,7 +13,7 @@ const (
 	DEFAULT_JOURNAL_LIMIT = 200
 	SSE_HEARTBEAT         = 25 * time.Second
 	SSE_RETRY_MS          = 3000
-	API_METHODS           = "GET, POST, OPTIONS"
+	API_METHODS           = "GET, POST, PUT, DELETE, OPTIONS"
 	API_HEADERS           = "Content-Type, Authorization, Last-Event-ID"
 	API_PREFLIGHT_MAX_AGE = "600"
 )

@@ -12,7 +12,7 @@ const (
 	// fills at the ask. A model, not a book: Yahoo gives no depth.
 	SLIP_FREE        = 0.05
 	SLIP_FULL        = 0.25
-	SLIDER_MIN_SPAN  = 10    // the slider reaches at least ten minimum deposits
+	SLIDER_MIN_SPAN  = 10    // the slider reaches ten minimum deposits or the bankroll, whichever is more; the liquidity cap is only a mark on it
 	SLIDER_MAX_UNITS = 10000 // and never past this many units
 )
 
@@ -131,7 +131,6 @@ func sizing(p Play, r Rules) Sizing {
 	if unit > 0 && r.BankrollUSD > 0 {
 		top = math.Max(top, math.Floor(r.BankrollUSD/unit))
 	}
-	top = math.Max(top, s.LiquidityMax)
 	s.SliderMax = math.Min(SLIDER_MAX_UNITS, math.Max(top, p.Qty))
 	return s
 }
