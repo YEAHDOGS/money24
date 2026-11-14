@@ -1,0 +1,76 @@
+/* Plays page: what Tailwind can't express. Colors come only from theme tokens (src/styles/theme.css). */
+
+/* Spine nodes glide to their new price when the stake dial or a refresh moves them. Transform only. */
+.spine-node {
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+}
+
+/* Bars (scenarios, odds components) grow from their origin with a transform, so layout never moves. */
+.bar-fill {
+  transform-origin: left center;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bar-fill-right {
+  transform-origin: right center;
+}
+
+/* Numbers that just changed under the dial blink once, opacity only. */
+.num-flash {
+  animation: num-flash 420ms ease-out;
+}
+@keyframes num-flash {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Sections inside the detail reveal in a stagger as a play opens. */
+.reveal {
+  animation: reveal 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The AI read spinner. */
+.spin {
+  animation: spin 900ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dial tick marks sit on the 1px track; positioned with a CSS variable. */
+.dial-mark {
+  left: var(--at);
+  transform: translateX(-50%);
+}
+
+/* Spine positions: a node sits at --y percent down the spine. */
+.spine-at {
+  transform: translateY(calc(var(--y) * 1%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spine-node,
+  .bar-fill,
+  .num-flash,
+  .reveal,
+  .spin {
+    animation: none !important;
+    transition: none !important;
+  }
+}

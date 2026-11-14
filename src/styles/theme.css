@@ -37,6 +37,9 @@
   --color-ok: #4ade80;
   --color-warn: #fbbf24;
   --color-bad: #ff5566;
+  /* Paper trading: the "Paper trading" status chip, the paper fill timeline and the PAPER marks on the
+     plays page (src/plays/). 10.4:1 on --color-app; never used for money, which stays ok/bad. */
+  --color-paper: #6ec1ff;
 }
 
 /* Money 24 panel art: full-bleed gradient "imagery" + scrims, referenced from src/App.svelte.

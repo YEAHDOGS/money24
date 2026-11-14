@@ -1,0 +1,417 @@
+{
+  "title": "Money 24 Plays",
+  "brand": "MONEY",
+  "brandAccent": "24",
+  "section": "PLAYS",
+  "paper": "Paper only",
+  "links": {
+    "desk": "Desk",
+    "markets": "Markets",
+    "news": "News",
+    "terms": "Terms"
+  },
+  "status": {
+    "connecting": "Connecting",
+    "live": "Live",
+    "offline": "Runner offline"
+  },
+  "offlineHint": "Start the runner (npm start, or go run ./cmd/m24d on port 8025). Plays live in the runner.",
+  "tabs": {
+    "plays": "Plays",
+    "play": "Play",
+    "inbox": "Inbox",
+    "rules": "Rules"
+  },
+  "filters": {
+    "all": "All",
+    "armed": "Paper trading",
+    "draft": "Drafts",
+    "closed": "Closed"
+  },
+  "playStatus": {
+    "draft": "Draft",
+    "armed": "Paper trading",
+    "closed": "Closed"
+  },
+  "empty": "No plays yet. Paste a Robinhood or Webull link in the inbox.",
+  "pickOne": "Pick a play to see what has to happen for it to pay.",
+  "inbox": {
+    "label": "Link inbox",
+    "placeholder": "Robinhood or Webull link, option symbol, or AAL 12.5P 11/20",
+    "theme": "Theme (optional)",
+    "themePlaceholder": "FAA outage",
+    "submit": "Play it",
+    "busy": "Reading…",
+    "aiRead": "AI read",
+    "provider": "AI",
+    "noProvider": "No AI connected. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, XAI_API_KEY or GEMINI_API_KEY to .env and restart.",
+    "paperNow": "Paper trading now",
+    "drafted": "Drafted",
+    "history": "History",
+    "historyEmpty": "Links you paste land here.",
+    "open": "Open play"
+  },
+  "card": {
+    "needs": "needs",
+    "by": "by",
+    "maxProfit": "max",
+    "plannedLoss": "stop",
+    "odds": "DOGS odds",
+    "ruleBroken": "rule broken",
+    "rulesBroken": "rules broken",
+    "ruleFailing": "rule failing",
+    "rulesFailing": "rules failing"
+  },
+  "detail": {
+    "paperNow": "Paper trade now",
+    "paperBusy": "Paper trading…",
+    "refresh": "Refresh market",
+    "analyze": "AI read",
+    "analyzing": "Reading…",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this play? Its link stays in the history.",
+    "broke": "Paper trade went through {n} blocking rule(s): {list}",
+    "theme": "Theme",
+    "market": "Market",
+    "spot": "Stock",
+    "bidAsk": "Bid × ask",
+    "iv": "IV",
+    "hv": "HV",
+    "oi": "Open interest",
+    "volume": "Volume",
+    "asOf": "as of",
+    "ago": "ago",
+    "mustHappen": "What must happen",
+    "spine": "Price spine",
+    "spineNote": "Stock prices needed by the exit time, time decay included.",
+    "now": "Now",
+    "scenarios": "How it can end",
+    "odds": "Odds",
+    "checks": "Rules",
+    "evidence": "Evidence",
+    "bracket": "Bracket",
+    "ai": "AI reads",
+    "fills": "Paper fills",
+    "result": "Result",
+    "noFills": "No exits yet. The watcher prices it every 30 seconds.",
+    "disclaimer": "Options trading involves substantial risk of losing 100% of your capital; this is probability and market-structure analysis, not financial advice.",
+    "termsLink": "Terms of Use"
+  },
+  "levels": {
+    "breakeven": "Breakeven",
+    "stop": "Stop",
+    "runner": "Runner",
+    "spot": "Stock now"
+  },
+  "sentence": {
+    "rungUp": "{sym} must trade at {spot} or higher by {when} ({move}) for {name} to sell {qty} at {price} ({pnl}).",
+    "rungDown": "{sym} must trade at {spot} or lower by {when} ({move}) for {name} to sell {qty} at {price} ({pnl}).",
+    "rungPast": "{name} sells {qty} at {price} ({pnl}) as soon as the contract gets there: the stock is already on the right side.",
+    "unreachable": "{name} at {price} can't be reached before expiry at any stock price.",
+    "odds": "Market odds {pct}.",
+    "breakevenUp": "Breakeven: {sym} at {spot} or higher by {when} ({move}). Below that the time decay wins.",
+    "breakevenDown": "Breakeven: {sym} at {spot} or lower by {when} ({move}). Above that the time decay wins.",
+    "stopUp": "If {sym} falls to {now} right now, the stop sells everything for {pnl}.",
+    "stopDown": "If {sym} rises to {now} right now, the stop sells everything for {pnl}.",
+    "decayUp": "Time decay alone reaches the stop by the exit time unless {sym} rises above {exit}.",
+    "decayDown": "Time decay alone reaches the stop by the exit time unless {sym} falls below {exit}.",
+    "stopOdds": "Odds the stop is hit first: {pct}.",
+    "calamity": "Worst case {pnl} if the stop never fills (a gap, a halt, no bid).",
+    "noVol": "No volatility data: levels shown at expiry only. Refresh the market."
+  },
+  "dial": {
+    "label": "Stake",
+    "units": "units",
+    "minDeposit": "Minimum deposit",
+    "liquidityCap": "Liquidity cap",
+    "whatIf": "What-if: this play is already paper trading, so the dial previews sizes without changing it.",
+    "saved": "Saved",
+    "ofBankroll": "of bankroll",
+    "ofVolume": "of today's volume",
+    "ofOI": "of open interest",
+    "estFill": "Expected fill",
+    "slip": "slippage",
+    "less": "Smaller stake",
+    "more": "Bigger stake"
+  },
+  "scenarios": {
+    "stop": "Stopped out",
+    "rungs": "{n} rung(s), rest stopped",
+    "all": "Every exit",
+    "zero": "Total calamity"
+  },
+  "payoff": {
+    "cost": "Cost",
+    "maxProfit": "Max profit",
+    "plannedLoss": "Planned loss",
+    "worstLoss": "Worst case",
+    "rewardRisk": "Reward : risk",
+    "expected": "Rough expected value",
+    "exitAt": "Out by"
+  },
+  "oddsPanel": {
+    "market": "Market odds of T1",
+    "dogs": "DOGS odds",
+    "score": "Evidence score",
+    "note": "Volume leads. Trusted breaking news takes the indicators' weight. Thin or untested news is ignored.",
+    "ignored": "Ignored news",
+    "weight": "weight",
+    "noData": "no data",
+    "components": {
+      "volume": "Volume",
+      "news": "News",
+      "open_interest": "Open interest",
+      "technicals": "Technicals",
+      "signals": "Signals"
+    }
+  },
+  "checkStatus": {
+    "pass": "Pass",
+    "fail": "Block",
+    "warn": "Warn",
+    "off": "Off",
+    "info": "Info"
+  },
+  "evidence": {
+    "kinds": {
+      "volume": "Volume",
+      "open_interest": "Open interest",
+      "onchain": "On-chain",
+      "news": "News",
+      "signal": "Trader signal",
+      "technical": "Technical"
+    },
+    "stances": {
+      "for": "For",
+      "against": "Against",
+      "neutral": "Neutral"
+    },
+    "verified": "Verified",
+    "breaking": "Breaking",
+    "ai": "AI: not weighed until verified",
+    "auto": "From market data",
+    "sources": "sources",
+    "trust": "trust",
+    "add": "Add evidence",
+    "label": "What it shows",
+    "url": "Link",
+    "source": "Source",
+    "sourceCount": "Sources",
+    "trustPct": "Trust %",
+    "save": "Add",
+    "remove": "Remove",
+    "verify": "Mark verified",
+    "unverify": "Unverify",
+    "empty": "No evidence yet.",
+    "link": "Link",
+    "kind": "Kind",
+    "stance": "Stance"
+  },
+  "bracket": {
+    "entry": "Entry",
+    "stop": "Stop",
+    "ladder": "Ladder",
+    "rung": "Rung",
+    "qty": "Qty",
+    "price": "Price",
+    "addRung": "Add rung",
+    "removeRung": "Remove rung",
+    "runner": "Runner",
+    "runnerQty": "Runner qty",
+    "runnerTarget": "Runner target",
+    "failsafes": "Failsafes",
+    "exitBy": "Time exit",
+    "sideways": "Sideways exit after (min)",
+    "sidewaysGain": "…unless up (%)",
+    "noQuote": "Glitch: no quote for (min)",
+    "gap": "Chaos: gap past stop (%)",
+    "calamity": "Calamity plan",
+    "thesis": "Thesis",
+    "save": "Save bracket",
+    "saved": "Saved",
+    "locked": "This play is paper trading. Its bracket is locked; copy the link into the inbox for a new draft."
+  },
+  "ai": {
+    "none": "No AI reads yet.",
+    "verdicts": {
+      "take": "Take",
+      "wait": "Wait",
+      "pass": "Pass"
+    },
+    "summary": "Summary",
+    "mustHappen": "What must happen",
+    "thesis": "Thesis",
+    "risks": "Risks",
+    "confidence": "Model confidence",
+    "evidence": "evidence lines added, unverified",
+    "apply": "Apply suggestion",
+    "applied": "Applied",
+    "suggestion": "Suggested bracket",
+    "error": "Failed"
+  },
+  "fillReasons": {
+    "target": "Target",
+    "stop": "Stop",
+    "time": "Time exit",
+    "time stop": "Sideways exit",
+    "source exit": "Source exit",
+    "void": "No quote: not scored"
+  },
+  "rulesEditor": {
+    "title": "Rulebook",
+    "name": "Rulebook",
+    "bankroll": "Bankroll ($)",
+    "dogs": "DOGS rule",
+    "suggested": "Suggested",
+    "enabled": "On",
+    "block": "Block",
+    "warn": "Warn",
+    "weights": "Evidence weights",
+    "news": "News filter",
+    "newsMinSources": "Min sources",
+    "newsMinTrust": "Min trust %",
+    "breaking": "Trusted breaking news takes the indicators' weight",
+    "template": "Starting bracket for new plays",
+    "budget": "Budget ($)",
+    "stopPct": "Stop (% below entry)",
+    "ladderPct": "% of position",
+    "ladderGain": "at gain %",
+    "runnerGain": "Runner target gain %",
+    "exitDays": "Exit days before expiry",
+    "exitHour": "Exit hour (New York)",
+    "holdDays": "Shares: hold days",
+    "sideways": "Sideways exit after (min)",
+    "sidewaysGain": "…unless up (%)",
+    "noQuote": "Glitch: no quote for (min)",
+    "gap": "Chaos: gap past stop (%)",
+    "calamity": "Calamity plan",
+    "autoPaper": "Paste a link → paper trade instantly",
+    "paperIgnores": "Paper trades go through blocking rules and record what they broke; live never would",
+    "save": "Save rulebook",
+    "saved": "Saved",
+    "reset": "Reset to DOGS defaults",
+    "resetConfirm": "Replace the whole rulebook with the DOGS defaults?",
+    "loading": "Loading the rulebook…"
+  },
+  "rules": {
+    "exits_required": {
+      "label": "Exits before entry",
+      "about": "No play runs without ladder exits, a runner plan, a stop and every failsafe: time, sideways, glitch and calamity."
+    },
+    "crowd_evidence": {
+      "label": "Other money is in it",
+      "about": "Proof other traders are in the trade: open interest, a volume surge, flow, on-chain activity, verified news or trader signals."
+    },
+    "news_trust": {
+      "label": "News must earn trust",
+      "about": "Headlines with too few sources or too little verified history are ignored. AI-found news waits for a person to verify it."
+    },
+    "volume_first": {
+      "label": "Follow the whales",
+      "about": "Volume is the first input: the stock against its average and the contract's own trading today."
+    },
+    "liquidity": {
+      "label": "A way out",
+      "about": "A tight spread and enough open interest that a sell order has a buyer."
+    },
+    "lotto_guard": {
+      "label": "No penny lottery tickets",
+      "about": "No contracts under a minimum premium or far out of the money. They often have no bid."
+    },
+    "reward_risk": {
+      "label": "Reward pays for risk",
+      "about": "Max profit must be a multiple of the planned loss at the stop."
+    },
+    "time_left": {
+      "label": "Time left",
+      "about": "Enough days to expiry, and a time exit before the last days of decay."
+    },
+    "event_crush": {
+      "label": "Event crush",
+      "about": "Warns when earnings land before expiry: implied volatility collapses after the report."
+    },
+    "opening_wait": {
+      "label": "Let the open settle",
+      "about": "No entries in the opening rush or the last minutes before the close."
+    },
+    "no_chase": {
+      "label": "Don't chase the gap",
+      "about": "Warns when the stock already moved the play's way today. The move may be spent."
+    },
+    "bankroll_risk": {
+      "label": "Bankroll guard",
+      "about": "Caps the share of the bankroll lost at the stop and in the worst case."
+    },
+    "odds_floor": {
+      "label": "Odds floor",
+      "about": "The DOGS odds of the first exit must clear a floor."
+    },
+    "positive_edge": {
+      "label": "Positive edge",
+      "about": "The scenarios weighted by the market's odds should not lose money on average."
+    },
+    "theme_cap": {
+      "label": "One headline, one bet",
+      "about": "Caps how many armed plays share a theme. AAL, DAL and UAL on one outage are one bet."
+    },
+    "max_open": {
+      "label": "Open play cap",
+      "about": "Caps how many plays are armed at once."
+    },
+    "fresh_data": {
+      "label": "Fresh data",
+      "about": "Never arm on a stale market snapshot."
+    },
+    "limit_entry": {
+      "label": "Pay the middle",
+      "about": "Entry must be a limit near the mid, not the ask."
+    },
+    "cooldown": {
+      "label": "No revenge trades",
+      "about": "Waits after a losing close on the same symbol."
+    },
+    "size_impact": {
+      "label": "A size the market can take",
+      "about": "Caps the order as a share of today's volume and open interest, so the fill and the exit are real."
+    }
+  },
+  "params": {
+    "min_items": "Min proofs",
+    "min_rel_volume": "Min volume vs avg (x)",
+    "min_contract_volume": "Min contracts today",
+    "max_spread_pct": "Max spread %",
+    "min_open_interest": "Min open interest",
+    "min_premium": "Min premium $",
+    "max_otm_pct": "Max out of the money %",
+    "min_ratio": "Min ratio",
+    "min_days_to_expiry": "Min days to expiry",
+    "exit_days_before_expiry": "Exit days before expiry",
+    "minutes_after_open": "Wait after open (min)",
+    "minutes_before_close": "Stop before close (min)",
+    "max_gap_pct": "Max move today %",
+    "max_planned_loss_pct": "Max loss at stop %",
+    "max_worst_loss_pct": "Max worst case %",
+    "min_dogs_odds_pct": "Min DOGS odds %",
+    "min_expected_usd": "Min expected $",
+    "max_per_theme": "Max per theme",
+    "max_armed": "Max armed",
+    "max_age_minutes": "Max age (min)",
+    "max_over_mid_pct": "Max over mid %",
+    "hours": "Hours",
+    "max_pct_of_volume": "Max % of volume",
+    "max_pct_of_open_interest": "Max % of open interest"
+  },
+  "weights": {
+    "volume": "Volume",
+    "news": "News",
+    "open_interest": "Open interest",
+    "technicals": "Technicals",
+    "signals": "Signals"
+  },
+  "spine": {
+    "decayMarker": "Stop by the exit: time decay alone",
+    "triggerNow": "stop triggers here right now",
+    "already": "already there",
+    "odds": "odds"
+  }
+}

@@ -182,7 +182,7 @@
         {strings.brand}<span class="text-neon-red">{strings.brandAccent}</span>
         <span class="ml-1 align-middle text-[0.6rem] font-bold tracking-[0.3em] text-muted">{strings.section}</span>
       </h1>
-      <div class="flex items-center gap-3 md:flex-col md:items-start md:gap-1.5 landscape-phone:flex-row! landscape-phone:items-center!">
+      <div class="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 md:flex-col md:flex-nowrap md:justify-start md:items-start md:gap-1.5 landscape-phone:flex-row! landscape-phone:items-center!">
         <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
           <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
           {strings.status[client.status]}
