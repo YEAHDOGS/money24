@@ -1,8 +1,8 @@
 // Money 24 app shell, shared by desktop and Android.
-// Desktop: one window on the live feed, with the Go engines as sidecars: newsd (news) and m24d (paper
-// trading runner, shown at trading.html). Both start on launch and stop on exit; they also exit on their
+// Desktop: one window that opens on the plays board (plays.html), with the Go engines as sidecars: newsd
+// (news) and m24d (paper trading runner and plays engine). Both start on launch and stop on exit; they also exit on their
 // own if this app dies, because they watch their stdin pipe (--exit-with-stdin).
-// Android: no engines on the phone. The window opens the trading desk, which talks to your runner
+// Android: no engines on the phone. The window opens the plays board, which talks to your runner
 // (VPS or home PC) at the URL saved in its Runner settings.
 
 use tauri::{AppHandle, Url, WebviewUrl, WebviewWindowBuilder};
@@ -25,11 +25,9 @@ const ENGINES: [(&str, &str, &str); 2] = [
 ];
 const WINDOW_LABEL: &str = "main";
 #[cfg(desktop)]
-const WINDOW_TITLE: &str = "Money 24 News";
-#[cfg(desktop)]
-const START_PAGE: &str = "feed.html";
-#[cfg(mobile)]
-const START_PAGE: &str = "trading.html";
+const WINDOW_TITLE: &str = "Money 24";
+// Plays are the core loop, so every shell opens on them.
+const START_PAGE: &str = "plays.html";
 #[cfg(desktop)]
 const WINDOW_SIZE: (f64, f64) = (1280.0, 800.0);
 #[cfg(desktop)]

@@ -38,10 +38,11 @@ cd money24
 
 The first run installs the packages and builds the two Go services, which takes a minute or two
 and needs the internet. After that it starts in seconds. When it is ready it prints the addresses
-and opens the trading desk in your browser:
+and opens the plays board in your browser:
 
 | Page | Address |
 |---|---|
+| **Plays (start here)** | http://localhost:5173/plays.html |
 | Trading desk | http://localhost:5173/trading.html |
 | Markets (quotes and charts) | http://localhost:5173/markets.html |
 | News and calendar | http://localhost:5173/feed.html |
@@ -86,10 +87,13 @@ It runs with no settings. To change any, copy `.env.example` to `.env` and fill 
 | Setting | What it is for |
 |---|---|
 | `USER_AGENT` | Put a contact email in it. Without one, SEC and BLS feeds refuse to answer and those news sources stay empty |
-| `WEBULL_APP_KEY`, `WEBULL_APP_SECRET` | Live stock and option quotes for paper trades. Without them, those trades are planned at the called price |
+| `WEBULL_APP_KEY`, `WEBULL_APP_SECRET` | Live stock and option quotes from Webull. Without them, plays and paper trades use Yahoo Finance quotes, delayed up to 15 minutes |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY` | AI reads of your plays (Claude, OpenAI, Grok, Gemini). Add any you use; each key goes only to its own provider. Plays work without one |
 | `M24D_WEBHOOK_SECRET` | Fixes the secret other tools use to send callouts. Left empty, one is generated in the data folder |
 
-Coin prices (Coinbase), token prices (DEX Screener) and the Markets page (Yahoo Finance) need no key.
+Coin prices (Coinbase), token prices (DEX Screener), option chains for plays and the Markets page (Yahoo Finance), and Robinhood contract links need no key.
+
+The desktop app does not read `.env` yet, so AI keys only work when you run with `start`. Moving keys into the OS keychain is planned (docs/PLAYS.md).
 
 ## 6. Other ways to run it
 

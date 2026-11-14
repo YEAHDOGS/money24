@@ -1,7 +1,7 @@
 // Starts all of Money 24 on this machine: builds the two Go services, then runs them beside the
 // web pages and prints where to look. Ctrl+C stops everything.
 //   node scripts/start.js           (or: npm start)
-//   node scripts/start.js --open    also opens the trading desk in the browser
+//   node scripts/start.js --open    also opens the plays board in the browser
 // Needs Node and Go on PATH. Settings are read from .env when there is one (see .env.example).
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -28,6 +28,7 @@ const SERVICES = [
   { name: 'm24d', port: 8025, about: 'paper trading, market data, source records' },
 ];
 const PAGES = [
+  ['Plays (start here)', 'plays.html'],
   ['Trading desk', 'trading.html'],
   ['Markets', 'markets.html'],
   ['News and calendar', 'feed.html'],
