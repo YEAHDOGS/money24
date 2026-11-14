@@ -49,9 +49,11 @@ func snapshotFor(ctx context.Context, client *webull.Client, sig signals.Signal)
 }
 
 // liveQuotes prices on-chain tokens from DEX Screener and listed coins from Coinbase, neither of
-// which needs a key, and everything else from Webull when a key is set. A failed lookup is logged and reported as "no quote", so the runner plans at the
-// called price and notes what it could not check.
-func liveQuotes(client *webull.Client) signals.QuoteFunc {
+// which needs a key, and everything else from Webull when a key is set, or else from Yahoo's
+// delayed option chain and quotes, so a paper play is priced with no keys at all. A failed lookup
+// is logged and reported as "no quote", so the runner plans at the called price and notes what it
+// could not check.
+func liveQuotes(client *webull.Client, prices *market.Client) signals.QuoteFunc {
 	return func(sig signals.Signal) (signals.Quote, bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), QUOTE_TIMEOUT)
 		defer cancel()
@@ -72,7 +74,7 @@ func liveQuotes(client *webull.Client) signals.QuoteFunc {
 			return signals.Quote{Bid: coin.Bid, Ask: coin.Ask, Volume: int(coin.Volume)}, true
 		}
 		if client == nil {
-			return signals.Quote{}, false
+			return yahooQuote(ctx, prices, sig)
 		}
 		snap, err := snapshotFor(ctx, client, sig)
 		if err != nil {
@@ -119,4 +121,22 @@ func priceHistory(client *market.Client) signals.HistoryFunc {
 		}
 		return bars, nil
 	}
+}
+
+// yahooQuote is the keyless fallback: the option's bid and ask from Yahoo's chain, or a stock's
+// last price a cent either side. Delayed, so paper exits trail the live market by minutes.
+func yahooQuote(ctx context.Context, prices *market.Client, sig signals.Signal) (signals.Quote, bool) {
+	if sig.Right != "" && sig.Expiry != "" {
+		q, err := prices.Option(ctx, sig.Symbol, sig.Expiry, sig.Right, sig.Strike)
+		if err != nil {
+			log.Printf("quote %s (yahoo): %v", sig.Symbol, err)
+			return signals.Quote{}, false
+		}
+		return signals.Quote{Bid: q.Bid, Ask: q.Ask, OpenInterest: q.OpenInterest, Volume: q.Volume}, true
+	}
+	ticks, err := prices.Ticks(ctx, []string{sig.Symbol})
+	if err != nil || len(ticks) == 0 || ticks[0].Price <= 0 {
+		return signals.Quote{}, false
+	}
+	return signals.Quote{Bid: ticks[0].Price - signals.PRICE_TICK, Ask: ticks[0].Price + signals.PRICE_TICK}, true
 }

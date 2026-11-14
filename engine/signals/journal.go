@@ -133,3 +133,16 @@ func (j *Journal) Subscribe() (<-chan Entry, func()) {
 
 // Close flushes nothing (every Append is written straight through) and closes the file.
 func (j *Journal) Close() error { return j.file.Close() }
+
+// Lines returns the journal lines that act on one plan (fills, the close or a void), oldest first.
+func (j *Journal) Lines(planID int64) []Entry {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	out := []Entry{}
+	for _, e := range j.recent {
+		if e.PlanID == planID {
+			out = append(out, e)
+		}
+	}
+	return out
+}

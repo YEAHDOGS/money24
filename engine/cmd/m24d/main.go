@@ -33,6 +33,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/market"
+	"github.com/YEAHDOGS/money24/engine/plays"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
@@ -59,6 +60,9 @@ const (
 	LOOPBACK_NAME    = "localhost"
 	MAX_TICKER_CHARS = 6 // longer than this is a full option symbol, not a ticker
 	BEARER           = "Bearer "
+	PLAYS_SUBDIR     = "plays"
+	ENV_NEWSD        = "M24D_NEWSD" // newsd base URL, for headlines on a play
+	DEFAULT_NEWSD    = "http://127.0.0.1:8024"
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -215,13 +219,14 @@ func main() {
 		}
 	}
 
-	// Coins are always priced live. Without a Webull key stocks and options have no quote: the gate
-	// plans those at the called price and notes what it could not check.
+	// Coins are always priced live. Without a Webull key, stocks and options are priced from Yahoo's
+	// delayed quotes and option chain.
+	prices := market.NewClient()
 	log.Printf("live quotes: Coinbase for %d coins, DEX Screener for token addresses", len(catalog.CryptoSymbols))
 	if quotes != nil {
 		log.Printf("live quotes: Webull (%s)", cmp.Or(os.Getenv(ENV_WEBULL_ENV), webull.ENV_SANDBOX))
 	}
-	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes))
+	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes, prices))
 	queue := make(chan signals.Signal, QUEUE_SIZE)
 	done := make(chan struct{})
 	go func() {
@@ -264,7 +269,6 @@ func main() {
 		allowedHosts = strings.Split(*hosts, ",")
 	}
 	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts}
-	prices := market.NewClient()
 	tracker := signals.NewTracker(recorder, catalog, priceHistory(prices))
 	// Loading a source's history reaches out to X, so it takes the local desk or the webhook secret.
 	mayLoad := func(r *http.Request) bool {
@@ -272,6 +276,22 @@ func main() {
 	}
 	opts.Mount = tracker.Routes(http.DefaultClient, mayLoad)
 	opts.Mount[market.ROUTE_PREFIX] = market.Handler(prices)
+	playStore, err := plays.OpenStore(filepath.Join(*dataDir, PLAYS_SUBDIR))
+	if err != nil {
+		log.Fatal(err)
+	}
+	playService := &plays.Service{Store: playStore, HTTP: http.DefaultClient, MayWrite: mayLoad,
+		Resolver: plays.Resolver{HTTP: http.DefaultClient, Market: prices},
+		Paper:    func(sig signals.Signal, plan signals.Plan) (int64, error) { return runner.Adopt(sig, plan, time.Now()) },
+		Lines:    journal.Lines, NewsURL: cmp.Or(os.Getenv(ENV_NEWSD), DEFAULT_NEWSD)}
+	for pattern, h := range playService.Routes() {
+		opts.Mount[pattern] = h
+	}
+	for _, p := range plays.Providers() {
+		if p.Connected {
+			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)
+		}
+	}
 	resolver := func(ctx context.Context, statusURL string) (signals.Tweet, error) {
 		return signals.ResolveTweet(ctx, http.DefaultClient, statusURL)
 	}
