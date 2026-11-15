@@ -13,6 +13,7 @@
   import { MarketClient, RANGES, INTERVALS } from './market-client.svelte.js';
   import { age, compact, marketTime, percent, price, signed } from './market-format.js';
   import ProChart from './ProChart.svelte';
+  import AppHeader from '../lib/AppHeader.svelte';
   import SymbolSearch from './SymbolSearch.svelte';
   import TickList from './TickList.svelte';
 
@@ -99,20 +100,14 @@
   {#if down}<ArrowDown class={classes} aria-hidden="true" />{:else}<ArrowUp class={classes} aria-hidden="true" />{/if}
 {/snippet}
 
-<div class="mx-auto grid h-dvh w-full max-w-7xl grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] select-text border-line md:grid-cols-[minmax(0,1fr)_19rem] md:grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_23rem] xl:border-x desktop-portrait:grid-cols-[minmax(0,1fr)]! desktop-portrait:grid-rows-[auto_minmax(0,1fr)_minmax(0,34%)]! landscape-phone:grid-cols-[minmax(0,1fr)_16rem]! landscape-phone:grid-rows-[auto_minmax(0,1fr)]! ultrawide:max-w-none ultrawide:grid-cols-[minmax(0,1fr)_46rem]">
-
-  <!-- TOP BAR: brand, search and the way to the other desks -->
-  <header class="flex items-center gap-3 border-b border-line px-4 py-2 short:py-1 md:col-span-2 lg:px-6 desktop-portrait:col-span-1! landscape-phone:col-span-2">
-    <h1 class="text-xl leading-none font-extrabold tracking-tight short:text-base md:text-2xl">
-      {strings.brand}<span class="text-neon-red">{strings.brandAccent}</span>
-      <span class="ml-1 align-middle text-[0.6rem] font-bold tracking-[0.3em] text-muted max-sm:hidden">{strings.section}</span>
-    </h1>
+<div class="flex h-dvh w-full flex-col">
+<AppHeader page="markets">
+  {#snippet tools()}
     <SymbolSearch matches={client.matches} onSearch={(q) => client.search(q)} onPick={(symbol) => { tab = TAB_CHART; client.open(symbol); }} />
-    <nav class="flex shrink-0 gap-3 text-xs font-semibold">
-      <a href="trading.html" class="spring text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.tradingLink}</a>
-      <a href="feed.html" class="spring text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.newsLink}</a>
-    </nav>
-  </header>
+  {/snippet}
+</AppHeader>
+
+<div class="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] select-text border-line md:grid-cols-[minmax(0,1fr)_19rem] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_23rem] xl:border-x desktop-portrait:grid-cols-[minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,1fr)_minmax(0,34%)]! landscape-phone:grid-cols-[minmax(0,1fr)_16rem]! landscape-phone:grid-rows-[minmax(0,1fr)]! ultrawide:max-w-none ultrawide:grid-cols-[minmax(0,1fr)_46rem]">
 
   <!-- QUOTE AND CHART -->
   <main class="flex min-h-0 min-w-0 flex-col border-line md:border-r desktop-portrait:border-r-0! landscape-phone:flex! {tab === TAB_CHART ? '' : 'max-md:hidden'}">
@@ -274,4 +269,5 @@
       </button>
     {/each}
   </nav>
+</div>
 </div>

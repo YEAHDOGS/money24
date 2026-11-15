@@ -1,8 +1,5 @@
 {
   "title": "Money 24 News",
-  "brand": "MONEY",
-  "brandAccent": "24",
-  "tradingLink": "Trading",
   "kinds": {
     "all": "All",
     "news": "News",

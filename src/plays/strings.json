@@ -1,15 +1,6 @@
 {
   "title": "Money 24 Plays",
-  "brand": "MONEY",
-  "brandAccent": "24",
-  "section": "PLAYS",
   "paper": "Paper only",
-  "links": {
-    "desk": "Desk",
-    "markets": "Markets",
-    "news": "News",
-    "terms": "Terms"
-  },
   "status": {
     "connecting": "Connecting",
     "live": "Live",

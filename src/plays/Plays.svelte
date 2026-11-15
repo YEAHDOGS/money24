@@ -13,6 +13,7 @@
   import PlayCard from './PlayCard.svelte';
   import PlayDetail from './PlayDetail.svelte';
   import RulesEditor from './RulesEditor.svelte';
+  import AppHeader from '../lib/AppHeader.svelte';
   import RunnerSettings from '../trading/RunnerSettings.svelte';
   import Zap from '@lucide/svelte/icons/zap';
   import Inbox from '@lucide/svelte/icons/inbox';
@@ -40,12 +41,6 @@
   const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', offline: 'text-bad', demo: 'text-paper' };
   /** @type {Intl.DateTimeFormatOptions} */
   const DEMO_DATE = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
-  const NAV = [
-    { href: 'trading.html', key: 'desk' },
-    { href: 'markets.html', key: 'markets' },
-    { href: 'feed.html', key: 'news' },
-    { href: 'terms.html', key: 'terms' },
-  ];
 
   let runnerUrl = $state(stored(STORE_RUNNER, DEFAULT_RUNNER));
   let runnerSecret = $state(stored(STORE_SECRET, ''));
@@ -108,27 +103,12 @@
 
 <svelte:head><title>{strings.title}</title></svelte:head>
 
-{#snippet brand(/** @type {boolean} */ compact)}
-  <h1 class="leading-none font-extrabold tracking-tight {compact ? 'text-lg' : 'text-2xl md:text-3xl'}">
-    {strings.brand}<span class="text-neon-red">{strings.brandAccent}</span>
-    <span class="ml-1 align-middle text-[0.6rem] font-bold tracking-[0.3em] text-muted">{strings.section}</span>
-  </h1>
-{/snippet}
-
 {#snippet statusLine()}
   <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
     <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
-    {strings.status[client.status]}
+    <span class="max-[419px]:sr-only">{strings.status[client.status]}</span>
   </p>
   <span class="whitespace-nowrap rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-warn">{strings.paper}</span>
-{/snippet}
-
-{#snippet navLinks()}
-  <nav class="flex flex-wrap gap-x-3 gap-y-1" aria-label="Pages">
-    {#each NAV as n (n.href)}
-      <a href={n.href} class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.links[n.key]}&nbsp;→</a>
-    {/each}
-  </nav>
 {/snippet}
 
 {#snippet offline()}
@@ -189,14 +169,12 @@
   </section>
 {/snippet}
 
+<div class="flex h-dvh w-full flex-col">
+<AppHeader page="plays" status={statusLine} />
+
 {#if mode === MODE_WIDE}
-  <div class="mx-auto grid h-dvh w-full max-w-7xl grid-cols-[12rem_15rem_minmax(0,1fr)] border-line select-text lg:grid-cols-[16rem_20rem_minmax(0,1fr)] xl:border-x desktop-portrait:grid-cols-[16rem_minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,36%)_minmax(0,1fr)] ultrawide:max-w-none ultrawide:grid-cols-[22rem_28rem_minmax(0,1fr)]">
+  <div class="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-cols-[12rem_15rem_minmax(0,1fr)] border-line select-text lg:grid-cols-[16rem_20rem_minmax(0,1fr)] xl:border-x desktop-portrait:grid-cols-[16rem_minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,36%)_minmax(0,1fr)] ultrawide:max-w-none ultrawide:grid-cols-[22rem_28rem_minmax(0,1fr)]">
     <aside class="flex min-h-0 flex-col border-r border-line">
-      <div class="flex flex-col gap-2 px-4 py-4">
-        {@render brand(false)}
-        <div class="flex flex-wrap items-center gap-2">{@render statusLine()}</div>
-        {@render navLinks()}
-      </div>
       {@render offline()}
       {#if showInboxPane}{@render inboxPane()}{/if}
       <RunnerSettings url={runnerUrl} secret={runnerSecret} onSave={saveRunner} />
@@ -209,10 +187,8 @@
     </div>
   </div>
 {:else if mode === MODE_LANDSCAPE}
-  <div class="grid h-dvh w-full grid-cols-[3rem_15rem_minmax(0,1fr)] select-text">
+  <div class="grid min-h-0 w-full flex-1 grid-cols-[3rem_15rem_minmax(0,1fr)] select-text">
     <nav class="flex flex-col items-center gap-1 border-r border-line py-2" aria-label="Sections">
-      <span class="mb-1 font-extrabold text-neon-red" aria-hidden="true">24</span>
-      <span class="relative mb-2 size-2 rounded-full bg-current {STATUS_DOT[client.status]} {client.status === 'live' ? 'live-dot' : ''}" title={strings.status[client.status]}></span>
       {#each PHONE_TABS.filter((t) => t.id !== TAB_PLAY) as t (t.id)}
         <button type="button" aria-pressed={tab === t.id || (t.id === TAB_PLAYS && tab === TAB_PLAY)} aria-label={strings.tabs[t.id]} onclick={() => { tab = t.id; }}
           class="spring grid size-10 place-items-center rounded-sm focus-visible:outline focus-visible:outline-neon-red {tab === t.id || (t.id === TAB_PLAYS && tab === TAB_PLAY) ? 'bg-white/5 text-neon-red' : 'text-white/55'}">
@@ -227,16 +203,11 @@
     {@render detail()}
   </div>
 {:else}
-  <div class="grid h-dvh w-full grid-rows-[auto_minmax(0,1fr)_auto] select-text">
-    <header class="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-      {@render brand(true)}
-      <div class="flex items-center gap-2">{@render statusLine()}</div>
-    </header>
+  <div class="grid min-h-0 w-full flex-1 grid-rows-[minmax(0,1fr)_auto] select-text">
     <div class="flex min-h-0 flex-col">
       {@render offline()}
       {#if tab === TAB_INBOX}
         {@render inboxPane()}
-        <div class="border-t border-line px-4 py-2">{@render navLinks()}</div>
         <RunnerSettings url={runnerUrl} secret={runnerSecret} onSave={saveRunner} />
       {:else if showList}
         {@render playsList()}
@@ -257,3 +228,4 @@
     </nav>
   </div>
 {/if}
+</div>

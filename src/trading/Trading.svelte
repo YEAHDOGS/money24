@@ -4,6 +4,7 @@
    * Desktop and tablet: rail | journal | plan, split by 1px lines.
    * Phones: one column with Journal / Plan / Sources tabs at the bottom, within thumb reach.
    */
+  import AppHeader from '../lib/AppHeader.svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
@@ -173,28 +174,22 @@
 
 <svelte:head><title>{strings.title}</title></svelte:head>
 
-<div class="mx-auto grid h-dvh w-full max-w-7xl grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] select-text border-line md:grid-cols-[13rem_minmax(0,1fr)_19rem] md:grid-rows-1 lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:border-x desktop-portrait:grid-cols-[15rem_minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,1fr)_minmax(0,40%)]! landscape-phone:grid-cols-[minmax(0,1fr)_17rem]! landscape-phone:grid-rows-[auto_minmax(0,1fr)]! ultrawide:max-w-none ultrawide:grid-cols-[20rem_minmax(0,1fr)_34rem]">
+<div class="flex h-dvh w-full flex-col">
+<AppHeader page="desk">
+  {#snippet status()}
+    <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
+      <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
+      <span class="max-[419px]:sr-only">{strings.status[client.status]}</span>
+    </p>
+    <span class="whitespace-nowrap rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-warn">{strings.paper}</span>
+  {/snippet}
+</AppHeader>
 
-  <!-- RAIL: brand, status and counts on every size; sources from tablet up -->
-  <aside class="flex min-h-0 flex-col border-b border-line md:border-r md:border-b-0 landscape-phone:col-span-2 landscape-phone:border-r-0! landscape-phone:border-b! {tab === TAB_SOURCES ? 'max-md:row-span-2' : ''}">
-    <div class="flex items-center justify-between gap-3 px-4 py-3 short:py-1.5 md:flex-col md:items-start md:py-5 landscape-phone:flex-row! landscape-phone:items-center! landscape-phone:py-1.5!">
-      <h1 class="text-2xl leading-none font-extrabold tracking-tight short:text-lg md:text-3xl">
-        {strings.brand}<span class="text-neon-red">{strings.brandAccent}</span>
-        <span class="ml-1 align-middle text-[0.6rem] font-bold tracking-[0.3em] text-muted">{strings.section}</span>
-      </h1>
-      <div class="flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1 md:flex-col md:flex-nowrap md:justify-start md:items-start md:gap-1.5 landscape-phone:flex-row! landscape-phone:items-center!">
-        <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
-          <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
-          {strings.status[client.status]}
-        </p>
-        <span class="whitespace-nowrap rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-warn">{strings.paper}</span>
-        <a href="plays.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.playsLink}&nbsp;→</a>
-        <a href="markets.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.marketsLink}&nbsp;→</a>
-        <a href="feed.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.newsLink}&nbsp;→</a>
-      </div>
-    </div>
+<div class="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] select-text border-line md:grid-cols-[13rem_minmax(0,1fr)_19rem] md:grid-rows-1 lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:border-x desktop-portrait:grid-cols-[15rem_minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,1fr)_minmax(0,40%)]! landscape-phone:grid-cols-[minmax(0,1fr)_17rem]! landscape-phone:grid-rows-[minmax(0,1fr)]! ultrawide:max-w-none ultrawide:grid-cols-[20rem_minmax(0,1fr)_34rem]">
 
-    <nav aria-label="Filter" class="hidden border-t border-line py-2 md:block landscape-phone:hidden!">
+  <!-- RAIL: filters and sources from tablet up; the Sources tab on phones -->
+  <aside class="flex min-h-0 flex-col border-line md:border-r landscape-phone:hidden! {tab === TAB_SOURCES ? '' : 'max-md:hidden'}">
+    <nav aria-label="Filter" class="hidden py-2 md:block landscape-phone:hidden!">
       {#each [ALL, ...BUCKETS] as b (b)}
         <button type="button" aria-pressed={filter === b} onclick={() => { filter = b; }}
           class="spring flex w-full items-center gap-2.5 px-4 py-1.5 text-left text-sm hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none {filter === b ? 'text-white' : 'text-white/60'}">
@@ -284,7 +279,7 @@
   </main>
 
   <!-- PLAN DETAIL -->
-  <section aria-label={strings.tabs.detail} class="list-scroll min-h-0 overflow-y-auto border-t border-line md:border-t-0 desktop-portrait:col-span-2 desktop-portrait:border-t! landscape-phone:block {tab === TAB_DETAIL ? '' : 'max-md:hidden'}">
+  <section aria-label={strings.tabs.detail} class="list-scroll min-h-0 overflow-y-auto border-line desktop-portrait:col-span-2 desktop-portrait:border-t! landscape-phone:block {tab === TAB_DETAIL ? '' : 'max-md:hidden'}">
     {#if openSource}
       <SourcePanel id={openSource} source={client.sources.find((src) => sourceId(src) === openSource)} {client} ranked={rankedCount} onLoaded={loadRanking} />
     {:else if selected}
@@ -368,4 +363,5 @@
       </button>
     {/each}
   </nav>
+</div>
 </div>

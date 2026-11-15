@@ -12,6 +12,8 @@
 @custom-variant desktop-portrait (@media (orientation: portrait) and (min-width: 1024px));
 /* Ultra-wide displays (21:9 and wider): spread content sideways instead of leaving empty bleed, e.g. ultrawide:grid-cols-4 */
 @custom-variant ultrawide (@media (min-aspect-ratio: 21/9) and (min-width: 1536px));
+/* TVs: big screens with no hover (a remote, not a mouse). 10-foot type and spacing, e.g. the app header (src/lib/AppHeader.svelte). */
+@custom-variant tv (@media (min-width: 1600px) and (hover: none));
 
 /* Batman Beyond inspired neon-red / dark palette. Used across src/App.svelte and src/app.css. */
 @theme {

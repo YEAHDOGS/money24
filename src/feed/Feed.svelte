@@ -5,6 +5,7 @@
    * switching tabs keeps each one's scroll position and filters.
    */
   import { onMount } from 'svelte';
+  import AppHeader from '../lib/AppHeader.svelte';
   import Newspaper from '@lucide/svelte/icons/newspaper';
   import CalendarDays from '@lucide/svelte/icons/calendar-days';
   import Activity from '@lucide/svelte/icons/activity';
@@ -98,20 +99,14 @@
 
 <div class="grid h-dvh w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] select-text">
 
-  <!-- HEADER: brand, engine status, link to the trading desk -->
-  <header class="border-b border-line">
-    <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 short:py-1 ultrawide:max-w-none">
-      <h1 class="text-xl leading-none font-extrabold tracking-tight short:text-base md:text-2xl">
-        {strings.brand}<span class="text-neon-red">{strings.brandAccent}</span>
-        <span class="ml-1 align-middle text-[0.6rem] font-bold tracking-[0.3em] text-muted">NEWS</span>
-      </h1>
-      <p class="ml-auto flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
+  <AppHeader page="news">
+    {#snippet status()}
+      <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
         <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
-        {strings.status[client.status]}
+        <span class="max-[359px]:sr-only">{strings.status[client.status]}</span>
       </p>
-      <a href="trading.html" class="spring text-xs font-semibold text-white/60 underline-offset-4 hover:text-white hover:underline focus-visible:text-white focus-visible:outline-none">{strings.tradingLink}&nbsp;→</a>
-    </div>
-  </header>
+    {/snippet}
+  </AppHeader>
 
   <!-- PAGES: stacked in one cell; the active one slides in, so nothing around them moves -->
   <main class="relative min-h-0 overflow-hidden">
