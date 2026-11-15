@@ -36,6 +36,34 @@ type Odds struct {
 	DOGSPct    float64            `json:"dogs_pct"`   // MarketPct times the evidence multiplier
 	Ignored    []string           `json:"ignored"`    // news left out by the trust filter, and why
 	Breaking   bool               `json:"breaking"`   // trusted breaking news is on the play
+	WinPct     float64            `json:"win_pct"`    // DOGS chance the whole play ends in profit at this size
+	WinAt      string             `json:"win_at"`     // the first exit that puts the whole play in profit
+	FillPct    float64            `json:"fill_pct"`   // share of the order the market can take at this size
+}
+
+// winOdds is the success rate: the DOGS odds of reaching the first exit where the play as sized is
+// in profit (the rest stopped out, the size's slippage paid), times the share of the order the
+// market can fill. The stake moves it: how the units split across the rungs decides which exit turns
+// it positive, a bigger order slips more, and past the liquidity limit not all of it gets filled.
+func winOdds(o Odds, pay Payoff, levels []Level, s Sizing) (win float64, at string, fill float64) {
+	fill = 1
+	if s.LiquidityCapped && s.Units > s.LiquidityMax {
+		fill = math.Max(0, s.LiquidityMax) / s.Units
+	}
+	fillPct := math.Round(fill * PERCENT)
+	if o.MarketPct <= 0 || fill <= 0 {
+		return 0, "", fillPct
+	}
+	// Scenarios run stop, rungs:1..n, zero; levels run breakeven, rungs 1..n, stop.
+	for k := 1; k < len(pay.Scenarios)-1 && k < len(levels)-1; k++ {
+		l := levels[k]
+		if !l.Reachable || pay.Scenarios[k].PnLUSD-s.EstSlipUSD <= 0 {
+			continue
+		}
+		win = l.ChancePct * (MULT_BASE + o.Score/SCORE_MAX) * fill
+		return math.Round(math.Max(ODDS_FLOOR, math.Min(ODDS_CEILING, win))*10) / 10, l.Name, fillPct
+	}
+	return 0, "", fillPct
 }
 
 func stanceSign(s string) float64 {

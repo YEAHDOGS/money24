@@ -89,3 +89,21 @@ func TestPutLevelsNeedTheStockToFall(t *testing.T) {
 		t.Errorf("payoff: %+v", rep.Payoff)
 	}
 }
+
+// The success rate follows the stake: inside the liquidity limit it is the odds of the first exit
+// that puts the whole play in profit; past it, only part of the order fills and the rate falls with it.
+func TestWinOddsFollowsTheStake(t *testing.T) {
+	r := DOGSRules()
+	at := func(units float64) Report { return Build(Resize(aalPut(), units), r, Book{Now: TEST_NOW}) }
+	small, limit := at(11), at(11).Sizing.LiquidityMax
+	if small.Odds.WinPct <= 0 || small.Odds.WinAt == "" || small.Odds.FillPct != 100 {
+		t.Fatalf("11 units: want a success rate with the whole order filled: %+v", small.Odds)
+	}
+	big := at(limit * 4)
+	if big.Odds.FillPct != 25 {
+		t.Errorf("4x the liquidity limit fills %.0f%%, want 25%%", big.Odds.FillPct)
+	}
+	if big.Odds.WinPct >= small.Odds.WinPct {
+		t.Errorf("success rate %.1f%% at %g units is not below %.1f%% at 11", big.Odds.WinPct, limit*4, small.Odds.WinPct)
+	}
+}

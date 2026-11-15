@@ -571,6 +571,7 @@ func Build(p Play, r Rules, b Book) Report {
 	rep := Report{Payoff: pay, Levels: levels}
 	rep.Sizing = sizing(p, r)
 	rep.Odds = odds(p, r, levels)
+	rep.Odds.WinPct, rep.Odds.WinAt, rep.Odds.FillPct = winOdds(rep.Odds, pay, levels, rep.Sizing)
 	rep.Checks = evaluate(p, r, rep, b)
 	rep.Armable = true
 	for _, c := range rep.Checks {
