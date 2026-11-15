@@ -8,7 +8,7 @@
   import { onMount, untrack } from 'svelte';
   import strings from './strings.json';
   import { PlaysClient, DEFAULT_RUNNER, STORE_RUNNER, STORE_SECRET, stored } from './plays-client.svelte.js';
-  import { failing } from './play-format.js';
+  import { failing, fill } from './play-format.js';
   import LinkInbox from './LinkInbox.svelte';
   import PlayCard from './PlayCard.svelte';
   import PlayDetail from './PlayDetail.svelte';
@@ -37,7 +37,9 @@
   ];
   const FILTER_ALL = 'all';
   const FILTERS = [FILTER_ALL, 'armed', 'draft', 'closed'];
-  const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', offline: 'text-bad' };
+  const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', offline: 'text-bad', demo: 'text-paper' };
+  /** @type {Intl.DateTimeFormatOptions} */
+  const DEMO_DATE = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
   const NAV = [
     { href: 'trading.html', key: 'desk' },
     { href: 'markets.html', key: 'markets' },
@@ -132,6 +134,10 @@
 {#snippet offline()}
   {#if client.status === 'offline'}
     <p class="border-b border-line px-4 py-2 text-xs leading-snug text-bad" role="alert">{strings.offlineHint}</p>
+  {:else if client.status === 'demo'}
+    <p class="border-b border-line px-4 py-2 text-xs leading-snug text-paper" role="status">
+      {fill(strings.demo.hint, { when: new Date(client.demoTakenAt).toLocaleString(undefined, DEMO_DATE) })}
+    </p>
   {/if}
 {/snippet}
 
@@ -151,7 +157,7 @@
         </button>
       {/if}
     </div>
-    <ul class="list-scroll min-h-0 flex-1 divide-y divide-line overflow-y-auto">
+    <ul class="list-scroll min-h-0 flex-1 divide-y divide-line overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
       {#each visible as item (item.play.id)}
         <li>
           <PlayCard {item} selected={!detailIsRules && selected?.play.id === item.play.id} onPick={() => pick(item.play.id)} />

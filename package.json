@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:ui": "vitest run --ui",
     "test:ui:coverage": "vitest run --ui --coverage",
+    "demo:snapshot": "node scripts/demo-snapshot.js",
     "engine:build": "node scripts/build-engine.js",
     "engine:linux": "node scripts/build-engine.js --linux",
     "tauri": "tauri",
