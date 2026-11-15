@@ -22,7 +22,8 @@ which contract to buy, what the stop is, and how to turn $150 into $1,000.
 | **What must happen** | For each exit: the stock price needed right now, by the exit time (time decay included), and at expiry; the move in percent; the options market's odds of touching that price before the exit time. The stop is shown the same way, including when time decay alone reaches it. |
 | **Payoff** | Cost, planned loss (everything sold at the stop), worst loss (the stop never fills: the whole premium), max profit (every rung and the runner), reward to risk, and a rough expected value. Scenarios: stopped out, T1 then stop, T1+T2 then stop, everything, total calamity. |
 | **Odds** | *Market odds*: the chance the stock touches the T1 price before the exit time, from implied volatility alone (driftless, reflection principle). *DOGS odds*: market odds × (0.5 + evidence score / 100), capped 1–95%. |
-| **Stake** | Minimum deposit (one unit for every rung and the runner), a slider up to the larger of 10× the minimum, the bankroll, or the liquidity cap. Every number on the play follows it. Odds don't change with size; dollars, bankroll share, share of volume and the expected fill do. |
+| **Success rate** | Big, top right of every play: the DOGS odds that the whole play ends in profit at the size on the dial. It is the touch odds of the first exit where selling that rung (the rest stopped out, the estimated slippage paid) is a net gain, times the evidence multiplier, times the share of the order the market can fill (the size rule's volume and open-interest limit over the order). Inside the limit it holds; past it, it falls with every unit. |
+| **Stake** | Minimum deposit (one unit for every rung and the runner), a slider up to the larger of 10× the minimum, the bankroll, or the liquidity cap. Every number on the play follows it. The first exit's odds don't change with size; the success rate, dollars, bankroll share, share of volume and the expected fill do. |
 | **Checks** | Every rule's verdict: fail (blocking), warn, pass, info, off. |
 
 Prices are per contract (×100 for options). Levels are found by inverting Black-Scholes with the
@@ -133,7 +134,19 @@ Every input is kept in the link history with what it became, or why it failed.
 See `Routes()` in `engine/plays/service.go`. Reads are open to the allowed origins; writes need
 the local desk or the webhook secret, like the rest of m24d.
 
-## 6. Honest limits
+## 6. The public demo
+
+With no runner set up, the public site (money24.dogs.red) opens the plays board on a recorded
+snapshot in `public/demo/`, labelled Demo: real plays and reports from a runner, with the stake dial
+recorded at every size so every number still moves. Writing (paper trading, links, rules, AI reads)
+says to run Money 24 locally. `?demo` forces it anywhere. Re-record it with a runner going:
+
+```sh
+npm start                # paste the plays you want to show
+npm run demo:snapshot    # writes public/demo/, then commit and push
+```
+
+## 7. Honest limits
 
 - Yahoo data is delayed up to 15 minutes and unofficial. Open interest is as of the last close.
 - Touch odds assume no drift and constant volatility. They're the market's price of the move,

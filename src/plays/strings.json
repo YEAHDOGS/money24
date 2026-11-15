@@ -13,7 +13,8 @@
   "status": {
     "connecting": "Connecting",
     "live": "Live",
-    "offline": "Runner offline"
+    "offline": "Runner offline",
+    "demo": "Demo"
   },
   "offlineHint": "Start the runner (npm start, or go run ./cmd/m24d on port 8025). Plays live in the runner.",
   "tabs": {
@@ -95,7 +96,12 @@
     "result": "Result",
     "noFills": "No exits yet. The watcher prices it every 30 seconds.",
     "disclaimer": "Options trading involves substantial risk of losing 100% of your capital; this is probability and market-structure analysis, not financial advice.",
-    "termsLink": "Terms of Use"
+    "termsLink": "Terms of Use",
+    "winRate": "Success rate",
+    "winAt": "Reach {level} and the play is in profit",
+    "winNone": "No exit puts the play in profit at this size",
+    "winFill": "Only {n}% of this order can fill",
+    "winNoFill": "Too little volume and open interest: the market can't take this order"
   },
   "levels": {
     "breakeven": "Breakeven",
@@ -413,5 +419,9 @@
     "triggerNow": "stop triggers here right now",
     "already": "already there",
     "odds": "odds"
+  },
+  "demo": {
+    "hint": "Demo: plays recorded from the Money 24 runner on {when}. Drag the stake dial to see every number move. To paper trade, paste links and edit rules, run Money 24 on your own machine.",
+    "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to paper trade, paste links and change rules."
   }
 }

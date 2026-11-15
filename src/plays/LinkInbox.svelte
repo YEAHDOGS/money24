@@ -96,7 +96,7 @@
 </form>
 
 <h2 class="px-4 pt-3 pb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.inbox.history} · <span class="font-mono tabular-nums">{client.links.length}</span></h2>
-<ol class="list-scroll min-h-0 flex-1 overflow-y-auto pb-2">
+<ol class="list-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-2 [scrollbar-gutter:stable]">
   {#each client.links as l (l.id)}
     <li>
       <button type="button" disabled={!l.play_id} onclick={() => onPick(l.play_id)} title={l.url}

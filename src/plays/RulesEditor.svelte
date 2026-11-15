@@ -78,7 +78,7 @@
   }
 </script>
 
-<div class="list-scroll min-h-0 flex-1 overflow-y-auto">
+<div class="list-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
   {#if !draft}
     <p class="px-6 py-10 text-sm text-muted">{strings.rulesEditor.loading}</p>
   {:else}

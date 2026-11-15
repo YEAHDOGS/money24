@@ -8,6 +8,7 @@
   import strings from './strings.json';
   import { mustHappen, price, compact, age, pct, fill } from './play-format.js';
   import StakeDial from './StakeDial.svelte';
+  import SuccessRate from './SuccessRate.svelte';
   import LevelSpine from './LevelSpine.svelte';
   import OddsPanel from './OddsPanel.svelte';
   import RuleChecks from './RuleChecks.svelte';
@@ -74,9 +75,12 @@
   }
 </script>
 
-<div class="list-scroll min-h-0 flex-1 overflow-y-auto">
-  <!-- HEADER -->
-  <header class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:0">
+<!-- Vertical scrolling only, with the scrollbar's room always kept: the sections' entrance can't make
+     it pop in, narrow the page and flash a sideways bar. -->
+<div class="list-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
+  <!-- HEADER: the play on the left, its success rate big on the right -->
+  <header class="reveal flex items-start gap-4 border-b border-line px-4 py-4 lg:gap-6 lg:px-6" style="--i:0">
+    <div class="min-w-0 flex-1">
     <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
       <h2 class="font-mono text-xl font-bold text-white">{play.title}</h2>
       <span class="rounded-sm border px-1.5 py-px text-[0.65rem] font-bold uppercase tracking-wider {STATUS_CLASS[play.status]}">{strings.playStatus[play.status]}</span>
@@ -133,6 +137,8 @@
       </dl>
       <p class="mt-1 text-[0.68rem] text-muted">{market.source}{market.note ? ` · ${market.note}` : ''}</p>
     {/if}
+    </div>
+    <SuccessRate odds={report.odds} />
   </header>
 
   <!-- WHAT MUST HAPPEN -->
