@@ -5,6 +5,7 @@
    * edges of the window, Skip tutorial at the top right, and the page behind is blurred a little so
    * the tutorial is what you look at; the thing a step points at stays sharp. Everything the tour
    * draws is one color nothing else on the site uses (--color-tour). Arrow keys step, Escape skips.
+   * The page under it keeps working: the blur lets every tap through.
    * Words: tour.json. Where the pop-up goes: place.js.
    */
   import { onMount } from 'svelte';
@@ -136,6 +137,8 @@
     z-index: 48;
     background: var(--tour-veil);
     backdrop-filter: blur(3px);
+    /* Never in the way: a tap goes straight through to the page, tabs included. */
+    pointer-events: none;
     animation: veil-in 220ms ease-out both;
   }
   @keyframes veil-in {

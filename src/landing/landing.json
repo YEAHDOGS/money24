@@ -51,21 +51,12 @@
   "demo": {
     "title": "TRY THE DEMO",
     "line": "The real app, running on recorded data. Click anything. Nothing can break.",
-    "snapshot": "This is a snapshot. The data was recorded on {when}. Nothing in it is live.",
-    "snapshotPending": "This is a snapshot of recorded data. Nothing in it is live.",
-    "where": "Everything you see comes from Money 24's own runner and the public sources on the next screen.",
     "doors": [
       {
         "id": "plays",
         "name": "PLAYS",
         "href": "plays.html",
         "text": "Three airline puts with their exits, odds and rule checks. Drag the stake dial."
-      },
-      {
-        "id": "trading",
-        "name": "TRADING",
-        "href": "trading.html",
-        "text": "The paper journal: what the runner read, planned and closed."
       },
       {
         "id": "markets",
@@ -93,5 +84,6 @@
       "This is not financial advice. DOGS is not responsible for anything you do based on Money 24.",
       "We do not know the risks of this yet. The Terms of Use can change at any time."
     ]
-  }
+  },
+  "toTop": "Back to the top"
 }

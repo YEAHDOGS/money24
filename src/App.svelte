@@ -8,12 +8,12 @@
   import { onMount } from "svelte";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+  import ArrowUp from "@lucide/svelte/icons/arrow-up";
   import sticker from "./assets/made-by-dogs-sticker.webp";
   import logo from "./assets/dogs-logo.svg";
   import NoticeBar from "./lib/NoticeBar.svelte";
   import copy from "./landing/landing.json";
   import sourceList from "./landing/sources.json";
-  import { loadDemo } from "./lib/demo.js";
 
   const DOGS_URL = "https://dogs.red";
   const CURRENT_YEAR = new Date().getFullYear();
@@ -32,23 +32,9 @@
     { id: "wip", label: "Not active yet" },
     { id: "soon", label: "Soon" },
   ];
-  const DEMO_PANEL = "demo";
-  const SNAPSHOT_FILE = "markets/index.json"; // the smallest recorded file that carries the snapshot's time
   const REVEAL_THRESHOLD = 0.55;
-  /** @type {Intl.DateTimeFormatOptions} */
-  const SNAPSHOT_DATE = { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" };
 
   let current = $state(PANELS[0].id);
-  /** When the demo's snapshot was recorded (ISO time); read once, when the demo panel first shows. */
-  let takenAt = $state("");
-  let snapshotAsked = false;
-
-  function readSnapshot() {
-    if (snapshotAsked) return;
-    snapshotAsked = true;
-    loadDemo(SNAPSHOT_FILE).then((index) => { takenAt = index.taken_at; }).catch(() => {});
-  }
-
   /** Reveal panels as they enter; observe the panel, never the clipped text. */
   onMount(() => {
     const root = document.getElementById("snap-root");
@@ -59,7 +45,6 @@
           if (!e.isIntersecting) continue;
           e.target.classList.add("in");
           current = e.target.id;
-          if (e.target.id === DEMO_PANEL) readSnapshot();
         }
       },
       { root, threshold: REVEAL_THRESHOLD }
@@ -67,10 +52,6 @@
     panels.forEach((p) => io.observe(p));
     return () => io.disconnect();
   });
-
-  const snapshotLine = $derived(takenAt
-    ? copy.demo.snapshot.replace("{when}", new Date(takenAt).toLocaleString(undefined, SNAPSHOT_DATE))
-    : copy.demo.snapshotPending);
 </script>
 
 <NoticeBar overlay />
@@ -83,6 +64,7 @@
 
 <!-- THE SPINE: one node per panel; the red one is where you are. -->
 <nav class="spine" aria-label="Sections">
+  <a href="#{PANELS[0].id}" class="to-top" class:hidden-top={current === PANELS[0].id} aria-label={copy.toTop} title={copy.toTop}><ArrowUp size={14} strokeWidth={3} aria-hidden="true" /></a>
   {#each PANELS as p (p.id)}
     <a href="#{p.id}" class:here={current === p.id} aria-current={current === p.id ? "true" : undefined} aria-label={p.label} title={p.label}></a>
   {/each}
@@ -189,8 +171,6 @@
           </li>
         {/each}
       </ul>
-      <!-- The snapshot's time fades in once it is read; the line keeps its room, so nothing moves. -->
-      <p class="rv snapshot" aria-live="polite"><span class="snapshot-mark" aria-hidden="true"></span>{snapshotLine} {copy.demo.where}</p>
     </div>
   </section>
 
@@ -369,7 +349,7 @@
 
   .markets { list-style: none; margin: 0.4rem 0; padding: 0; }
   .market {
-    font-size: clamp(1.9rem, 8.5vw, 4.6rem);
+    font-size: clamp(1.9rem, min(8.5vw, 6.6vh), 4.6rem); /* by height too, so six of them fit under the heading */
     font-weight: 800;
     line-height: 1.04;
     letter-spacing: -0.01em;
@@ -570,7 +550,7 @@
   .spine::before {
     content: "";
     position: absolute;
-    top: 0.5rem;
+    top: 2.4rem;
     bottom: 0.5rem;
     left: 50%;
     width: 1px;
@@ -594,13 +574,27 @@
   .spine a:hover::after, .spine a:focus-visible::after { background: white; transform: scale(1.5); }
   .spine a.here::after { background: var(--color-neon-red); transform: scale(2); }
   .spine a:focus-visible { outline: none; }
+  /* Back to the top: an arrow above the first node. It fades out on the first panel, where it has nothing to do. */
+  .spine a.to-top {
+    width: 1.6rem;
+    height: 1.6rem;
+    margin: 0 -0.3rem 0.3rem;
+    border: 1px solid var(--pill-border);
+    border-radius: 999px;
+    background: var(--step-bg);
+    color: white;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease, background-color 150ms ease;
+  }
+  .spine a.to-top::after { content: none; }
+  .spine a.to-top:hover, .spine a.to-top:focus-visible { background: var(--color-neon-red); transform: translateY(-2px); }
+  .spine a.to-top.hidden-top { opacity: 0; pointer-events: none; }
   @media (min-width: 768px) {
     .spine { right: 1rem; }
   }
 
   /* ── Panels that hold a list: tighter, and the list scrolls when a small screen runs out ── */
   .fit {
-    padding-block: 4.4rem 2.6rem;
+    padding-block: 5.8rem 2.6rem;
     gap: 0.85rem;
   }
   .word-md {
@@ -647,18 +641,16 @@
     }
     .grid-list > li:last-child { border-right: 0; }
     .modes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .doors { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .doors > li:nth-child(2n) { border-right: 0; }
-    .doors > li:nth-child(-n + 2) { border-bottom: 1px solid var(--step-border); }
+    .doors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .source-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .source-groups > li:nth-child(2n) { border-right: 0; }
     .source-groups > li:nth-child(-n + 2) { border-bottom: 1px solid var(--step-border); }
   }
   @media (min-width: 1100px) {
-    .doors, .source-groups { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .doors > li:nth-child(2n), .source-groups > li:nth-child(2n) { border-right: 1px solid var(--step-border); }
-    .doors > li:nth-child(-n + 2), .source-groups > li:nth-child(-n + 2) { border-bottom: 0; }
-    .doors > li:last-child, .source-groups > li:last-child { border-right: 0; }
+    .source-groups { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .source-groups > li:nth-child(2n) { border-right: 1px solid var(--step-border); }
+    .source-groups > li:nth-child(-n + 2) { border-bottom: 0; }
+    .source-groups > li:last-child { border-right: 0; }
   }
 
   /* Power modes */
@@ -744,21 +736,6 @@
     line-height: 1.35;
     color: var(--color-muted);
   }
-  .snapshot {
-    display: block;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    color: var(--color-paper);
-    max-width: 70ch;
-  }
-  .snapshot-mark {
-    display: inline-block;
-    width: 0.5rem;
-    height: 0.5rem;
-    margin-right: 0.5rem;
-    border-radius: 999px;
-    background: var(--color-paper);
-  }
 
   /* Sources */
   .source-group { padding: 0.8rem 1.25rem; }
@@ -810,10 +787,19 @@
   }
   .wip-word { color: var(--color-warn); }
 
+  /* ── Phones: the browser's own bar covers the bottom of the screen, so every panel keeps clear of it. ── */
+  @media (max-width: 767px) {
+    .content { padding-bottom: 9rem; }
+    .fit { padding-bottom: 4.5rem; }
+    .hero-cta { bottom: 4rem; }
+    .legal { bottom: 3.4rem; }
+    .cue { display: none; }
+  }
+
   /* ── Short screens (phones on their side, squat windows down to 320 high): everything tightens so
      nothing is cut off. The hero's lettering only changes here, where it used to be cropped. ── */
   @media (max-height: 560px) {
-    .content, .fit { padding-block: 2.3rem 2.6rem; gap: 0.45rem; }
+    .content, .fit { padding-block: 3.6rem 2.6rem; gap: 0.45rem; }
     .word { font-size: clamp(1.9rem, 13vh, 5rem); }
     .word-md { font-size: clamp(1.5rem, 10vh, 3rem); }
     .line { font-size: clamp(0.9rem, 4.4vh, 1.3rem); }
@@ -832,7 +818,6 @@
     .dogs-mark img { height: 1.5rem; }
     .mode, .door, .source-group { padding-block: 0.45rem; }
     .mode-text, .door-text { font-size: 0.78rem; }
-    .snapshot { font-size: 0.72rem; }
     .badge { margin-top: 0.3rem; }
     .legal { bottom: 0.5rem; }
     .cue { display: none; }
