@@ -794,6 +794,24 @@
     .hero-cta { bottom: 4rem; }
     .legal { bottom: 3.4rem; }
     .cue { display: none; }
+    /* Edge-to-edge cells keep clear of the spine on the right edge. */
+    .mode, .door, .source-group { padding-right: 2.75rem; }
+    /* Sources are names only, side by side: four groups fit one screen with nothing to scroll. */
+    .source-group { padding-block: 0.55rem; }
+    .source-group ul { display: flex; flex-wrap: wrap; gap: 0 1rem; margin-top: 0.2rem; }
+    .source { padding: 0.12rem 0; }
+    .source a { font-size: 0.9rem; }
+    .source-what { display: none; }
+  }
+
+  /* ── The narrowest phones (320 wide): the two hero buttons stay on one row, clear of the pill above,
+     and the list headings stay on one line so their lists get the room. ── */
+  @media (max-width: 359px) {
+    .hero-cta { flex-wrap: nowrap; gap: 0.4rem; }
+    .hero-cta .cta { padding: 0.55rem 0.6rem; font-size: 0.64rem; letter-spacing: 0.12em; white-space: nowrap; }
+    .word-md { font-size: 1.9rem; }
+    .mode { padding-block: 0.6rem; }
+    .mode-text { margin-top: 0.3rem; }
   }
 
   /* ── Short screens (phones on their side, squat windows down to 320 high): everything tightens so

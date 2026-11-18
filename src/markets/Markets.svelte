@@ -115,7 +115,7 @@
   {#if down}<ArrowDown class={classes} aria-hidden="true" />{:else}<ArrowUp class={classes} aria-hidden="true" />{/if}
 {/snippet}
 
-<div class="flex h-dvh w-full flex-col">
+<div class="flex h-dvh w-full flex-col overflow-hidden">
 <AppHeader page="markets" status={client.status}>
   {#snippet tools()}
     <SymbolSearch matches={client.matches} onSearch={(q) => client.search(q)} onPick={(symbol) => { tab = TAB_CHART; client.open(symbol); }} />

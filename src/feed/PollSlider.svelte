@@ -34,8 +34,8 @@
   }
 </script>
 
-<div class="flex flex-col gap-1 border-b border-line px-4 py-2.5 short:py-1.5 lg:px-6">
-  <div class="flex items-center gap-3">
+<div class="flex flex-col gap-1 border-b border-line px-4 py-2.5 max-md:flex-row max-md:items-center max-md:gap-3 max-md:py-1.5 short:py-1.5 lg:px-6">
+  <div class="flex items-center gap-3 max-md:min-w-0 max-md:flex-1">
     <label for="poll-range" class="shrink-0 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.pollLabel}</label>
     <input
       id="poll-range"
@@ -54,7 +54,7 @@
     </output>
   </div>
   <div class="flex items-center gap-3">
-  <div class="flex min-w-0 flex-1 flex-col gap-1">
+  <div class="flex min-w-0 flex-1 flex-col gap-1 max-md:hidden">
   <p class="truncate font-mono text-[0.7rem] tabular-nums text-muted">
     ≈ {Math.round(projection.requests / MINUTES_PER_MONTH)} req/min
     · {formatBytes(projection.in)}/mo in

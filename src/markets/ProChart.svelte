@@ -180,7 +180,7 @@
         <span class="max-sm:sr-only">{strings.chart.studies}</span>
         <span class="font-mono tabular-nums">{studies.length}</span>
       </button>
-      <div class="menu absolute top-full left-0 z-20 mt-1 w-52 rounded-sm border border-line bg-card py-1 shadow-lg {menuOpen ? 'menu-open' : ''}" inert={!menuOpen}>
+      <div class="menu absolute top-full left-0 z-20 mt-1 w-52 max-sm:right-0 max-sm:left-auto rounded-sm border border-line bg-card py-1 shadow-lg {menuOpen ? 'menu-open' : ''}" inert={!menuOpen}>
         {#each STUDIES as s (s.id)}
           <label class="spring flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-sm text-white/80 hover:bg-white/5">
             <input type="checkbox" checked={studies.includes(s.id)} onchange={() => toggleStudy(s.id)} class="size-3.5 accent-neon-red" />

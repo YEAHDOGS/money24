@@ -7,7 +7,7 @@
   },
   "loop": {
     "title": "ONE LINK IN",
-    "line": "Paste a trade idea. Money 24 drafts the whole plan and trades it on paper.",
+    "line": "Paste a trade idea. Get the whole plan, traded on paper.",
     "steps": [
       "LINK",
       "CONTRACT",
@@ -16,59 +16,59 @@
       "RULEBOOK",
       "PAPER TRADE"
     ],
-    "foot": "Every play has a stop, a way out and a worst case before it runs."
+    "foot": "A stop, a way out and a worst case, before it runs."
   },
   "modes": {
     "title": "3 POWER MODES",
-    "line": "Three settings. More power aims higher and risks more.",
+    "line": "More power aims higher and risks more.",
     "planned": "PLANNED",
     "riskLabel": "Risk",
-    "foot": "No mode is active yet. Every one of them starts on paper.",
+    "foot": "None is active yet. All start on paper.",
     "list": [
       {
         "id": "low",
         "name": "LOW",
         "level": 1,
         "risk": "Lower",
-        "text": "The slowest setting, with the smallest swings."
+        "text": "Slowest. Smallest swings."
       },
       {
         "id": "medium",
         "name": "MEDIUM",
         "level": 2,
         "risk": "Higher",
-        "text": "Faster plays and bigger swings, both ways."
+        "text": "Faster. Bigger swings, both ways."
       },
       {
         "id": "high",
         "name": "HIGH",
         "level": 3,
         "risk": "Extreme",
-        "text": "The fastest plays and the biggest swings."
+        "text": "Fastest. Biggest swings."
       }
     ]
   },
   "demo": {
     "title": "TRY THE DEMO",
-    "line": "The real app, running on recorded data. Click anything. Nothing can break.",
+    "line": "The real app on recorded data. Nothing can break.",
     "doors": [
       {
         "id": "plays",
         "name": "PLAYS",
         "href": "plays.html",
-        "text": "Three airline puts with their exits, odds and rule checks. Drag the stake dial."
+        "text": "Exits, odds and rule checks. Drag the stake."
       },
       {
         "id": "markets",
         "name": "MARKETS",
         "href": "markets.html",
-        "text": "Quotes and charts for six symbols, one day to all time."
+        "text": "Six symbols, one day to all time."
       },
       {
         "id": "news",
         "name": "NEWS",
         "href": "feed.html",
-        "text": "Four hundred headlines and a month of earnings, auctions and releases."
+        "text": "Headlines and a month of events."
       }
     ]
   },
@@ -80,9 +80,9 @@
   "wip": {
     "title": "NOT ACTIVE YET",
     "lines": [
-      "Money 24 is a work in progress, in heavy development.",
-      "This is not financial advice. DOGS is not responsible for anything you do based on Money 24.",
-      "We do not know the risks of this yet. The Terms of Use can change at any time."
+      "A work in progress, in heavy development.",
+      "Not financial advice. DOGS is not responsible for what you do with it.",
+      "The risks are unknown. The Terms of Use can change."
     ]
   },
   "toTop": "Back to the top"

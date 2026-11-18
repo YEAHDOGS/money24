@@ -57,7 +57,7 @@
 
 <div class="flex shrink-0 items-center gap-2.5" role="status" aria-live="polite">
   <!-- Fixed width, so a longer or shorter result never moves the ring or the slider -->
-  <div class="w-36 overflow-hidden text-right leading-tight">
+  <div class="w-36 overflow-hidden text-right leading-tight max-md:hidden">
     {#key report?.at}
       <div in:scale={{ start: LABEL_START, duration: LABEL_IN_MS, easing: backOut }} class="origin-right">
         <p class="truncate text-xs font-bold {tone === 'added' ? 'text-neon-red' : tone === 'idle' ? 'text-muted' : 'text-white/80'}">{headline}</p>

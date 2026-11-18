@@ -11,7 +11,7 @@
   const tooltip = $derived(`Published ${post.published_at ? new Date(post.published_at).toLocaleString() : 'unknown'} · seen ${new Date(post.seen_at).toLocaleString()}`);
 </script>
 
-<article class="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-x-3 px-4 py-3 short:py-2 lg:px-6">
+<article class="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-x-3 px-4 py-3 max-sm:grid-cols-[2rem_minmax(0,1fr)] max-sm:gap-x-2.5 max-sm:px-3 short:py-2 lg:px-6">
   <time
     class="pt-0.5 text-right font-mono text-xs tabular-nums text-muted"
     datetime={when}

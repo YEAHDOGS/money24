@@ -37,7 +37,9 @@
   <div class="terms-scroll">
   <div class="layout">
     <nav class="toc" aria-label="Contents">
-      <h2 class="toc-title">Contents</h2>
+      <!-- Open in the HTML, so it reads with JavaScript off. The page script folds it on phones. -->
+      <details class="toc-fold" open>
+      <summary class="toc-title">Contents</summary>
       <ol>
         <li><a href="#acceptance">Acceptance and eligibility</a></li>
         <li><a href="#what">What Money 24 is</a></li>
@@ -57,6 +59,7 @@
         <li><a href="#general">Changes and general terms</a></li>
         <li><a href="#contact">Contact</a></li>
       </ol>
+      </details>
     </nav>
 
     <main id="terms-body" class="doc">

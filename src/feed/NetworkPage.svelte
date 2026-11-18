@@ -119,7 +119,7 @@
         <span>{strings.worstCase}</span>
       </label>
       <p class="text-[0.68rem] leading-snug text-muted">{provider.detail} {strings.ingressFree}</p>
-      <p class="text-[0.62rem] leading-snug text-muted/80">{note}</p>
+      <p class="text-[0.62rem] leading-snug text-muted/80 max-md:hidden">{note}</p>
     </div>
   </div>
 

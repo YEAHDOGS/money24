@@ -174,5 +174,5 @@
     {/each}
   </ol>
 
-  <p class="mt-3 border-t border-line pt-3 text-xs leading-relaxed text-muted">{T.method}</p>
+  <p class="mt-3 border-t border-line pt-3 text-xs leading-relaxed text-muted max-md:hidden">{T.method}</p>
 </div>

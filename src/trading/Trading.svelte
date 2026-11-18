@@ -251,7 +251,7 @@
         {@const b = bucket(e)}
         <li in:enter={{ entry: e }}>
           <button type="button" onclick={() => pick(e.id)} aria-pressed={selected?.id === e.id}
-            class="spring grid w-full grid-cols-[3.25rem_minmax(0,1fr)] gap-x-3 px-4 py-3 text-left short:py-2 hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline-none lg:px-6 {selected?.id === e.id ? 'bg-white/5' : ''}">
+            class="spring grid w-full grid-cols-[3.25rem_minmax(0,1fr)] gap-x-3 px-4 py-3 text-left max-sm:px-3 short:py-2 hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline-none lg:px-6 {selected?.id === e.id ? 'bg-white/5' : ''}">
             <time class="pt-0.5 text-right font-mono text-xs tabular-nums text-muted" datetime={e.at}>{span(now - Date.parse(e.at))}</time>
             <span class="min-w-0">
               <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">

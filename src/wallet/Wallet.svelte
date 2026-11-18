@@ -26,8 +26,9 @@
 <div class="flex h-dvh w-full flex-col">
   <AppHeader page="wallet" {status} />
 
-  <div class="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-cols-[minmax(0,1fr)] border-line select-text md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:border-x ultrawide:max-w-none">
-    <main class="list-scroll min-h-0 overflow-y-auto border-line md:border-r">
+  <!-- Phones: the whole page is one list that scrolls. From tablet up each column scrolls on its own. -->
+  <div class="list-scroll mx-auto min-h-0 w-full max-w-7xl flex-1 border-line select-text max-md:overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] xl:border-x ultrawide:max-w-none">
+    <main class="list-scroll min-h-0 border-line md:overflow-y-auto md:border-r">
       <section class="cal-rise border-b border-line px-4 py-5 short:py-3 lg:px-6" style="--i:0">
         <h2 class={LABEL}>{strings.balance}</h2>
         <p class="mt-1 font-mono text-5xl leading-none font-semibold text-white tabular-nums short:text-3xl">{EMPTY_BALANCE}</p>
@@ -36,13 +37,13 @@
 
       <section class="cal-rise border-b border-line px-4 py-4 lg:px-6" style="--i:1">
         <h2 class={LABEL}>{strings.add}</h2>
-        <ul class="mt-3 grid gap-px bg-line sm:grid-cols-2">
+        <ul class="mt-3 grid grid-cols-2 gap-px bg-line">
           {#each strings.methods as method (method.id)}
             {@const Icon = ICONS[method.id]}
-            <li class="flex flex-col gap-2 bg-app p-4">
-              <span class="flex items-center gap-2 text-lg font-extrabold text-white"><Icon class="size-5 text-neon-red" aria-hidden="true" />{method.name}</span>
-              <span class="text-sm leading-snug text-white/70">{method.text}</span>
-              <button type="button" disabled class="mt-auto flex items-center justify-center gap-2 rounded-sm border border-line px-3 py-2 text-xs font-bold tracking-wider text-muted uppercase">
+            <li class="flex flex-col gap-2 bg-app p-4 max-sm:p-3">
+              <span class="flex items-center gap-2 text-lg font-extrabold whitespace-nowrap text-white max-sm:text-base"><Icon class="size-5 shrink-0 text-neon-red" aria-hidden="true" />{method.name}</span>
+              <span class="text-sm leading-snug text-white/70 max-sm:hidden">{method.text}</span>
+              <button type="button" disabled class="mt-auto flex items-center justify-center gap-2 rounded-sm border border-line px-3 py-2 text-xs font-bold tracking-wider whitespace-nowrap text-muted uppercase max-sm:px-1 max-sm:text-[0.62rem]">
                 <Lock class="size-3.5" aria-hidden="true" />{strings.notOpen}
               </button>
             </li>
@@ -68,7 +69,7 @@
       </section>
     </main>
 
-    <aside class="list-scroll min-h-0 overflow-y-auto max-md:border-t max-md:border-line">
+    <aside class="list-scroll min-h-0 max-md:border-t max-md:border-line md:overflow-y-auto">
       <section class="cal-rise border-b border-warn/40 px-4 py-4" style="--i:1" role="note">
         <h2 class="flex items-center gap-2 text-sm font-extrabold tracking-wide text-warn uppercase"><Lock class="size-4" aria-hidden="true" />{strings.closed}</h2>
         <p class="mt-2 text-sm leading-snug text-white/80">{strings.closedText}</p>
