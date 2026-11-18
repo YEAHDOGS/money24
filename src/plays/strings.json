@@ -9,13 +9,13 @@
   },
   "filters": {
     "all": "All",
-    "armed": "Paper trading",
+    "armed": "Active",
     "draft": "Drafts",
-    "closed": "Closed"
+    "closed": "History"
   },
   "playStatus": {
     "draft": "Draft",
-    "armed": "Paper trading",
+    "armed": "Active",
     "closed": "Closed"
   },
   "empty": "No plays yet. Paste a Robinhood or Webull link in the inbox.",
@@ -45,7 +45,8 @@
     "ruleBroken": "rule broken",
     "rulesBroken": "rules broken",
     "ruleFailing": "rule failing",
-    "rulesFailing": "rules failing"
+    "rulesFailing": "rules failing",
+    "active": "Active"
   },
   "detail": {
     "paperNow": "Paper trade now",
@@ -86,7 +87,8 @@
     "winNone": "No exit puts the play in profit at this size",
     "winFill": "Only {n}% of this order can fill",
     "winNoFill": "Too little volume and open interest: the market can't take this order",
-    "record": "Play record"
+    "record": "Play record",
+    "orders": "Orders"
   },
   "levels": {
     "breakeven": "Breakeven",
@@ -479,5 +481,44 @@
     "caution": "When one candle touched both the stop and an exit, the stop is counted first. Fills are assumed at the stop and exit prices; a thin contract may not give them.",
     "demoOnly": "The demo holds one recorded backtest per play."
   },
-  "journal": "Journal"
+  "journal": "Journal",
+  "orders": {
+    "active": "Active: paper trading now",
+    "began": "Began",
+    "amountIn": "Amount in",
+    "now": "Right now",
+    "reading": "Reading…",
+    "winAt": "Wins from",
+    "loseAt": "Loses at",
+    "none": "None",
+    "noTime": "No time yet",
+    "kinds": {
+      "made": "Play made",
+      "entry": "Entry",
+      "exit": "Exit",
+      "stop": "Stop-loss",
+      "time": "Time exit",
+      "result": "Ended"
+    },
+    "status": {
+      "made": "Made",
+      "not_placed": "Not placed",
+      "working": "Working",
+      "scheduled": "Scheduled",
+      "filled": "Filled",
+      "triggered": "Triggered",
+      "cancelled": "Cancelled"
+    },
+    "wrongTitle": "What went wrong",
+    "wrong": {
+      "stop": "The price fell to the stop-loss, and everything left was sold there.",
+      "time": "The time exit came before any exit paid for the play.",
+      "time stop": "It went sideways too long and the sideways exit closed it.",
+      "source exit": "The source called its own exit while the play was down.",
+      "void": "There was never a quote to close it at, so it was dropped unscored.",
+      "other": "It closed at a loss."
+    },
+    "wrongRules": "It was let through these blocking rules as a paper trade: {rules}.",
+    "wrongSlip": "It lost {lost} against a planned {planned}: the sale filled below the stop, at the bid."
+  }
 }

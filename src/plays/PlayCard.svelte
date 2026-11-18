@@ -17,13 +17,16 @@
   const fails = $derived(failing(report));
   const broke = $derived(play.broke_rules?.length ?? 0);
   const made = $derived(realized(play));
+  const STATUS_ACTIVE = 'armed'; // paper trading right now
   const showMade = $derived(play.status !== 'draft' && (play.result || play.fills?.length));
 </script>
 
 <button type="button" onclick={onPick} aria-pressed={selected}
-  class="spring relative grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-3 py-3 text-left hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline-none lg:px-4 {selected ? 'bg-white/5' : ''}">
+  class="spring relative grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-3 py-3 text-left hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline-none lg:px-4 {selected ? 'bg-white/5' : play.status === STATUS_ACTIVE ? 'bg-paper/8' : ''}">
   {#if selected}<span class="absolute inset-y-0 left-0 w-0.5 bg-neon-red" aria-hidden="true"></span>{/if}
+  {#if play.status === STATUS_ACTIVE}<span class="absolute inset-y-0 right-0 w-1 bg-paper" aria-hidden="true"></span>{/if}
   <span class="flex min-w-0 items-center gap-2">
+    {#if play.status === STATUS_ACTIVE}<span class="relative size-2 shrink-0 rounded-full bg-paper text-paper live-dot" title={strings.card.active}></span>{/if}
     <span class="truncate font-mono text-sm font-bold text-white">{play.title}</span>
     <span class="shrink-0 rounded-sm border px-1.5 py-px text-[0.6rem] font-bold uppercase tracking-wider {STATUS_CLASS[play.status] ?? STATUS_CLASS.draft}">{strings.playStatus[play.status] ?? play.status}</span>
   </span>

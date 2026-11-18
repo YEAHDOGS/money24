@@ -17,6 +17,7 @@
   import FillsPanel from './FillsPanel.svelte';
   import AiPanel from './AiPanel.svelte';
   import PlayRecord from './PlayRecord.svelte';
+  import PlayOrders from './PlayOrders.svelte';
   import Play from '@lucide/svelte/icons/play';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import Sparkles from '@lucide/svelte/icons/sparkles';
@@ -156,6 +157,11 @@
   </section>
 
   <!-- STAKE DIAL -->
+  <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:1" aria-labelledby="orders">
+    <h3 id="orders" class="{SECTION_LABEL} mb-2">{strings.detail.orders}</h3>
+    {#key item.play.id}<PlayOrders {item} {client} {now} />{/key}
+  </section>
+
   <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:2" aria-labelledby="record">
     <h3 id="record" class="{SECTION_LABEL} mb-2">{strings.detail.record}</h3>
     {#key item.play.id}<PlayRecord {item} {client} />{/key}

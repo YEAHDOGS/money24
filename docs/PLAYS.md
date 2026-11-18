@@ -191,3 +191,15 @@ stop-losses 2 and 3 instead (`stops_after`). The exit watcher moves the stop as 
 Both report how the bracket ended and, beside it, what simply holding would have made. They are
 replays, not promises: a candle that touched both the stop and an exit counts as stopped, fills are
 assumed at the stop and exit prices, and a thin contract may not give them.
+
+## 9. Orders, active plays and history
+
+Every play lists its orders with a status and an exact time (`src/plays/orders.js`): when it was made,
+the entry, each exit, the stop-loss, the time exit and how it ended. Statuses are *Not placed* (a
+draft), *Working* or *Scheduled* (a live play), *Filled*, *Triggered* and *Cancelled*.
+
+- **Active** plays (paper trading now) are marked in the list and open on a panel that says when they
+  began, the amount in, what they are worth right now (from the replay, read again every 30 seconds)
+  and where they end for a win or a loss.
+- **History** is the list of finished plays. One that lost says what went wrong: how it ended, the
+  blocking rules it was let through as a paper trade, and any gap between the planned and actual loss.
