@@ -22,8 +22,31 @@
   /** @type {{ client: import('./feed-client.svelte.js').FeedClient, now: number, linkTarget: string|undefined, slider: any }} */
   let { client, now, linkTarget, slider } = $props();
 
+  const PINNED_ID = -1;
+  const MS_PER_SECOND = 1000;
+  /**
+   * A story opened from the Markets page (feed.html?story=&title=&source=&at=&tag=): it is pinned at
+   * the top of the feed, and the feed is filtered to its symbol when any headline carries that tag.
+   * @returns {import('./feed-client.svelte.js').Post | null}
+   */
+  function pinnedStory() {
+    const link = new URLSearchParams(location.search);
+    const [url, title] = [link.get('story') ?? '', link.get('title') ?? ''];
+    if (!/^https?:\/\//.test(url) || !title) return null;
+    const at = new Date(Number(link.get('at')) * MS_PER_SECOND || Date.now()).toISOString();
+    return { id: PINNED_ID, seen_at: at, published_at: at, feed: 'markets', source: link.get('source') || strings.pinned, kind: 'news', title, url, tags: [link.get('tag') ?? ''].filter(Boolean) };
+  }
+  const pinned = pinnedStory();
+
   let kind = $state(KIND_ALL);
   let tag = $state('');
+  // The pinned story's symbol becomes the filter once the feed has loaded, if any headline carries it.
+  let pinnedTagTried = false;
+  $effect(() => {
+    if (pinnedTagTried || !pinned?.tags[0] || !client.items.length) return;
+    pinnedTagTried = true;
+    if (client.items.some((p) => p.tags.includes(pinned.tags[0]))) tag = pinned.tags[0];
+  });
   let feed = $state('');
   /** @type {HTMLElement | undefined} */
   let listEl = $state();
@@ -157,6 +180,13 @@
       </div>
 
       <ol bind:this={listEl} onscroll={onListScroll} class="list-scroll h-full overflow-y-auto">
+        {#if pinned}
+          <li class="relative border-b border-line bg-white/5">
+            <span class="absolute inset-y-0 left-0 w-0.5 bg-neon-red" aria-hidden="true"></span>
+            <p class="px-4 pt-2 text-[0.62rem] font-bold tracking-[0.18em] text-neon-red uppercase lg:px-6">{strings.pinnedLabel}</p>
+            <FeedPost post={pinned} {now} {linkTarget} onTag={(t) => { tag = tag === t ? '' : t; }} activeTag={tag} />
+          </li>
+        {/if}
         {#each visible as post (post.id)}
           <li
             class="relative border-b border-line {post.fresh ? 'post-fresh' : ''}"

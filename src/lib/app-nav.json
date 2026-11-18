@@ -8,13 +8,10 @@
       "id": "plays",
       "href": "plays.html",
       "label": "Plays",
-      "section": "PLAYS"
-    },
-    {
-      "id": "desk",
-      "href": "trading.html",
-      "label": "Trading",
-      "section": "TRADING"
+      "section": "PLAYS",
+      "also": [
+        "desk"
+      ]
     },
     {
       "id": "markets",
@@ -27,6 +24,12 @@
       "href": "feed.html",
       "label": "News",
       "section": "NEWS"
+    },
+    {
+      "id": "wallet",
+      "href": "wallet.html",
+      "label": "Wallet",
+      "section": "WALLET"
     }
   ],
   "terms": {
@@ -43,7 +46,6 @@
     "demo": "Demo"
   },
   "statusWidest": "Reconnecting",
-  "paper": "Paper only",
   "footer": {
     "label": "About Money 24",
     "copyright": "DOGS",

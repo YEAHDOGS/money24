@@ -20,6 +20,7 @@ const PAGES = {
   trading: 'trading.html',
   markets: 'markets.html',
   plays: 'plays.html',
+  wallet: 'wallet.html',
   terms: 'terms.html',
 }
 // Tauri's dev window loads this port; it must not drift to another one.

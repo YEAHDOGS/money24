@@ -95,5 +95,7 @@
     "hint": "Demo: the journal recorded from the Money 24 runner on {when}. Nothing here is live. To send callouts and paper trade, run Money 24 on your own machine.",
     "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to send callouts and paper trade.",
     "noRecord": "Source records are not part of the demo. Run Money 24 on your own machine to score a source."
-  }
+  },
+  "backToPlays": "Plays",
+  "journalTitle": "Journal"
 }

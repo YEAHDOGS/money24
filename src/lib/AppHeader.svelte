@@ -13,13 +13,13 @@
   import Tour from './tour/Tour.svelte';
   import { demoHref } from './demo.js';
   import Zap from '@lucide/svelte/icons/zap';
-  import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+  import Wallet from '@lucide/svelte/icons/wallet';
   import ChartCandlestick from '@lucide/svelte/icons/chart-candlestick';
   import Newspaper from '@lucide/svelte/icons/newspaper';
 
   /**
    * @type {{
-   *   page: 'plays' | 'desk' | 'markets' | 'news' | 'terms',
+   *   page: 'plays' | 'desk' | 'markets' | 'news' | 'wallet' | 'terms',
    *   tools?: import('svelte').Snippet,
    *   status?: string,
    *   service?: 'runner' | 'news',
@@ -29,7 +29,9 @@
   let { page, tools, status = '', service = 'runner' } = $props();
 
   const HOME = './';
-  const ICONS = { plays: Zap, desk: LayoutDashboard, markets: ChartCandlestick, news: Newspaper };
+  const ICONS = { plays: Zap, markets: ChartCandlestick, news: Newspaper, wallet: Wallet };
+  /** A tab is the current one on its own page and on the pages filed under it (the journal, under Plays). */
+  const owns = (/** @type {any} */ p) => p.id === page || (p.also ?? []).includes(page);
   const STORE_STATUS = 'm24.status.';
   /** States worth carrying to the next page. */
   const SETTLED = ['live', 'offline', 'demo'];
@@ -46,7 +48,7 @@
     }
   }
 
-  const current = $derived(page === nav.terms.id ? nav.terms : nav.pages.find((p) => p.id === page));
+  const current = $derived(page === nav.terms.id ? nav.terms : nav.pages.find(owns));
   const remembered = $derived(recall(STORE_STATUS + service));
   /** A fresh page is "connecting" for a moment: show the remembered state instead, so the dot never blinks between pages. */
   const shown = $derived(WAITING.includes(status) ? remembered || status : status);
@@ -87,7 +89,6 @@
             <span class="col-start-1 row-start-1">{nav.status[shown] ?? ''}</span>
           </span>
         </p>
-        <span class="rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold tracking-wider whitespace-nowrap text-warn uppercase">{nav.paper}</span>
       </div>
 
       <!-- NAV: equal columns, so every tab is as wide as the widest. Phones: a full-width row under the wordmark; page tools go below it. -->
@@ -95,7 +96,7 @@
         <ul class="grid auto-cols-fr grid-flow-col items-center gap-0.5">
           {#each nav.pages as p (p.id)}
             {@const Icon = ICONS[p.id]}
-            {@const here = p.id === page}
+            {@const here = owns(p)}
             <li>
               <a href={demoHref(p.href)} aria-current={here ? 'page' : undefined} title={p.label}
                 class="spring nav-link relative flex items-center justify-center gap-1.5 rounded-sm px-2 py-1.5 text-xs font-bold tracking-wider uppercase max-sm:flex-col max-sm:gap-0.5 max-sm:px-1.5 max-sm:py-1 max-sm:text-[0.6rem] max-sm:tracking-normal hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none short:py-1 tv:px-4 tv:py-3 tv:text-base {here ? 'text-white' : 'text-white/55 hover:text-white'}">

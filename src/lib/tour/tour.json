@@ -3,7 +3,7 @@
   "back": "Back",
   "next": "Next",
   "done": "Done",
-  "skip": "Skip the tour",
+  "skip": "Skip tutorial",
   "restart": "Tour",
   "count": "{n} / {of}",
   "tours": {
@@ -14,20 +14,76 @@
         "text": "It turns a trade idea into a full plan and trades it on paper. It is a work in progress. What you see is a snapshot recorded {when}: nothing here is live.",
         "textPending": "It turns a trade idea into a full plan and trades it on paper. It is a work in progress. What you see is a recorded snapshot: nothing here is live."
       },
-      { "id": "list", "target": "plays-list", "side": "right", "at": 0.3, "title": "The plays", "text": "Every play, with what has to happen for it to pay. Pick one." },
-      { "id": "dial", "target": "plays-dial", "side": "top", "at": 0.3, "title": "The stake dial", "text": "Drag the stake. Every number on the play follows it." },
-      { "id": "nav", "target": "nav", "side": "bottom", "at": 0.5, "title": "Four pages", "text": "Plays, Trading, Markets and News. Each one has a short tour like this." }
+      {
+        "id": "list",
+        "target": "plays-list",
+        "side": "right",
+        "at": 0.3,
+        "title": "The plays",
+        "text": "Every play, with what has to happen for it to pay. Pick one."
+      },
+      {
+        "id": "dial",
+        "target": "plays-dial",
+        "side": "top",
+        "at": 0.3,
+        "title": "The stake dial",
+        "text": "Drag the stake. Every number on the play follows it."
+      },
+      {
+        "id": "nav",
+        "target": "nav",
+        "side": "bottom",
+        "at": 0.5,
+        "title": "Four pages",
+        "text": "Plays, Markets, News and Wallet. The journal lives under Plays. Each page has a short tour like this."
+      }
     ],
     "desk": [
-      { "id": "share", "target": "desk-share", "side": "bottom", "at": 0.3, "title": "Callouts", "text": "Trade callouts come in here. The demo only reads; your own runner paper trades them." },
-      { "id": "sources", "target": "desk-sources", "side": "right", "at": 0.5, "title": "Sources", "text": "Who the runner listens to: callers, option flow, news and leaderboards." }
+      {
+        "id": "share",
+        "target": "desk-share",
+        "side": "bottom",
+        "at": 0.3,
+        "title": "Callouts",
+        "text": "Trade callouts come in here. The demo only reads; your own runner paper trades them."
+      },
+      {
+        "id": "sources",
+        "target": "desk-sources",
+        "side": "right",
+        "at": 0.5,
+        "title": "Sources",
+        "text": "Who the runner listens to: callers, option flow, news and leaderboards."
+      }
     ],
     "markets": [
-      { "id": "search", "target": "markets-search", "side": "bottom", "at": 0.3, "title": "Search", "text": "Six symbols were recorded. Try SPY or BTC-USD." },
-      { "id": "ranges", "target": "markets-ranges", "side": "bottom", "at": 0.6, "title": "Ranges", "text": "One day to all time. The chart redraws from the recording." }
+      {
+        "id": "search",
+        "target": "markets-search",
+        "side": "bottom",
+        "at": 0.3,
+        "title": "Search",
+        "text": "Six symbols were recorded. Try SPY or BTC-USD."
+      },
+      {
+        "id": "ranges",
+        "target": "markets-ranges",
+        "side": "bottom",
+        "at": 0.6,
+        "title": "Ranges",
+        "text": "One day to all time. The chart redraws from the recording."
+      }
     ],
     "news": [
-      { "id": "tabs", "target": "news-tabs", "side": "top", "at": 0.5, "title": "Three views", "text": "News, Calendar and Network. The calendar holds earnings, auctions and economic releases." }
+      {
+        "id": "tabs",
+        "target": "news-tabs",
+        "side": "top",
+        "at": 0.5,
+        "title": "Three views",
+        "text": "News, Calendar and Network. The calendar holds earnings, auctions and economic releases."
+      }
     ]
   }
 }

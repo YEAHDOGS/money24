@@ -15,6 +15,7 @@
   import ProChart from './ProChart.svelte';
   import AppHeader from '../lib/AppHeader.svelte';
   import AppFooter from '../lib/AppFooter.svelte';
+  import { DEMO_PARAM } from '../lib/demo.js';
   import SymbolSearch from './SymbolSearch.svelte';
   import TickList from './TickList.svelte';
 
@@ -23,6 +24,7 @@
   const QUARTERS_PER_YEAR = 4;
   const MS_PER_SECOND = 1000;
   const DAY_RANGE = '1d';
+  const NEWS_PAGE = 'feed.html';
   const TAB_CHART = 'chart';
   const TAB_STATS = 'stats';
   const TAB_FEED = 'feed';
@@ -82,6 +84,12 @@
   /** How far the last quarter's earnings per share landed from what analysts expected, in percent. */
   const surprise = $derived(lastQuarter?.eps_estimate ? ((lastQuarter.eps - lastQuarter.eps_estimate) / Math.abs(lastQuarter.eps_estimate)) * PERCENT : null);
   const headline = $derived(client.news[0]);
+  /** A story's place in the News page: pinned at the top there, with the feed filtered to this symbol. */
+  function storyHref(/** @type {any} */ n) {
+    const link = new URLSearchParams({ story: n.url, title: n.title, source: n.publisher, at: String(n.at), tag: client.symbol });
+    if (new URLSearchParams(location.search).has(DEMO_PARAM)) link.set(DEMO_PARAM, '');
+    return `${NEWS_PAGE}?${link}`;
+  }
   /** What went wrong, in words. On the demo an unknown symbol names the ones that were recorded. */
   const problemText = $derived.by(() => {
     if (!client.problem) return '';
@@ -181,7 +189,7 @@
 
     <section class="{CARD} landscape-phone:block! {tab === TAB_FEED ? '' : 'max-md:hidden'}" aria-label={strings.news}>
       {#if headline}
-        <a href={headline.url} target="_blank" rel="noopener noreferrer" class="group block focus-visible:outline-none">
+        <a href={storyHref(headline)} class="group block focus-visible:outline-none">
           {#if headline.thumb}
             <img src={headline.thumb} alt="" loading="lazy" referrerpolicy="no-referrer" class="aspect-[16/9] w-full object-cover" />
           {/if}
@@ -191,7 +199,7 @@
         <ul class="divide-y divide-line border-t border-line">
           {#each client.news.slice(1) as n (n.url)}
             <li>
-              <a href={n.url} target="_blank" rel="noopener noreferrer" class="spring block px-4 py-2.5 hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none">
+              <a href={storyHref(n)} class="spring block px-4 py-2.5 hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none">
                 <span class="block text-sm leading-snug text-white/85">{n.title}</span>
                 <span class="mt-0.5 block text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{n.publisher} · {age(n.at, now)}</span>
               </a>

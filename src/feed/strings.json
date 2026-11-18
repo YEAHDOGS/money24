@@ -117,5 +117,7 @@
     "in": "in",
     "events": "events",
     "sources": "Calendar sources"
-  }
+  },
+  "pinned": "Markets",
+  "pinnedLabel": "Opened from Markets"
 }

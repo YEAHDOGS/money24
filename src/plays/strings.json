@@ -478,5 +478,6 @@
     },
     "caution": "When one candle touched both the stop and an exit, the stop is counted first. Fills are assumed at the stop and exit prices; a thin contract may not give them.",
     "demoOnly": "The demo holds one recorded backtest per play."
-  }
+  },
+  "journal": "Journal"
 }

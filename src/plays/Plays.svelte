@@ -20,8 +20,11 @@
   import Inbox from '@lucide/svelte/icons/inbox';
   import Scale from '@lucide/svelte/icons/scale';
   import Crosshair from '@lucide/svelte/icons/crosshair';
+  import ScrollText from '@lucide/svelte/icons/scroll-text';
+  import { demoHref } from '../lib/demo.js';
 
   const CLOCK_TICK_MS = 1000;
+  const JOURNAL_PAGE = 'trading.html'; // the paper journal: filed under the Plays tab
   const PHONE_QUERY = '(max-width: 767px)';
   const LANDSCAPE_QUERY = '(orientation: landscape) and (max-height: 500px) and (max-width: 1023px)';
   const MODE_WIDE = 'wide';
@@ -122,9 +125,12 @@
           {strings.filters[f]} <span class="font-mono tabular-nums text-muted">{f === FILTER_ALL ? client.items.length : counts[f] ?? 0}</span>
         </button>
       {/each}
+      <a href={demoHref(JOURNAL_PAGE)} class="spring ml-auto flex items-center gap-1 rounded-sm border border-line px-2 py-0.5 text-[0.68rem] font-bold tracking-wider text-white/70 uppercase hover:text-white focus-visible:border-neon-red focus-visible:outline-none">
+        <ScrollText class="size-3" aria-hidden="true" />{strings.journal}
+      </a>
       {#if mode === MODE_WIDE}
         <button type="button" aria-pressed={detailIsRules} onclick={() => { tab = detailIsRules ? TAB_PLAY : TAB_RULES; }}
-          class="spring ml-auto flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:border-neon-red {detailIsRules ? 'border-neon-red text-neon-red' : 'border-line text-white/70 hover:text-white'}">
+          class="spring flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:border-neon-red {detailIsRules ? 'border-neon-red text-neon-red' : 'border-line text-white/70 hover:text-white'}">
           <Scale class="size-3" aria-hidden="true" />{strings.tabs.rules}
         </button>
       {/if}

@@ -1,0 +1,27 @@
+{
+  "title": "Money 24 Wallet",
+  "balance": "Balance",
+  "balanceNote": "Money held for orders. Nothing can be held today.",
+  "closed": "Deposits are not open",
+  "closedText": "Money 24 cannot take, hold or move money yet. This page shows where the wallet will live. Nothing you press here sends money anywhere.",
+  "add": "Add money",
+  "notOpen": "Not open yet",
+  "methods": [
+    { "id": "crypto", "name": "Crypto", "text": "Send coins from your own wallet to fund plays." },
+    { "id": "card", "name": "Debit card", "text": "Add dollars with a debit card." }
+  ],
+  "power": "Power mode",
+  "powerNote": "Planned. How hard Money 24 pushes: more power aims higher and risks more.",
+  "modes": [
+    { "id": "low", "name": "Low", "level": 1 },
+    { "id": "medium", "name": "Medium", "level": 2 },
+    { "id": "high", "name": "High", "level": 3 }
+  ],
+  "before": "Before deposits can open",
+  "steps": [
+    "A licensed partner to hold customer money. DOGS does not hold it itself today, and the Terms of Use say so.",
+    "A review by a securities lawyer of deposits, live trading and anything said about returns.",
+    "Live trading proven on paper first, with the kill switch tested."
+  ],
+  "terms": "Read the Terms of Use"
+}

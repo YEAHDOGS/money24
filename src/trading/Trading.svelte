@@ -6,6 +6,8 @@
    */
   import AppHeader from '../lib/AppHeader.svelte';
   import AppFooter from '../lib/AppFooter.svelte';
+  import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+  import { demoHref } from '../lib/demo.js';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
@@ -16,6 +18,7 @@
   import RunnerSettings from './RunnerSettings.svelte';
 
   const CLOCK_TICK_MS = 1000;
+  const PLAYS_PAGE = 'plays.html'; // this journal is filed under the Plays tab
   const ENTER_MS = 420;
   const ENTER_OFFSET_PX = 16;
   const MS_PER_MINUTE = 60000;
@@ -223,6 +226,10 @@
 
   <!-- JOURNAL -->
   <main class="flex min-h-0 flex-col border-line md:border-r landscape-phone:flex! {tab === TAB_JOURNAL ? '' : 'max-md:hidden'}">
+    <p class="flex items-center gap-3 border-b border-line px-4 py-1.5 text-[0.68rem] font-bold tracking-wider uppercase lg:px-6">
+      <a href={demoHref(PLAYS_PAGE)} class="spring flex items-center gap-1 rounded-sm text-white/70 hover:text-white focus-visible:text-neon-red focus-visible:outline-none"><ArrowLeft class="size-3" aria-hidden="true" />{strings.backToPlays}</a>
+      <span class="text-muted">{strings.journalTitle}</span>
+    </p>
     {#if client.status === 'demo'}
       <p class="border-b border-line px-4 py-2 text-xs leading-snug text-paper lg:px-6" role="status">
         {strings.demo.hint.replace('{when}', new Date(client.demoTakenAt).toLocaleString(undefined, DEMO_DATE))}
