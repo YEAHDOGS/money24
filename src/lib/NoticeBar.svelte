@@ -83,11 +83,11 @@
       <p class="rise mt-4 inline-block border border-paper px-2 py-0.5 text-xs font-bold tracking-[0.2em] text-paper uppercase short:mt-2" style:--i="2">{notice.demo}</p>
       <p class="rise mt-2 text-sm leading-snug text-white/80" style:--i="2">{notice.dialog.demoLine}</p>
     {/if}
-    <ul class="mt-5 grid gap-3 short:mt-3 short:gap-2">
+    <ul class="mt-5 grid gap-3 max-sm:gap-2 short:mt-3 short:gap-2">
       {#each notice.dialog.points as point, i (point.lead)}
         <li class="rise border-l-2 border-warn pl-3" style:--i={i + 3}>
           <p class="text-base leading-snug font-bold text-white short:text-sm">{point.lead}</p>
-          <p class="text-sm leading-snug text-white/70">{point.text}</p>
+          <p class="text-sm leading-snug text-white/70 max-sm:hidden">{point.text}</p>
         </li>
       {/each}
     </ul>

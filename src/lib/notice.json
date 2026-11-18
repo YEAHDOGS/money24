@@ -15,7 +15,7 @@
   "dialog": {
     "kicker": "Money 24 by DOGS",
     "title": "Work in progress",
-    "demoLine": "You are in the demo trial room. Everything on screen was recorded earlier. Nothing here is live, and nothing here can place an order.",
+    "demoLine": "A recording. Nothing here is live, and nothing here can place an order.",
     "points": [
       { "lead": "Money 24 is not active yet.", "text": "It is still in heavy development. Anything can change, break or disappear without notice." },
       { "lead": "This is not financial advice.", "text": "Money 24 is DOGS software. It is not a broker, an adviser or a recommendation to buy or sell anything." },

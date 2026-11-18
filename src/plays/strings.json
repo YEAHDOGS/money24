@@ -82,6 +82,9 @@
     "noFills": "No exits yet. The watcher prices it every 30 seconds.",
     "disclaimer": "Options trading involves substantial risk of losing 100% of your capital; this is probability and market-structure analysis, not financial advice.",
     "termsLink": "Terms of Use",
+    "disclaimerShort": "Options can lose 100%. Not financial advice.",
+    "checksNote": "{blocks} block · {warns} warn",
+    "checksClear": "all pass",
     "winRate": "Success rate",
     "winAt": "Reach {level} and the play is in profit",
     "winNone": "No exit puts the play in profit at this size",
@@ -111,6 +114,22 @@
     "stopOdds": "Odds the stop is hit first: {pct}.",
     "calamity": "Worst case {pnl} if the stop never fills (a gap, a halt, no bid).",
     "noVol": "No volatility data: levels shown at expiry only. Refresh the market."
+  },
+  "sentenceShort": {
+    "rungUp": "{name}: {sym} ≥ {spot} by {when} → {pnl}",
+    "rungDown": "{name}: {sym} ≤ {spot} by {when} → {pnl}",
+    "rungPast": "{name}: sells {qty} at {price} → {pnl}",
+    "unreachable": "{name} at {price} can't be reached",
+    "odds": "· odds {pct}",
+    "breakevenUp": "Breakeven: {sym} ≥ {spot}",
+    "breakevenDown": "Breakeven: {sym} ≤ {spot}",
+    "stopUp": "Stop: {sym} ≤ {now} now → {pnl}",
+    "stopDown": "Stop: {sym} ≥ {now} now → {pnl}",
+    "decayUp": "Decay gets there unless {sym} > {exit}.",
+    "decayDown": "Decay gets there unless {sym} < {exit}.",
+    "stopOdds": "· odds {pct}",
+    "calamity": "Worst case {pnl}",
+    "noVol": "No volatility data. Refresh the market."
   },
   "dial": {
     "label": "Stake",
@@ -412,8 +431,10 @@
     "odds": "odds"
   },
   "demo": {
-    "hint": "Demo: plays recorded from the Money 24 runner on {when}. Drag the stake dial to see every number move. To paper trade, paste links and edit rules, run Money 24 on your own machine.",
-    "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to paper trade, paste links and change rules."
+    "hint": "Recorded {when} · changes stay on this page",
+    "gone": "That play is no longer on this page. Reload to bring the recording back.",
+    "unknownLink": "The demo reads its recorded plays only. Try {example}.",
+    "try": "Try one"
   },
   "record": {
     "market": "Market",

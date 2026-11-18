@@ -27,6 +27,12 @@
 
   const connected = $derived(client.providers.filter((p) => p.connected));
 
+  /** The demo's examples: one tap fills the box and plays it, so a phone never has to type. */
+  function tryExample(/** @type {string} */ line, /** @type {HTMLFormElement | null} */ form) {
+    url = line;
+    form?.requestSubmit();
+  }
+
   async function submit(/** @type {SubmitEvent} */ event) {
     event.preventDefault();
     const value = url.trim();
@@ -67,7 +73,7 @@
   <label for="inbox-url" class="flex items-center gap-1.5 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">
     <Link2 class="size-3" aria-hidden="true" />{strings.inbox.label}
   </label>
-  <textarea id="inbox-url" bind:value={url} rows="3" placeholder={strings.inbox.placeholder} autocomplete="off" spellcheck="false"
+  <textarea id="inbox-url" bind:value={url} rows="2" placeholder={strings.inbox.placeholder} autocomplete="off" spellcheck="false"
     onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
     class="mt-1.5 block w-full resize-none rounded-sm border border-line bg-card px-2.5 py-2 font-mono text-xs leading-snug text-white placeholder:text-muted focus:border-neon-red focus:outline-none"></textarea>
   <div class="mt-2 flex gap-2">
@@ -89,8 +95,17 @@
         {#each connected as p (p.id)}<option value={p.id}>{p.name} · {p.model}</option>{/each}
       </select>
     </div>
+  {:else if client.demo}
+    <!-- The demo reads its recorded contracts: a few of them are one tap away. -->
+    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+      <span class="shrink-0 text-[0.62rem] font-bold tracking-[0.18em] text-paper uppercase">{strings.demo.try}</span>
+      {#each client.demoExamples as line (line)}
+        <button type="button" disabled={busy} onclick={(e) => tryExample(line, e.currentTarget.form)}
+          class="spring shrink-0 rounded-sm border border-paper/50 px-2 py-1 font-mono text-[0.7rem] font-semibold whitespace-nowrap text-paper hover:bg-paper/10 focus-visible:bg-paper/10 focus-visible:outline-none disabled:opacity-40">{line}</button>
+      {/each}
+    </div>
   {:else}
-    <p class="mt-2 text-[0.7rem] leading-snug text-muted">{strings.inbox.noProvider}</p>
+    <p class="mt-2 text-[0.7rem] leading-snug text-muted max-md:hidden">{strings.inbox.noProvider}</p>
   {/if}
   <p class="mt-1.5 min-h-4 text-xs leading-snug {failed ? 'text-bad' : 'text-ok'}" role="status">{message}</p>
 </form>
@@ -101,16 +116,17 @@
     <li>
       <button type="button" disabled={!l.play_id} onclick={() => onPick(l.play_id)} title={l.url}
         class="spring grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2 px-4 py-1.5 text-left hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none disabled:cursor-default">
-        <span class="col-span-2 flex min-w-0 items-center gap-1.5 text-xs">
+        <span class="flex min-w-0 items-center gap-1.5 text-xs">
           <span class="shrink-0 rounded-sm border px-1 text-[0.58rem] font-bold uppercase tracking-wider {PLATFORM_CLASS[l.platform] ?? PLATFORM_CLASS.text}">{PLATFORM_LABEL[l.platform] ?? l.platform}</span>
           <span class="truncate font-mono font-semibold text-white">{contractLabel(l.contract) || shortUrl(l.url)}</span>
         </span>
+        <time class="self-center font-mono text-[0.62rem] tabular-nums text-muted" datetime={l.at}>{clock(l.at)}</time>
         {#if l.error}
-          <span class="flex min-w-0 items-start gap-1 text-[0.68rem] leading-snug text-bad"><TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />{l.error}</span>
-        {:else}
-          <span class="truncate font-mono text-[0.65rem] text-white/45">{shortUrl(l.url)}</span>
+          <span class="col-span-2 flex min-w-0 items-start gap-1 text-[0.68rem] leading-snug text-bad"><TriangleAlert class="mt-px size-3 shrink-0" aria-hidden="true" />{l.error}</span>
+        {:else if shortUrl(l.url) !== contractLabel(l.contract)}
+          <!-- A typed contract is its own link: only a real link gets a second line. -->
+          <span class="col-span-2 truncate font-mono text-[0.65rem] text-white/45">{shortUrl(l.url)}</span>
         {/if}
-        <time class="self-start font-mono text-[0.62rem] tabular-nums text-muted" datetime={l.at}>{clock(l.at)}</time>
       </button>
     </li>
   {:else}

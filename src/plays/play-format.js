@@ -134,14 +134,15 @@ export function scenarioName(/** @type {string} */ name) {
  * The plain-English lines: what the stock has to do, by when, for each exit to pay, then the
  * breakeven, the stop (and what time decay does to it) and the calamity case.
  * @param {any} play  @param {any} report
+ * @param {boolean} [short] a phone: the same facts as symbols ("AAL ≤ $12.49 by Thu 3:00 PM"), not sentences
  * @returns {{ kind: string, text: string }[]}
  */
-export function mustHappen(play, report) {
+export function mustHappen(play, report, short = false) {
   if (!play || !report) return [];
-  const s = strings.sentence;
+  const s = short ? strings.sentenceShort : strings.sentence;
   const sym = play.contract.symbol;
   const bearish = isBearish(play);
-  const by = when(report.payoff.exit_at);
+  const by = (short ? shortWhen : when)(report.payoff.exit_at);
   const out = [];
   if (report.payoff.vol_source === 'none') out.push({ kind: 'warn', text: s.noVol });
 

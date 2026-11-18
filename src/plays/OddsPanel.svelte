@@ -8,7 +8,8 @@
   import { pnl, usd, pct, signedPct, scenarioName, barPct, when } from './play-format.js';
 
   /** @type {{ report: any }} */
-  let { report } = $props();
+  /** bare: the caller already wrote the "How it can end" heading (a folding section on phones) */
+  let { report, bare = false } = $props();
 
   const LABEL = 'text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted';
   const COMPONENTS = ['volume', 'news', 'open_interest', 'technicals', 'signals'];
@@ -20,7 +21,7 @@
   const biggest = $derived(Math.max(1, ...pay.scenarios.map((/** @type {any} */ s) => Math.abs(s.pnl_usd))));
 </script>
 
-<h3 class={LABEL}>{strings.detail.scenarios}</h3>
+{#if !bare}<h3 class={LABEL}>{strings.detail.scenarios}</h3>{/if}
 <ul class="mt-2 grid gap-1">
   {#each pay.scenarios as s (s.name)}
     {@const loss = s.pnl_usd < 0}

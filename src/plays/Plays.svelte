@@ -43,7 +43,7 @@
   const FILTER_ALL = 'all';
   const FILTERS = [FILTER_ALL, 'armed', 'draft', 'closed'];
   /** @type {Intl.DateTimeFormatOptions} */
-  const DEMO_DATE = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
+  const DEMO_DATE = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
 
   let runnerUrl = $state(stored(STORE_RUNNER, DEFAULT_RUNNER));
   let runnerSecret = $state(stored(STORE_SECRET, ''));
@@ -110,7 +110,7 @@
   {#if client.status === 'offline'}
     <p class="border-b border-line px-4 py-2 text-xs leading-snug text-bad" role="alert">{strings.offlineHint}</p>
   {:else if client.status === 'demo'}
-    <p class="border-b border-line px-4 py-2 text-xs leading-snug text-paper" role="status">
+    <p class="shrink-0 border-b border-line px-4 py-1.5 max-md:truncate text-xs leading-snug text-paper short:py-1" role="status">
       {fill(strings.demo.hint, { when: new Date(client.demoTakenAt).toLocaleString(undefined, DEMO_DATE) })}
     </p>
   {/if}
@@ -159,7 +159,7 @@
       <RulesEditor {client} />
     {:else if selected}
       {#key selected.play.id}
-        <PlayDetail item={selected} {client} {now} />
+        <PlayDetail item={selected} {client} {now} compact={mode !== MODE_WIDE} />
       {/key}
     {:else}
       <p class="px-6 py-10 text-sm text-muted">{client.status === 'offline' ? strings.offlineHint : strings.pickOne}</p>
@@ -213,7 +213,7 @@
         {@render detail()}
       {/if}
     </div>
-    <nav class="grid grid-cols-4 border-t border-line" aria-label="Sections">
+    <nav data-tour="plays-tabs" class="grid grid-cols-4 border-t border-line" aria-label="Sections">
       {#each PHONE_TABS as t (t.id)}
         {@const alert = t.id === TAB_PLAY && selected ? failing(selected.report).blocks : 0}
         <button type="button" aria-pressed={tab === t.id} onclick={() => { tab = t.id; }}

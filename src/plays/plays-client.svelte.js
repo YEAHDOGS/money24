@@ -2,8 +2,10 @@
 // rulebook and the AI providers. Plays live in the runner; this only reads and asks. The runner URL
 // and secret are the trading desk's, so a phone pointed at a VPS runner works here too.
 // With no runner (the public site, or ?demo) it shows a recorded snapshot instead (src/lib/demo.js).
-// The demo reads and previews; anything that writes says so.
+// The demo is a trial room: every action works on this page only (plays-demo.js) and nothing is sent.
 import strings from './strings.json';
+import { fill } from './play-format.js';
+import { demoExamples, demoFind, demoPaper } from './plays-demo.js';
 import { DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
 
 export { stored, STORE_RUNNER } from '../lib/demo.js';
@@ -17,6 +19,7 @@ const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', dem
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const DEMO_SNAPSHOT = 'plays.json';
 const DEMO_PREVIEW_DIR = 'preview/';
+const DEMO_BUSY_MS = 320; // a demo action takes this long, so its button shows it was pressed
 
 /** @typedef {{ play: any, report: any }} Item */
 
@@ -43,6 +46,8 @@ export class PlaysClient {
   #demoSizes = new Map();
   /** @type {Record<string, { live: any, backtest: any }>} the demo's recorded curves, per play */
   #demoCurves = {};
+  /** The rulebook as recorded: what the demo's "reset" goes back to. */
+  #demoRules = null;
 
   /** @param {string} base runner URL  @param {string} secret webhook secret, empty on the local desk */
   constructor(base, secret) {
@@ -53,7 +58,6 @@ export class PlaysClient {
   /** Any request. A method other than GET sends a JSON body and the secret; errors carry the runner's text. */
   async #req(/** @type {string} */ path, /** @type {{method?: string, body?: any, signal?: AbortSignal}} */ opts = {}) {
     const method = opts.method ?? 'GET';
-    if (this.status === STATUS.demo) throw new Error(strings.demo.readOnly);
     /** @type {Record<string, string>} */
     const headers = method === 'GET' ? {} : { ...JSON_HEADERS };
     if (this.#secret && method !== 'GET') headers.Authorization = `Bearer ${this.#secret}`;
@@ -116,12 +120,31 @@ export class PlaysClient {
       const snap = await loadDemo(DEMO_SNAPSHOT);
       Object.assign(this, { items: snap.items, links: snap.links, rules: snap.rules, providers: snap.providers });
       this.#demoCurves = snap.curves ?? {};
+      this.#demoRules = structuredClone(snap.rules);
       this.demoBacktestFrom = snap.backtest_from ?? '';
       this.demoTakenAt = snap.taken_at;
       this.status = STATUS.demo;
     } catch {
       this.status = STATUS.offline;
     }
+  }
+
+  /** True in the trial room: actions change this page only. */
+  get demo() {
+    return this.status === STATUS.demo;
+  }
+
+  /** Lines the demo's inbox can read: the recorded contracts. @returns {string[]} */
+  get demoExamples() {
+    return this.demo ? demoExamples(this.items) : [];
+  }
+
+  /** A recorded play, after the short pause every demo action takes. @returns {Promise<Item>} */
+  async #demoItem(/** @type {string} */ id) {
+    await new Promise((done) => setTimeout(done, DEMO_BUSY_MS));
+    const item = this.items.find((x) => x.play.id === id);
+    if (!item) throw new Error(strings.demo.gone);
+    return item;
   }
 
   /** The demo's dial: the recorded size nearest to units, merged onto the play as recorded. @returns {Promise<Item>} */
@@ -131,7 +154,7 @@ export class PlaysClient {
     }
     const sizes = await this.#demoSizes.get(id);
     const item = this.items.find((x) => x.play.id === id);
-    if (!item) throw new Error(strings.demo.readOnly);
+    if (!item) throw new Error(strings.demo.gone);
     const keys = Object.keys(sizes ?? {}).map(Number);
     if (!keys.length) return item;
     const near = keys.reduce((best, k) => (Math.abs(k - units) < Math.abs(best - units) ? k : best), keys[0]);
@@ -165,6 +188,12 @@ export class PlaysClient {
 
   /** Pastes a link: the runner resolves it, plans it and (by default) paper trades it at once. */
   async link(/** @type {{url: string, provider?: string, analyze?: boolean, theme?: string}} */ input) {
+    if (this.demo) {
+      await new Promise((done) => setTimeout(done, DEMO_BUSY_MS));
+      const known = demoFind(this.items, input.url);
+      if (!known) throw new Error(fill(strings.demo.unknownLink, { example: this.demoExamples[0] ?? '' }));
+      return known;
+    }
     try {
       return this.#upsert(await this.#req('/api/plays/link', { method: 'POST', body: input }));
     } finally {
@@ -173,19 +202,23 @@ export class PlaysClient {
   }
 
   async save(/** @type {any} */ play) {
+    if (this.demo) return this.#upsert({ play: { ...play, updated_at: new Date().toISOString() }, report: (await this.#demoItem(play.id)).report });
     return this.#upsert(await this.#req('/api/plays', { method: 'POST', body: play }));
   }
 
   async remove(/** @type {string} */ id) {
-    await this.#req(`/api/plays/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (this.demo) await this.#demoItem(id);
+    else await this.#req(`/api/plays/${encodeURIComponent(id)}`, { method: 'DELETE' });
     this.items = this.items.filter((x) => x.play.id !== id);
   }
 
   async refresh(/** @type {string} */ id) {
+    if (this.demo) return this.#demoItem(id); // the recording is the market: nothing newer to read
     return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/refresh`, { method: 'POST' }));
   }
 
   async paper(/** @type {string} */ id) {
+    if (this.demo) return this.#upsert(demoPaper(await this.#demoItem(id)));
     return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/paper`, { method: 'POST' }));
   }
 
@@ -198,18 +231,22 @@ export class PlaysClient {
 
   /** The play resized to units, not saved: the stake dial's live view. @returns {Promise<Item>} */
   preview(/** @type {string} */ id, /** @type {number} */ units, /** @type {AbortSignal} */ signal) {
-    if (this.status === STATUS.demo) return this.#demoPreview(id, units);
+    if (this.demo) return this.#demoPreview(id, units);
     return this.#req(`/api/plays/${encodeURIComponent(id)}/preview?units=${units}`, { signal });
   }
 
   /** Saves a draft's size. The demo keeps it on this page only. */
   async size(/** @type {string} */ id, /** @type {number} */ units) {
-    if (this.status === STATUS.demo) return this.#upsert(await this.#demoPreview(id, units));
+    if (this.demo) return this.#upsert(await this.#demoPreview(id, units));
     return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/size`, { method: 'POST', body: { units } }));
   }
 
   /** Files the play under a category ("News play"). It is a label: it can change while a play runs. */
   async category(/** @type {string} */ id, /** @type {string} */ category) {
+    if (this.demo) {
+      const item = await this.#demoItem(id);
+      return this.#upsert({ ...item, play: { ...item.play, category } });
+    }
     return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/category`, { method: 'POST', body: { category } }));
   }
 
@@ -218,7 +255,7 @@ export class PlaysClient {
    * from that day's close. The demo holds one of each per play, as recorded. @returns {Promise<any>}
    */
   async curve(/** @type {string} */ id, /** @type {string} */ from = '') {
-    if (this.status === STATUS.demo) {
+    if (this.demo) {
       const recorded = this.#demoCurves[id]?.[from ? 'backtest' : 'live'];
       if (!recorded) throw new Error(strings.record.noCurve);
       return recorded;
@@ -227,12 +264,22 @@ export class PlaysClient {
   }
 
   async saveRules(/** @type {any} */ rules) {
+    if (this.demo) {
+      await new Promise((done) => setTimeout(done, DEMO_BUSY_MS));
+      this.rules = rules;
+      return rules;
+    }
     this.rules = await this.#req('/api/plays/rules', { method: 'PUT', body: rules });
     await this.refreshPlays();
     return this.rules;
   }
 
   async resetRules() {
+    if (this.demo) {
+      await new Promise((done) => setTimeout(done, DEMO_BUSY_MS));
+      this.rules = structuredClone(this.#demoRules);
+      return this.rules;
+    }
     this.rules = await this.#req('/api/plays/rules/reset', { method: 'POST' });
     await this.refreshPlays();
     return this.rules;

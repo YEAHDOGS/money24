@@ -38,7 +38,7 @@
   const SHARE_PARAMS = ['title', 'text', 'url'];
   const SOURCE_PARAM = 'source';
   /** @type {Intl.DateTimeFormatOptions} */
-  const DEMO_DATE = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
+  const DEMO_DATE = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
   // Literal class strings so Tailwind sees them. Colors come from theme tokens.
   const BUCKET_CLASSES = {
     entry: 'text-ok border-ok',
@@ -231,11 +231,12 @@
       <span class="text-muted">{strings.journalTitle}</span>
     </p>
     {#if client.status === 'demo'}
-      <p class="border-b border-line px-4 py-2 text-xs leading-snug text-paper lg:px-6" role="status">
+      <p class="shrink-0 border-b border-line px-4 py-1.5 text-xs leading-snug text-paper max-md:truncate short:py-1 lg:px-6" role="status">
         {strings.demo.hint.replace('{when}', new Date(client.demoTakenAt).toLocaleString(undefined, DEMO_DATE))}
       </p>
     {/if}
-    <ShareBox onShare={share} initial={sharedIn} />
+    <!-- Reading a post needs the runner's parser: the demo has none, so the box is not drawn there. -->
+    {#if client.status !== 'demo'}<ShareBox onShare={share} initial={sharedIn} />{/if}
     <div class="flex flex-wrap gap-1.5 border-b border-line px-4 py-2 short:py-1 md:hidden landscape-phone:flex!" role="group" aria-label="Filter">
       {#each [ALL, ...BUCKETS] as b (b)}
         <button type="button" aria-pressed={filter === b} onclick={() => { filter = b; }}
@@ -245,7 +246,7 @@
       {/each}
     </div>
 
-    <ol class="list-scroll min-h-0 flex-1 divide-y divide-line overflow-y-auto" aria-live="polite">
+    <ol data-tour="desk-journal" class="list-scroll min-h-0 flex-1 divide-y divide-line overflow-y-auto" aria-live="polite">
       {#each visible as e (e.id)}
         {@const b = bucket(e)}
         <li in:enter={{ entry: e }}>
@@ -361,7 +362,7 @@
   </section>
 
   <!-- PHONE TABS: within thumb reach -->
-  <nav class="grid grid-cols-3 border-t border-line md:hidden landscape-phone:hidden!" aria-label="Sections">
+  <nav data-tour="desk-tabs" class="grid grid-cols-3 border-t border-line md:hidden landscape-phone:hidden!" aria-label="Sections">
     {#each TABS as t (t)}
       <button type="button" aria-pressed={tab === t} onclick={() => { tab = t; }}
         class="spring py-3 text-xs font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:bg-white/5 {tab === t ? 'text-neon-red' : 'text-white/55'}">

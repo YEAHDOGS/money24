@@ -15,34 +15,32 @@
   import copy from './tour.json';
   import { tour } from './tour.svelte.js';
   import { onScreen, place } from './place.js';
-  import { demoFirst, loadDemo } from '../demo.js';
 
   const RECHECK_MS = 300; // how often the target is measured again
-  const SNAPSHOT_FILE = 'markets/index.json'; // the smallest recorded file that carries the snapshot's time
   const DEFAULT_SIDE = 'bottom';
   const DEFAULT_AT = 0.5;
   const HALF = 2;
   const ARROW_ROOM = 68; // the pop-up keeps this far from the side edges when it is level with the arrows
   const ARROW_BAND = 44; // how far above and below mid-height the arrows reach
-  /** @type {Intl.DateTimeFormatOptions} */
-  const SNAPSHOT_DATE = { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
 
   const steps = $derived(tour.steps(tour.page));
   const step = $derived(steps[Math.min(tour.at, steps.length - 1)]);
   const last = $derived(tour.at >= steps.length - 1);
 
-  let takenAt = $state('');
+  /** True while the step points at its second target: the first one is not on this screen (a phone shows one tab at a time). */
+  let alt = $state(false);
   /** @type {{ left: number, top: number, right: number, bottom: number, width: number, height: number } | null} the target's box, when it is on screen */
   let rect = $state.raw(null);
   let bounds = $state.raw({ w: 0, h: 0 });
   let w = $state(0);
   let h = $state(0);
 
-  const text = $derived(step.textPending && !takenAt ? step.textPending : step.text.replace('{when}', new Date(takenAt).toLocaleString(undefined, SNAPSHOT_DATE)));
+  /** What the step says and where: its own words, or its fallback's when that is what it points at. */
+  const told = $derived(alt && step.fallback ? { ...step, ...step.fallback } : step);
   /** Where the pop-up goes: beside its target, or the middle of the screen when it has none in view. */
   const pos = $derived.by(() => {
     if (!rect || !w) return { left: (bounds.w - w) / HALF, top: (bounds.h - h) / HALF, side: '', tx: 0, ty: 0 };
-    const p = place(rect, { w, h }, step.side ?? DEFAULT_SIDE, step.at ?? DEFAULT_AT, bounds);
+    const p = place(rect, { w, h }, told.side ?? DEFAULT_SIDE, told.at ?? DEFAULT_AT, bounds);
     // Level with the arrows and room to spare: slide clear of them, and keep the tail on the target.
     const mid = bounds.h / HALF;
     const level = p.top < mid + ARROW_BAND && p.top + h > mid - ARROW_BAND;
@@ -66,8 +64,14 @@
   function measure() {
     const next = { w: window.innerWidth, h: window.innerHeight };
     if (next.w !== bounds.w || next.h !== bounds.h) bounds = next;
-    const box = step.target ? document.querySelector(`[data-tour="${step.target}"]`)?.getBoundingClientRect() : null;
-    const found = box && onScreen(box, next) ? { left: Math.max(0, box.left), top: Math.max(0, box.top), right: box.right, bottom: box.bottom, width: box.width, height: box.height } : null;
+    const boxOf = (/** @type {string | undefined} */ name) => {
+      const box = name ? document.querySelector(`[data-tour="${name}"]`)?.getBoundingClientRect() : null;
+      return box && onScreen(box, next) ? box : null;
+    };
+    const first = boxOf(step.target);
+    const box = first ?? boxOf(step.fallback?.target);
+    alt = !first && !!box;
+    const found = box ? { left: Math.max(0, box.left), top: Math.max(0, box.top), right: box.right, bottom: box.bottom, width: box.width, height: box.height } : null;
     if (JSON.stringify(found) !== JSON.stringify(rect)) rect = found;
   }
 
@@ -89,7 +93,6 @@
     const recheck = setInterval(measure, RECHECK_MS);
     window.addEventListener('resize', measure);
     window.addEventListener('keydown', onKey);
-    if (demoFirst()) loadDemo(SNAPSHOT_FILE).then((index) => { takenAt = index.taken_at; }).catch(() => {});
     return () => {
       clearInterval(recheck);
       window.removeEventListener('resize', measure);
@@ -114,8 +117,8 @@
   {#key step.id}
     <div class="words">
       <p class="count">{copy.count.replace('{n}', String(tour.at + 1)).replace('{of}', String(steps.length))}</p>
-      <h2 class="title">{step.title}</h2>
-      <p class="text">{text}</p>
+      <h2 class="title">{told.title}</h2>
+      <p class="text">{told.text}</p>
     </div>
   {/key}
 </section>

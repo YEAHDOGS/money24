@@ -30,7 +30,9 @@
       if (sourceId === id) record = got;
     } catch (err) {
       // The demo carries no source records and says so; anything else means the runner is not answering.
-      if (sourceId === id) [message, failed] = [client.status === 'demo' && err instanceof Error ? err.message : T.offline, true];
+      if (sourceId !== id) return;
+      const demo = client.status === 'demo' && err instanceof Error;
+      [message, failed] = [demo ? err.message : T.offline, !demo];
     }
   }
 
@@ -122,14 +124,14 @@
     {/if}
   </dl>
 
-  {#if id.startsWith(X_PREFIX)}
+  {#if id.startsWith(X_PREFIX) && client.status !== 'demo'}
     <button type="button" disabled={busy} onclick={load}
       class="spring mt-4 w-full rounded-sm border border-line py-2 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-white disabled:opacity-40">
       {busy ? T.loading : T.load}
     </button>
     <p class="mt-1.5 text-xs text-muted">{T.loadHint}</p>
   {/if}
-  <p class="mt-1 min-h-4 text-xs {failed ? 'text-bad' : 'text-ok'}" role="status">{message}</p>
+  <p class="mt-1 min-h-4 text-xs {failed ? 'text-bad' : client.status === 'demo' ? 'text-paper' : 'text-ok'}" role="status">{message}</p>
 
   <h3 class="mt-4 border-t border-line pt-4 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{T.history} · {outcomes.length}</h3>
   <ol class="mt-1 divide-y divide-line">
@@ -168,7 +170,7 @@
         </p>
       </li>
     {:else}
-      <li class="py-6 text-sm text-muted">{record ? T.empty : T.reading}</li>
+      <li class="py-6 text-sm text-muted">{record ? T.empty : client.status === 'demo' ? '' : T.reading}</li>
     {/each}
   </ol>
 

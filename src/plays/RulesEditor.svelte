@@ -116,7 +116,7 @@
                     class="spring border-l border-line px-2 py-0.5 focus-visible:outline-none focus-visible:bg-white/10 {!rule.blocking ? 'bg-warn/15 text-warn' : 'text-white/50'}">{strings.rulesEditor.warn}</button>
                 </span>
               </div>
-              <p class="text-xs leading-snug text-white/60">{strings.rules[rule.id]?.about}</p>
+              <p class="text-xs leading-snug text-white/60 max-md:truncate">{strings.rules[rule.id]?.about}</p>
               {#if Object.keys(rule.params).length}
                 <div class="grid grid-cols-2 gap-2 @md:grid-cols-4">
                   {#each Object.keys(rule.params) as k (k)}

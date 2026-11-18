@@ -2,11 +2,13 @@
   /**
    * One play, top to bottom: what must happen for it to pay, the stake dial (every number below
    * follows it), the price spine, the payoff and odds, the rules, the evidence, the bracket or the
-   * paper fills, and the AI reads. The disclaimer stays pinned under it.
+   * paper fills, and the AI reads. The disclaimer stays pinned under it. On a phone (compact) the
+   * dial comes first and the rest folds under its headings.
    */
   import { untrack } from 'svelte';
   import strings from './strings.json';
-  import { mustHappen, price, compact, age, pct, fill } from './play-format.js';
+  import { mustHappen, price, compact as short, age, pct, pnl, fill, failing } from './play-format.js';
+  import Fold from './Fold.svelte';
   import StakeDial from './StakeDial.svelte';
   import SuccessRate from './SuccessRate.svelte';
   import LevelSpine from './LevelSpine.svelte';
@@ -25,8 +27,11 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
-  /** @type {{ item: import('./plays-client.svelte.js').Item, client: import('./plays-client.svelte.js').PlaysClient, now: number }} */
-  let { item, client, now } = $props();
+  /**
+   * @type {{ item: import('./plays-client.svelte.js').Item, client: import('./plays-client.svelte.js').PlaysClient, now: number, compact?: boolean }}
+   * compact: a phone. Shorter sentences, the dial first, and every other section folded under its heading.
+   */
+  let { item, client, now, compact = false } = $props();
 
   const LINE_CLASS = { gain: 'text-ok', loss: 'text-bad', neutral: 'text-white/80', warn: 'text-warn', bad: 'text-bad' };
   const LINE_MARK = { gain: '▲', loss: '▼', neutral: '•', warn: '!', bad: '×' };
@@ -44,7 +49,11 @@
   const play = $derived(shown.play);
   const report = $derived(shown.report);
   const draft = $derived(item.play.status === 'draft');
-  const lines = $derived(mustHappen(play, report));
+  const lines = $derived(mustHappen(play, report, compact));
+  const fails = $derived(failing(report));
+  /** A few words beside a folded heading, so the fold says what is inside. */
+  const endsNote = $derived(`${pnl(report.payoff.max_profit_usd)} / ${pnl(-report.payoff.planned_loss_usd)}`);
+  const checksNote = $derived(fails.blocks || fails.warns ? fill(strings.detail.checksNote, { blocks: fails.blocks, warns: fails.warns }) : strings.detail.checksClear);
   const market = $derived(play.market);
   const connected = $derived(client.providers.filter((p) => p.connected));
   const analyzing = $derived(item.play.analyzing);
@@ -76,6 +85,27 @@
     });
   }
 </script>
+
+<!-- The sections both layouts share: wide screens lay them out in the open, phones fold them (Fold.svelte). -->
+{#snippet dial()}
+  <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:2">
+    <StakeDial {item} {client} {draft} bankroll={client.rules?.bankroll_usd ?? 0} sizing={report.sizing}
+      onPreview={(p) => { preview = p; }} onSaved={() => { preview = null; }} />
+  </section>
+{/snippet}
+{#snippet ordersBody()}{#key item.play.id}<PlayOrders {item} {client} {now} />{/key}{/snippet}
+{#snippet recordBody()}{#key item.play.id}<PlayRecord {item} {client} />{/key}{/snippet}
+{#snippet spineBody()}
+  <p class="mt-0.5 text-[0.68rem] text-muted">{strings.detail.spineNote}</p>
+  <LevelSpine {play} {report} />
+{/snippet}
+{#snippet bracketBody()}
+  {#if draft}
+    {#key item.play.updated_at}<BracketEditor play={item.play} onSave={save} />{/key}
+  {:else}
+    <FillsPanel play={item.play} />
+  {/if}
+{/snippet}
 
 <!-- Vertical scrolling only, with the scrollbar's room always kept: the sections' entrance can't make
      it pop in, narrow the page and flash a sideways bar. -->
@@ -132,9 +162,9 @@
         <div><dt class="text-muted">{strings.detail.bidAsk}</dt><dd class="text-white">{price(market.bid)} × {price(market.ask)}</dd></div>
         <div><dt class="text-muted">{play.contract.market === 'option' ? strings.detail.iv : strings.detail.hv}</dt><dd class="text-white">{pct(market.iv * PERCENT)}</dd></div>
         {#if play.contract.market === 'option'}
-          <div><dt class="text-muted">{strings.detail.oi}</dt><dd class="text-white">{compact(market.open_interest)}</dd></div>
+          <div><dt class="text-muted">{strings.detail.oi}</dt><dd class="text-white">{short(market.open_interest)}</dd></div>
         {/if}
-        <div><dt class="text-muted">{strings.detail.volume}</dt><dd class="text-white">{compact(market.volume)}{market.avg_volume ? ` · ${(market.day_volume / market.avg_volume).toFixed(2)}x` : ''}</dd></div>
+        <div><dt class="text-muted">{strings.detail.volume}</dt><dd class="text-white">{short(market.volume)}{market.avg_volume ? ` · ${(market.day_volume / market.avg_volume).toFixed(2)}x` : ''}</dd></div>
         <div><dt class="text-muted">{strings.detail.asOf}</dt><dd class="text-white">{age(market.at, now)} {strings.detail.ago}</dd></div>
       </dl>
       <p class="mt-1 text-[0.68rem] text-muted">{market.source}{market.note ? ` · ${market.note}` : ''}</p>
@@ -156,28 +186,35 @@
     </ul>
   </section>
 
-  <!-- STAKE DIAL -->
+  {#if compact}
+    <!-- PHONES: the dial first, then every other section folded under its heading. -->
+    {@render dial()}
+    <Fold id="orders" title={strings.detail.orders} open={!draft} i={3}>{@render ordersBody()}</Fold>
+    <Fold id="ends" title={strings.detail.scenarios} note={endsNote} i={4}><OddsPanel {report} bare /></Fold>
+    <Fold id="spine" title={strings.detail.spine} i={5}>{@render spineBody()}</Fold>
+    <Fold id="checks" title={strings.detail.checks} note={checksNote} tone={fails.blocks ? 'text-bad' : fails.warns ? 'text-warn' : 'text-ok'} i={6}><RuleChecks checks={report.checks} /></Fold>
+    <Fold id="evidence" title={strings.detail.evidence} note={String(item.play.evidence?.length ?? 0)} i={7}><EvidenceList play={item.play} {draft} onSave={save} /></Fold>
+    <Fold id="bracket" title={draft ? strings.detail.bracket : strings.detail.fills} i={8}>{@render bracketBody()}</Fold>
+    <Fold id="record" title={strings.detail.record} i={9}>{@render recordBody()}</Fold>
+    <Fold id="ai" title={strings.detail.ai} i={10}><AiPanel play={item.play} {draft} onSave={save} /></Fold>
+  {:else}
   <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:1" aria-labelledby="orders">
     <h3 id="orders" class="{SECTION_LABEL} mb-2">{strings.detail.orders}</h3>
-    {#key item.play.id}<PlayOrders {item} {client} {now} />{/key}
+    {@render ordersBody()}
   </section>
 
   <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:2" aria-labelledby="record">
     <h3 id="record" class="{SECTION_LABEL} mb-2">{strings.detail.record}</h3>
-    {#key item.play.id}<PlayRecord {item} {client} />{/key}
+    {@render recordBody()}
   </section>
 
-  <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:2">
-    <StakeDial {item} {client} {draft} bankroll={client.rules?.bankroll_usd ?? 0} sizing={report.sizing}
-      onPreview={(p) => { preview = p; }} onSaved={() => { preview = null; }} />
-  </section>
+  {@render dial()}
 
   <!-- SPINE + PAYOFF/ODDS -->
   <div class="reveal grid border-b border-line @2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" style="--i:3">
     <section class="border-line px-4 py-4 @2xl:border-r lg:px-6" aria-labelledby="spine">
       <h3 id="spine" class={SECTION_LABEL}>{strings.detail.spine}</h3>
-      <p class="mt-0.5 text-[0.68rem] text-muted">{strings.detail.spineNote}</p>
-      <LevelSpine {play} {report} />
+      {@render spineBody()}
     </section>
     <section class="border-t border-line px-4 py-4 @2xl:border-t-0 lg:px-6">
       <OddsPanel {report} />
@@ -201,11 +238,7 @@
   <div class="grid @6xl:grid-cols-2">
   <section class="reveal border-line px-4 py-4 max-@6xl:border-b @6xl:border-r lg:px-6" style="--i:6" aria-labelledby="bracket">
     <h3 id="bracket" class={SECTION_LABEL}>{draft ? strings.detail.bracket : strings.detail.fills}</h3>
-    {#if draft}
-      {#key item.play.updated_at}<BracketEditor play={item.play} onSave={save} />{/key}
-    {:else}
-      <FillsPanel play={item.play} />
-    {/if}
+    {@render bracketBody()}
   </section>
 
   <section class="reveal px-4 py-4 lg:px-6" style="--i:7" aria-labelledby="ai">
@@ -213,9 +246,10 @@
     <AiPanel play={item.play} {draft} onSave={save} />
   </section>
   </div>
+  {/if}
 </div>
 
 <footer class="border-t border-line px-4 py-2 text-[0.68rem] leading-snug text-muted short:py-1 short:text-[0.6rem] lg:px-6">
-  {strings.detail.disclaimer}
+  {compact ? strings.detail.disclaimerShort : strings.detail.disclaimer}
   <a href="terms.html" class="spring text-white/70 underline underline-offset-2 hover:text-white focus-visible:text-white focus-visible:outline-none">{strings.detail.termsLink}</a>
 </footer>
