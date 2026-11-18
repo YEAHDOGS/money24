@@ -1,0 +1,52 @@
+{
+  "groups": [
+    {
+      "id": "prices",
+      "name": "Prices and charts",
+      "sources": [
+        { "name": "Yahoo Finance", "what": "Stock quotes, option chains and candles, delayed up to 15 minutes", "url": "https://finance.yahoo.com/" },
+        { "name": "Coinbase Exchange", "what": "Coin prices", "url": "https://exchange.coinbase.com/" },
+        { "name": "DEX Screener", "what": "On-chain token prices and pool sizes", "url": "https://dexscreener.com/" },
+        { "name": "Robinhood", "what": "Public contract records behind a shared option link", "url": "https://robinhood.com/" },
+        { "name": "Webull", "what": "Live quotes, only with your own key", "url": "https://www.webull.com/" },
+        { "name": "Polymarket", "what": "Prediction market prices", "url": "https://polymarket.com/" }
+      ]
+    },
+    {
+      "id": "news",
+      "name": "News",
+      "sources": [
+        { "name": "MarketWatch", "what": "Top stories and market pulse", "url": "https://www.marketwatch.com/" },
+        { "name": "CNBC", "what": "Top news", "url": "https://www.cnbc.com/" },
+        { "name": "Yahoo Finance News", "what": "S&P 500 headlines", "url": "https://finance.yahoo.com/news/" },
+        { "name": "The New York Times", "what": "Business and politics", "url": "https://www.nytimes.com/section/business" },
+        { "name": "BBC News", "what": "Business and world", "url": "https://www.bbc.com/news/business" },
+        { "name": "FXStreet", "what": "Foreign exchange news", "url": "https://www.fxstreet.com/" },
+        { "name": "CoinDesk", "what": "Crypto news", "url": "https://www.coindesk.com/" },
+        { "name": "Cointelegraph", "what": "Crypto news", "url": "https://cointelegraph.com/" },
+        { "name": "Decrypt", "what": "Crypto news", "url": "https://decrypt.co/" },
+        { "name": "GDELT Project", "what": "World news search: macro, currencies, crypto and the largest companies", "url": "https://www.gdeltproject.org/" }
+      ]
+    },
+    {
+      "id": "official",
+      "name": "Filings and central banks",
+      "sources": [
+        { "name": "SEC EDGAR", "what": "Company filings (8-K, 10-Q, 10-K) and insider trades (Form 4)", "url": "https://www.sec.gov/edgar" },
+        { "name": "Federal Reserve", "what": "Press releases", "url": "https://www.federalreserve.gov/" },
+        { "name": "European Central Bank", "what": "Press releases", "url": "https://www.ecb.europa.eu/" },
+        { "name": "Bank of England", "what": "News", "url": "https://www.bankofengland.co.uk/" },
+        { "name": "US Bureau of Labor Statistics", "what": "Jobs, prices and other releases", "url": "https://www.bls.gov/" }
+      ]
+    },
+    {
+      "id": "calendar",
+      "name": "Calendars",
+      "sources": [
+        { "name": "Forex Factory", "what": "The week's economic releases", "url": "https://www.forexfactory.com/calendar" },
+        { "name": "TreasuryDirect", "what": "Upcoming US Treasury auctions", "url": "https://www.treasurydirect.gov/auctions/upcoming/" },
+        { "name": "Nasdaq", "what": "Earnings dates", "url": "https://www.nasdaq.com/market-activity/earnings" }
+      ]
+    }
+  ]
+}
