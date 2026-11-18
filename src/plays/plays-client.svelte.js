@@ -32,6 +32,8 @@ export class PlaysClient {
   status = $state(STATUS.connecting);
   /** When the demo snapshot was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
+  /** The day the demo's recorded backtests enter at the close of (YYYY-MM-DD), empty off the demo */
+  demoBacktestFrom = $state('');
 
   #base;
   #secret;
@@ -39,6 +41,8 @@ export class PlaysClient {
   #stopped = false;
   /** @type {Map<string, Promise<Record<string, any>>>} the demo's recorded dial sizes, per play */
   #demoSizes = new Map();
+  /** @type {Record<string, { live: any, backtest: any }>} the demo's recorded curves, per play */
+  #demoCurves = {};
 
   /** @param {string} base runner URL  @param {string} secret webhook secret, empty on the local desk */
   constructor(base, secret) {
@@ -111,6 +115,8 @@ export class PlaysClient {
     try {
       const snap = await loadDemo(DEMO_SNAPSHOT);
       Object.assign(this, { items: snap.items, links: snap.links, rules: snap.rules, providers: snap.providers });
+      this.#demoCurves = snap.curves ?? {};
+      this.demoBacktestFrom = snap.backtest_from ?? '';
       this.demoTakenAt = snap.taken_at;
       this.status = STATUS.demo;
     } catch {
@@ -200,6 +206,24 @@ export class PlaysClient {
   async size(/** @type {string} */ id, /** @type {number} */ units) {
     if (this.status === STATUS.demo) return this.#upsert(await this.#demoPreview(id, units));
     return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/size`, { method: 'POST', body: { units } }));
+  }
+
+  /** Files the play under a category ("News play"). It is a label: it can change while a play runs. */
+  async category(/** @type {string} */ id, /** @type {string} */ category) {
+    return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/category`, { method: 'POST', body: { category } }));
+  }
+
+  /**
+   * The play replayed over its prices: since its own entry, or with a day (YYYY-MM-DD) backtested
+   * from that day's close. The demo holds one of each per play, as recorded. @returns {Promise<any>}
+   */
+  async curve(/** @type {string} */ id, /** @type {string} */ from = '') {
+    if (this.status === STATUS.demo) {
+      const recorded = this.#demoCurves[id]?.[from ? 'backtest' : 'live'];
+      if (!recorded) throw new Error(strings.record.noCurve);
+      return recorded;
+    }
+    return this.#req(`/api/plays/${encodeURIComponent(id)}/curve${from ? `?from=${encodeURIComponent(from)}` : ''}`);
   }
 
   async saveRules(/** @type {any} */ rules) {

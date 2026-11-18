@@ -2,7 +2,8 @@
 // shows when no runner is set up (src/lib/demo.js). One moment in time, read once, never live.
 //
 //   plays.json, preview/   every play with its report, the link history, the rulebook, the AI
-//                          providers (names only, never keys) and the stake dial at every size
+//                          providers (names only, never keys), the stake dial at every size, and
+//                          each play's curve: since its entry, and backtested from BACKTEST_FROM
 //   trading.json           the paper journal and the source catalog
 //   news.json              recent headlines, the calendar, the poll setting and the network meter
 //   markets/               a handful of symbols: quote, news, related tickers, a chart per range
@@ -38,6 +39,8 @@ const MARKET_FOLLOWING = ['NVDA', 'SPY', 'BTC-USD'];
 /** Each range at the candle size the page opens it in. Mirrors INTERVALS in src/markets/market-client.svelte.js. */
 const MARKET_RANGES = { '1d': '1m', '5d': '5m', '1mo': '30m', '6mo': '1d', ytd: '1d', '1y': '1d', '5y': '1wk', max: '1mo' };
 const PRICE_DECIMALS = 4; // candles keep four decimals: a third of the bytes, nothing a chart can show
+// The demo's backtests enter at this day's close: the Friday the FAA ground stop hit, when these plays were found.
+const BACKTEST_FROM = '2026-11-13';
 const OWNER_NOTE = /owner/i; // a catalog source described as the owner's own stays out of the public demo
 const SSE_EVENT = /^event: (.*)$/m;
 const SSE_DATA = /^data: (.*)$/m;
@@ -82,8 +85,16 @@ async function recordPlays(/** @type {string} */ takenAt) {
   const items = await get(runner, '/api/plays');
   if (!items.length) throw new Error('the runner has no plays to record. Paste a few links on the plays board first');
   const [links, rules, providers] = await Promise.all([get(runner, '/api/plays/links'), get(runner, '/api/plays/rules'), get(runner, '/api/plays/ai')]);
+  /** @type {Record<string, any>} */
+  const curves = {};
+  for (const item of items) {
+    const path = `/api/plays/${encodeURIComponent(item.play.id)}/curve`;
+    // Best effort: a play with no prices yet has no curve, and the page says so.
+    const [live, backtest] = await Promise.all([get(runner, path).catch(() => null), get(runner, `${path}?from=${BACKTEST_FROM}`).catch(() => null)]);
+    curves[item.play.id] = { live, backtest };
+  }
   emptyDir(PREVIEW_DIR);
-  write(DEMO_DIR, PLAYS_FILE, { taken_at: takenAt, items, links, rules, providers });
+  write(DEMO_DIR, PLAYS_FILE, { taken_at: takenAt, backtest_from: BACKTEST_FROM, items, links, rules, providers, curves });
   for (const item of items) write(PREVIEW_DIR, `${item.play.id}.json`, await previews(item));
   return `${items.length} plays`;
 }

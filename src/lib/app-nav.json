@@ -47,6 +47,9 @@
   "footer": {
     "label": "About Money 24",
     "copyright": "DOGS",
+    "dogsUrl": "https://dogs.red",
+    "dogsLogo": "DOGS",
+    "dogsSticker": "This product was made by DOGS",
     "disclaimer": "Not financial advice",
     "recorded": "Demo recorded {when}"
   }

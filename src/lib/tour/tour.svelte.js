@@ -1,21 +1,19 @@
-// The tour: what a first visit to the demo is told, and what it has already been told.
+// The tour: a short stepper on each app page. One pop-up at a time, a back and a next button in
+// the middle of the screen, four pop-ups at most (Steps.svelte draws it; the words are tour.json).
 //
-// Two layers (Tour.svelte). First the cards: one to three big ones, shown once, that say what
-// Money 24 is, that this is a snapshot, and how to get around. Then the blurbs: bubbles anchored
-// to real parts of the page (tour.json), each put away on its own or all at once.
-//
-// What has been seen is kept in localStorage and shared by every page, so a second visit, or the
-// next page, is left alone. The demo turns the tour on by itself the first time; anywhere else it
-// only shows when asked for: the Tour button in the footer, or ?tour on the address.
+// Which pages have been toured is kept in localStorage, so each page's tour shows once. The demo
+// starts a page's tour by itself the first time; anywhere else it only shows when asked for: the
+// Tour button in the footer, or ?tour on the address.
 
-import { SvelteSet } from 'svelte/reactivity';
 import copy from './tour.json';
 import { demoFirst } from '../demo.js';
 
-const STORE_TOUR = 'm24.tour.v1';
+const STORE_TOUR = 'm24.tour.v2';
 const TOUR_PARAM = 'tour';
+export const MAX_STEPS = 4;
 
-function readSaved() {
+/** @returns {Record<string, boolean>} the pages whose tour was finished or skipped */
+function readSeen() {
   try {
     return JSON.parse(localStorage.getItem(STORE_TOUR) ?? '') ?? {};
   } catch {
@@ -24,59 +22,51 @@ function readSaved() {
 }
 
 class Tour {
-  /** The tour is showing (either layer). Off, Tour.svelte renders nothing. */
+  /** The tour is showing. Off, Tour.svelte renders nothing. */
   on = $state(false);
-  /** The cards are the layer showing; false means the blurbs are. */
-  carousel = $state(false);
-  /** Ids of blurbs that were put away. @type {SvelteSet<string>} */
-  dismissed = new SvelteSet();
+  /** The step showing, from zero. */
+  at = $state(0);
+  /** The page being toured. */
+  page = $state('');
 
-  constructor() {
-    const saved = readSaved();
-    for (const id of saved.dismissed ?? []) this.dismissed.add(id);
-    if (new URLSearchParams(location.search).has(TOUR_PARAM)) {
-      this.restart();
-      return;
-    }
-    // A first visit to the demo gets the whole tour; one that has put it all away does not.
-    if (demoFirst() && !saved.done) {
-      this.on = true;
-      this.carousel = !saved.cardsSeen;
-    }
+  /** A page's steps, never more than MAX_STEPS. @returns {any[]} */
+  steps(/** @type {string} */ page) {
+    return (copy.tours[page] ?? []).slice(0, MAX_STEPS);
   }
 
-  /** The cards are over (skipped or read to the end): the blurbs take over. */
-  endCarousel() {
-    this.carousel = false;
-    this.#save({ cardsSeen: true });
+  /** Called by each page once: starts its tour on a first visit to the demo, or when ?tour asks. */
+  arrive(/** @type {string} */ page) {
+    this.page = page;
+    if (!this.steps(page).length) return;
+    const asked = new URLSearchParams(location.search).has(TOUR_PARAM);
+    if (asked || (demoFirst() && !readSeen()[page])) this.restart();
   }
 
-  /** Puts one blurb away for good. Once every blurb is gone, the tour is over. */
-  dismiss(/** @type {string} */ id) {
-    this.dismissed.add(id);
-    const done = copy.blurbs.every((b) => this.dismissed.has(b.id));
-    if (done) this.on = false;
-    this.#save({ dismissed: [...this.dismissed], done });
-  }
-
-  /** Puts every blurb away and ends the tour. */
-  dismissAll() {
-    for (const b of copy.blurbs) this.dismissed.add(b.id);
-    this.on = false;
-    this.#save({ dismissed: [...this.dismissed], done: true });
-  }
-
-  /** From the first card, as on a first visit. */
+  /** From the first step, as on a first visit. */
   restart() {
-    this.dismissed.clear();
-    this.#save({ cardsSeen: false, dismissed: [], done: false });
-    this.carousel = true;
+    if (!this.steps(this.page).length) return;
+    this.at = 0;
     this.on = true;
   }
 
-  #save(/** @type {Record<string, any>} */ changes) {
+  /** One step on. Past the last one, the tour is over. */
+  next() {
+    if (this.at >= this.steps(this.page).length - 1) {
+      this.finish();
+      return;
+    }
+    this.at += 1;
+  }
+
+  back() {
+    this.at = Math.max(0, this.at - 1);
+  }
+
+  /** Ends the tour (read to the end, or skipped) and remembers this page was toured. */
+  finish() {
+    this.on = false;
     try {
-      localStorage.setItem(STORE_TOUR, JSON.stringify({ ...readSaved(), ...changes }));
+      localStorage.setItem(STORE_TOUR, JSON.stringify({ ...readSeen(), [this.page]: true }));
     } catch {
       // Storage blocked: the tour shows again next visit.
     }

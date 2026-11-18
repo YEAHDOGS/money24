@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/signals"
 )
 
@@ -28,6 +29,10 @@ const (
 	ACTION_CLOSE     = "close"
 	ACTION_VOID      = "void"
 	REASON_VOID      = "void"
+	// A backtest reads the contract's daily candles over this range, and the stock's from a few days before the entry.
+	BACKTEST_RANGE    = "6mo"
+	BACKTEST_INTERVAL = "1d"
+	BACKTEST_LEAD     = 5 * 24 * time.Hour
 )
 
 // Service is the plays API: CRUD, the link inbox, AI reads, the rulebook and instant paper trades.
@@ -118,7 +123,7 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 		Right: p.Contract.Right, Strike: p.Contract.Strike, Expiry: p.Contract.Expiry, Price: p.Entry,
 		Confidence: 1, SeenAt: now, Raw: p.Title, Manual: true}
 	plan := signals.Plan{Signal: sig, Qty: p.Qty, Entry: p.Entry, Stop: p.Stop,
-		CostUSD: math.Round(p.Entry*p.Qty*p.Multiplier()*CENT) / CENT, ExitBy: p.Failsafes.ExitBy}
+		CostUSD: math.Round(p.Entry*p.Qty*p.Multiplier()*CENT) / CENT, ExitBy: p.Failsafes.ExitBy, StopsAfter: p.stopsAfter(rules)}
 	for _, r := range p.Ladder {
 		plan.Targets = append(plan.Targets, signals.Target{Qty: r.Qty, Price: r.Price})
 	}
@@ -138,7 +143,55 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 	}
 	return s.Store.Update(p.ID, func(q *Play) {
 		q.Status, q.JournalID, q.ArmedAt, q.BrokeRules, q.UpdatedAt = STATUS_ARMED, id, now.UTC(), broke, now.UTC()
+		// A paper entry fills whole, at its limit. A live one will report what the broker did.
+		q.Filled = &Filled{At: now.UTC(), Price: plan.Entry, Qty: plan.Qty, AmountUSD: plan.CostUSD}
 	})
+}
+
+// curve loads the stock's candles from the play's entry to now (or to its expiry) and replays the play over them.
+// With a day (YYYY-MM-DD) it backtests instead: the play entered at that day's close.
+func (s *Service) curve(ctx context.Context, p Play, day string, now time.Time) (Curve, error) {
+	if s.Resolver.Market == nil {
+		return Curve{}, errors.New("market data is not connected")
+	}
+	if day != "" {
+		return s.backtest(ctx, p, day, now)
+	}
+	from := p.ArmedAt
+	if from.IsZero() {
+		from = p.CreatedAt
+	}
+	to := now
+	if closeAt, ok := expiryClose(p.Contract.Expiry); ok && closeAt.Before(to) {
+		to = closeAt
+	}
+	ctx, cancel := context.WithTimeout(ctx, SNAPSHOT_TIMEOUT)
+	defer cancel()
+	// A play made out of hours has no candles yet: that is an empty curve, not an error.
+	chart, _ := s.Resolver.Market.History(ctx, p.Contract.Symbol, from, to)
+	return Replay(p, s.Store.Rules(), chart.Candles, now), nil
+}
+
+// backtest loads the contract's own daily candles and the stock's candles, and enters the play at the day's close.
+func (s *Service) backtest(ctx context.Context, p Play, day string, now time.Time) (Curve, error) {
+	at, err := time.ParseInLocation(BACKTEST_LAYOUT, day, time.UTC)
+	if err != nil || !at.Before(now) {
+		return Curve{}, errors.New("backtest from a past day, as YYYY-MM-DD")
+	}
+	ctx, cancel := context.WithTimeout(ctx, SNAPSHOT_TIMEOUT)
+	defer cancel()
+	var contract []market.Candle
+	if p.Market != nil && p.Market.Contract != "" {
+		// Best effort: a contract with no candles of its own is replayed over the stock's.
+		if chart, err := s.Resolver.Market.Chart(ctx, p.Market.Contract, BACKTEST_RANGE, BACKTEST_INTERVAL); err == nil {
+			contract = chart.Candles
+		}
+	}
+	stock, err := s.Resolver.Market.History(ctx, p.Contract.Symbol, at.Add(-BACKTEST_LEAD), now)
+	if err != nil && len(contract) == 0 {
+		return Curve{}, err
+	}
+	return Backtest(p, s.Store.Rules(), at, contract, stock.Candles, now)
 }
 
 // headlines reads newsd's items tagged with the symbol. Best effort: no newsd, no headlines.
@@ -315,6 +368,41 @@ func (s *Service) Routes() map[string]http.Handler {
 			}
 			units, _ := strconv.ParseFloat(r.URL.Query().Get("units"), 64)
 			reply(w, Resize(p, units))
+		}),
+		// The category is a label, not part of the bracket: it can change while a play runs and after.
+		"POST /api/plays/{id}/category": withPlay(func(w http.ResponseWriter, r *http.Request, p Play) {
+			var in struct {
+				Category string `json:"category"`
+			}
+			if err := decode(r, &in); err != nil {
+				writeErr(w, http.StatusBadRequest, err)
+				return
+			}
+			category := strings.TrimSpace(in.Category)
+			if len(category) > CATEGORY_MAX {
+				writeErr(w, http.StatusBadRequest, fmt.Errorf("a category is %d characters at most", CATEGORY_MAX))
+				return
+			}
+			q, err := s.Store.Update(p.ID, func(q *Play) { q.Category, q.UpdatedAt = category, time.Now().UTC() })
+			if err != nil {
+				writeErr(w, http.StatusInternalServerError, err)
+				return
+			}
+			reply(w, q)
+		}),
+		// The play replayed over the stock's candles since its entry: how the ladder and stops would have gone.
+		"GET /api/plays/{id}/curve": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p, err := s.Store.Play(r.PathValue("id"))
+			if err != nil {
+				writeErr(w, http.StatusNotFound, err)
+				return
+			}
+			curve, err := s.curve(r.Context(), p, r.URL.Query().Get("from"), time.Now())
+			if err != nil {
+				writeErr(w, http.StatusBadGateway, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, curve)
 		}),
 		"POST /api/plays/{id}/size": withPlay(func(w http.ResponseWriter, r *http.Request, p Play) {
 			var in struct {

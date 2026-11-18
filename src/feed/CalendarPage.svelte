@@ -143,7 +143,7 @@
   {/if}
 {/snippet}
 
-<div class="mx-auto grid h-full w-full max-w-7xl grid-cols-[minmax(0,1fr)] md:grid-cols-[12rem_minmax(0,1fr)_14rem] lg:grid-cols-[15rem_minmax(0,1fr)_19rem] xl:border-x xl:border-line desktop-portrait:grid-cols-[minmax(0,1fr)]! landscape-phone:grid-cols-[minmax(0,1fr)_14rem]! ultrawide:max-w-none ultrawide:grid-cols-[19rem_minmax(0,1fr)_30rem]">
+<div class="mx-auto grid h-full w-full max-w-7xl grid-cols-[minmax(0,1fr)] md:grid-cols-[13rem_minmax(0,1fr)_14rem] lg:grid-cols-[15rem_minmax(0,1fr)_19rem] xl:border-x xl:border-line desktop-portrait:grid-cols-[minmax(0,1fr)]! landscape-phone:grid-cols-[minmax(0,1fr)_14rem]! ultrawide:max-w-none ultrawide:grid-cols-[19rem_minmax(0,1fr)_26rem]">
 
   <!-- FILTER RAIL (tablet and up) -->
   <aside class="list-scroll hidden min-h-0 overflow-y-auto border-r border-line md:block desktop-portrait:hidden! landscape-phone:hidden!" aria-label={strings.calendar.categoriesLabel}>

@@ -101,14 +101,14 @@
 
   <AppHeader page="news" status={client.status} service="news" />
 
-  <!-- PAGES: stacked in one cell; the active one slides in, so nothing around them moves -->
+  <!-- PAGES: stacked in one cell; the active one fades in over the last, so nothing moves sideways -->
   <main class="relative min-h-0 overflow-hidden">
-    {#each TABS as t, i (t.id)}
+    {#each TABS as t (t.id)}
       <div
         id="panel-{t.id}"
         role="tabpanel"
         aria-labelledby="tab-{t.id}"
-        class="absolute inset-0 transition-[transform,opacity,visibility] duration-300 ease-out {tab === t.id ? 'visible translate-x-0 opacity-100' : `invisible opacity-0 ${i < activeIndex ? '-translate-x-8' : 'translate-x-8'}`}"
+        class="absolute inset-0 transition-[opacity,visibility] duration-200 ease-out {tab === t.id ? 'visible opacity-100' : 'invisible opacity-0'}"
       >
         {#if t.id === TAB_NEWS}
           <NewsPage {client} {now} linkTarget={LINK_TARGET} {slider} />
@@ -138,7 +138,8 @@
         >
           <Icon class="size-4 shrink-0 transition-transform duration-150 {tab === t.id ? 'scale-110 text-neon-red' : ''}" aria-hidden="true" />
           <span class="truncate">{t.label}</span>
-          {#if t.id === TAB_NEWS && client.pending.length}<span class="size-1.5 rounded-full bg-neon-red" aria-hidden="true"></span>{/if}
+          <!-- The new-posts dot keeps its room on every tab and only fades, so no label ever shifts. -->
+          <span class="size-1.5 shrink-0 rounded-full bg-neon-red transition-opacity duration-200 {t.id === TAB_NEWS && client.pending.length ? 'opacity-100' : 'opacity-0'}" aria-hidden="true"></span>
         </a>
       {/each}
     </div>

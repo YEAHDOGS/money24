@@ -91,7 +91,7 @@
       </div>
 
       <!-- NAV: equal columns, so every tab is as wide as the widest. Phones: a full-width row under the wordmark; page tools go below it. -->
-      <nav aria-label={nav.label} class="shrink-0 max-sm:order-1 max-sm:-mx-1 max-sm:basis-full">
+      <nav aria-label={nav.label} data-tour="nav" class="shrink-0 max-sm:order-1 max-sm:-mx-1 max-sm:basis-full">
         <ul class="grid auto-cols-fr grid-flow-col items-center gap-0.5">
           {#each nav.pages as p (p.id)}
             {@const Icon = ICONS[p.id]}

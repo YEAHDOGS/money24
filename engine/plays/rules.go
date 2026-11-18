@@ -29,6 +29,7 @@ const (
 	RULE_FRESH      = "fresh_data"     // never arm on a stale quote
 	RULE_LIMIT      = "limit_entry"    // pay the middle, not the ask
 	RULE_COOLDOWN   = "cooldown"       // no revenge trade on a symbol that just stopped out
+	RULE_STOPS      = "stop_ladder"    // the stop climbs as exits fill: a green trade never turns red
 
 	P_MIN_ITEMS           = "min_items"
 	P_MIN_SOURCES         = "min_sources"
@@ -156,6 +157,7 @@ func DOGSRules() Rules {
 			rule(RULE_FRESH, true, map[string]float64{P_MAX_AGE: 20}),
 			rule(RULE_LIMIT, false, map[string]float64{P_MAX_OVER_MID: 5}),
 			rule(RULE_COOLDOWN, false, map[string]float64{P_HOURS: 24}),
+			rule(RULE_STOPS, false, nil),
 			rule(RULE_SIZE, false, map[string]float64{P_MAX_PCT_VOLUME: 10, P_MAX_PCT_OI: 5}),
 		},
 		Weights:                     Weights{Volume: 40, News: 25, OpenInterest: 15, Technicals: 15, Signals: 5},
@@ -559,6 +561,14 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 			if c.Detail == "" {
 				pass("No recent loss on %s.", p.Contract.Symbol)
 			}
+
+		case RULE_STOPS:
+			stops := p.stops(r)
+			if len(stops) < 2 {
+				fail("The stop stays at %.2f after exits fill: add stop-losses 2 and 3, or exits to climb to.", p.Stop)
+				break
+			}
+			pass("Stop %s: it moves up as each exit fills.", stopsLabel(stops))
 		}
 		out = append(out, c)
 	}
@@ -572,6 +582,7 @@ func Build(p Play, r Rules, b Book) Report {
 	rep.Sizing = sizing(p, r)
 	rep.Odds = odds(p, r, levels)
 	rep.Odds.WinPct, rep.Odds.WinAt, rep.Odds.FillPct = winOdds(rep.Odds, pay, levels, rep.Sizing)
+	rep.Record = record(p, r)
 	rep.Checks = evaluate(p, r, rep, b)
 	rep.Armable = true
 	for _, c := range rep.Checks {

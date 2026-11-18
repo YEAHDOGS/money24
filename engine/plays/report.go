@@ -63,6 +63,7 @@ type Report struct {
 	Odds    Odds    `json:"odds"`
 	Checks  []Check `json:"checks"`
 	Armable bool    `json:"armable"`
+	Record  Record  `json:"record"` // the play in the one format every play is filed in
 }
 
 // payoff works out the dollars and the levels. The levels say, for each exit, what the stock has

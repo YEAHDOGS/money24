@@ -82,6 +82,9 @@ type Plan struct {
 	Qty     float64  `json:"qty"`
 	Entry   float64  `json:"entry"`
 	Stop    float64  `json:"stop"`
+	// StopsAfter moves the stop as targets fill: StopsAfter[0] is in force once the first target
+	// has sold, StopsAfter[1] once the second has, and the last one from then on. Empty: Stop never moves.
+	StopsAfter []float64 `json:"stops_after,omitempty"`
 	Targets []Target `json:"targets"`
 	Runner  float64  `json:"runner"`
 	CostUSD float64  `json:"cost_usd"`

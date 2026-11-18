@@ -1,6 +1,7 @@
 <script>
   /**
-   * The one footer line every Money 24 app page ends on: who made it, that it is not advice, when
+   * The one footer line every Money 24 app page ends on: who made it (the DOGS logo and sticker),
+   * that it is not advice, when
    * the demo on screen was recorded, a way to see the tour again, and the Terms of Use. Squat
    * windows drop it to keep the room; the notice at the top links the terms too.
    */
@@ -8,6 +9,9 @@
   import tourCopy from './tour/tour.json';
   import { tour } from './tour/tour.svelte.js';
   import { demoHref } from './demo.js';
+  // The DOGS logo and sticker are the files from logo.dogs.red.
+  import logo from '../assets/dogs-logo.svg';
+  import sticker from '../assets/made-by-dogs-sticker.webp';
 
   const CURRENT_YEAR = new Date().getFullYear();
   /** @type {Intl.DateTimeFormatOptions} */
@@ -18,7 +22,11 @@
 </script>
 
 <footer aria-label={nav.footer.label} class="border-t border-line short:hidden">
-  <div class="mx-auto flex h-6 max-w-7xl items-center gap-3 px-3 text-[0.62rem] font-bold tracking-[0.16em] whitespace-nowrap text-muted uppercase sm:px-4 lg:px-6 ultrawide:max-w-none tv:h-10 tv:text-sm">
+  <div class="mx-auto flex h-8 max-w-7xl items-center gap-3 px-3 text-[0.62rem] font-bold tracking-[0.16em] whitespace-nowrap text-muted uppercase sm:px-4 lg:px-6 ultrawide:max-w-none tv:h-10 tv:text-sm">
+    <a href={nav.footer.dogsUrl} target="_blank" rel="noopener noreferrer" class="spring flex shrink-0 items-center gap-2 rounded-sm opacity-80 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-neon-red">
+      <img src={logo} alt={nav.footer.dogsLogo} width="540" height="534" loading="lazy" class="h-5 w-auto tv:h-7" />
+      <img src={sticker} alt={nav.footer.dogsSticker} width="360" height="119" loading="lazy" class="h-6 w-auto max-[479px]:hidden tv:h-8" />
+    </a>
     <span class="truncate">&copy; {CURRENT_YEAR} {nav.footer.copyright} · {nav.footer.disclaimer}</span>
     <!-- The demo note fades in once the snapshot has loaded; its room is always there, so nothing moves. -->
     <span class="min-w-0 flex-1 truncate text-center text-paper transition-opacity duration-300 max-sm:hidden {recorded ? 'opacity-100' : 'opacity-0'}">

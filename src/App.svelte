@@ -9,6 +9,7 @@
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
   import sticker from "./assets/made-by-dogs-sticker.webp";
+  import logo from "./assets/dogs-logo.svg";
   import NoticeBar from "./lib/NoticeBar.svelte";
   import copy from "./landing/landing.json";
   import sourceList from "./landing/sources.json";
@@ -73,6 +74,9 @@
 </script>
 
 <NoticeBar overlay />
+
+<!-- The DOGS logo (logo.dogs.red), top left on every panel. Fixed, so it moves nothing. -->
+<a class="dogs-mark" href={DOGS_URL} target="_blank" rel="noopener noreferrer"><img src={logo} alt="DOGS" width="540" height="534" /></a>
 
 <!-- Always within reach, on every panel: the way into the demo. Fixed, so it moves nothing. -->
 <a class="demo-link" href={copy.cta.demoHref}>{copy.cta.demo}<ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" /></a>
@@ -469,6 +473,23 @@
   .panel .rv:nth-child(4) { transition-delay: 270ms; }
   .panel .rv:nth-child(5) { transition-delay: 360ms; }
 
+  /* The DOGS logo: fixed under the notice strip, top left, on every panel. */
+  .dogs-mark {
+    position: fixed;
+    top: 2.2rem;
+    left: 1.25rem;
+    z-index: 30;
+    opacity: 0.9;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms ease;
+  }
+  .dogs-mark img { height: 2.4rem; width: auto; }
+  .dogs-mark:hover, .dogs-mark:focus-visible { opacity: 1; transform: scale(1.08); }
+  .dogs-mark:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+  @media (min-width: 768px) {
+    .dogs-mark { left: 3rem; }
+    .dogs-mark img { height: 3rem; }
+  }
+
   /* ── The way into the demo ──────────────────────────────────────────────── */
   /* Fixed under the notice strip, top right, on every panel. */
   .demo-link {
@@ -807,6 +828,8 @@
     .hero-cta { bottom: 0.4rem; }
     .cta { padding: 0.3rem 0.6rem; font-size: 0.62rem; }
     .demo-link { top: 1.9rem; padding: 0.2rem 0.55rem; font-size: 0.58rem; }
+    .dogs-mark { top: 1.8rem; }
+    .dogs-mark img { height: 1.5rem; }
     .mode, .door, .source-group { padding-block: 0.45rem; }
     .mode-text, .door-text { font-size: 0.78rem; }
     .snapshot { font-size: 0.72rem; }
@@ -820,6 +843,6 @@
     .bg, .cue { animation: none; }
     .rv { transition: none; opacity: 1; transform: none; clip-path: none; }
     .bar { transition: none; transform: scaleY(1); }
-    .spine a::after, .demo-link, .cta, .door, .door :global(.door-arrow) { transition: none; }
+    .spine a::after, .demo-link, .dogs-mark, .cta, .door, .door :global(.door-arrow) { transition: none; }
   }
 </style>

@@ -118,11 +118,16 @@ type Play struct {
 	Title     string    `json:"title"`
 	Thesis    string    `json:"thesis"`
 	Theme     string    `json:"theme,omitempty"` // plays on one theme are one bet (FAA outage: AAL, DAL, UAL)
+	// Category is what kind of play this is, set by hand ("News play"), so plays can be grouped and compared.
+	Category string `json:"category,omitempty"`
 
 	Contract  Contract   `json:"contract"`
 	Qty       float64    `json:"qty"`
 	Entry     float64    `json:"entry"` // limit price per contract or share
-	Stop      float64    `json:"stop"`
+	Stop      float64    `json:"stop"` // stop-loss 1: in force until the first exit fills
+	// StopsAfter are stop-loss 2 and 3: where the stop moves once exit 1 and then exit 2 have filled.
+	// Empty leaves it to the stop ladder rule (the entry, then exit 1's price) or, with the rule off, unmoved.
+	StopsAfter []float64 `json:"stops_after,omitempty"`
 	Ladder    []Rung     `json:"ladder"`
 	Runner    Runner     `json:"runner"`
 	Failsafes Failsafes  `json:"failsafes"`
@@ -134,9 +139,18 @@ type Play struct {
 
 	JournalID  int64     `json:"journal_id,omitempty"` // the paper plan's journal id once armed
 	ArmedAt    time.Time `json:"armed_at,omitzero"`
+	Filled     *Filled   `json:"filled,omitempty"`      // the entry as it actually filled, once armed
 	BrokeRules []string  `json:"broke_rules,omitempty"` // blocking rules a paper trade went through anyway
 	Fills      []Fill    `json:"fills,omitempty"`       // what the exit watcher sold, in order
 	Result     *Result   `json:"result,omitempty"`      // set when the paper trade closed
+}
+
+// Filled is the entry as it actually happened, beside the entry the play expected.
+type Filled struct {
+	At        time.Time `json:"at"`
+	Price     float64   `json:"price"`
+	Qty       float64   `json:"qty"`
+	AmountUSD float64   `json:"amount_usd"`
 }
 
 // Fill is one exit the paper runner took: a rung, the stop, the clock.

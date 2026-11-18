@@ -161,3 +161,33 @@ npm run demo:snapshot    # writes public/demo/, then commit and push
 
 *Options trading involves substantial risk of losing 100% of your capital; this is probability and
 market-structure analysis, not financial advice.*
+
+## 8. The play record, the stop ladder and backtests
+
+Every play is filed in one format (`engine/plays/record.go`, shown as **Play record** on the play):
+
+| Row | Where it comes from |
+|---|---|
+| Market | stock, options, futures, forex, crypto or prediction |
+| Category | set by hand on the play ("News play"); shown on its card. `POST /api/plays/{id}/category` |
+| Expected entry, expected amount in | the entry price and cost the play planned |
+| Actual entry, actual amount in | what filled once it runs. A paper entry fills whole, at its limit |
+| Exit 1, 2, 3 | the ladder's rungs, then the runner's target |
+| Stop-loss 1, 2, 3 | the stop before any exit, after exit 1, after exit 2 |
+| Stop-loss override | *Time stop-loss* when the clock closed it, *Extremely volatile* when a gap did |
+
+**The stop climbs** (`stop_ladder`, on by default, in the Rules tab): after exit 1 the stop moves to
+the entry, after exit 2 to exit 1's price, so a green trade never turns red. A play can carry its own
+stop-losses 2 and 3 instead (`stops_after`). The exit watcher moves the stop as rungs fill.
+
+**How the play went** is the play replayed candle by candle, with its exits and stops:
+
+- *Since entry* (`GET /api/plays/{id}/curve`) walks the stock's candles from the play's entry. For an
+  option the contract's price is worked out from the stock at the planned volatility.
+- *Backtest* (`?from=YYYY-MM-DD`) enters at that day's close and keeps the bracket in proportion. It
+  runs over the contract's own daily candles when Yahoo has them (real traded prices, one candle a
+  day), otherwise over the worked-out prices.
+
+Both report how the bracket ended and, beside it, what simply holding would have made. They are
+replays, not promises: a candle that touched both the stop and an exit counts as stopped, fills are
+assumed at the stop and exit prices, and a thin contract may not give them.

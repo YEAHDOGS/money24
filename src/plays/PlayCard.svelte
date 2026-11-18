@@ -37,6 +37,7 @@
     {/if}
     <span class="text-ok">{strings.card.maxProfit} +{usd(report.payoff.max_profit_usd)}</span>
     <span class="text-bad">{strings.card.plannedLoss} −{usd(report.payoff.planned_loss_usd)}</span>
+    {#if play.category}<span class="truncate rounded-sm bg-white/8 px-1.5 text-[0.62rem] font-bold tracking-wider text-white/80 uppercase">{play.category}</span>{/if}
     {#if play.theme}<span class="truncate text-muted">{play.theme}</span>{/if}
     {#if broke || fails.blocks}
       <span class="flex items-center gap-1 text-warn">

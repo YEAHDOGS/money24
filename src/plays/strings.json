@@ -85,7 +85,8 @@
     "winAt": "Reach {level} and the play is in profit",
     "winNone": "No exit puts the play in profit at this size",
     "winFill": "Only {n}% of this order can fill",
-    "winNoFill": "Too little volume and open interest: the market can't take this order"
+    "winNoFill": "Too little volume and open interest: the market can't take this order",
+    "record": "Play record"
   },
   "levels": {
     "breakeven": "Breakeven",
@@ -363,6 +364,10 @@
     "size_impact": {
       "label": "A size the market can take",
       "about": "Caps the order as a share of today's volume and open interest, so the fill and the exit are real."
+    },
+    "stop_ladder": {
+      "label": "The stop climbs",
+      "about": "After exit 1 the stop moves to the entry; after exit 2, to exit 1. A green trade never turns red."
     }
   },
   "params": {
@@ -407,5 +412,71 @@
   "demo": {
     "hint": "Demo: plays recorded from the Money 24 runner on {when}. Drag the stake dial to see every number move. To paper trade, paste links and edit rules, run Money 24 on your own machine.",
     "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to paper trade, paste links and change rules."
+  },
+  "record": {
+    "market": "Market",
+    "markets": {
+      "stock": "Stock",
+      "options": "Options",
+      "futures": "Futures",
+      "forex": "Forex",
+      "crypto": "Crypto",
+      "prediction": "Prediction"
+    },
+    "category": "Category",
+    "categoryPlaceholder": "News play",
+    "categories": [
+      "News play",
+      "Flow play",
+      "Callout play",
+      "Chart play",
+      "Earnings play"
+    ],
+    "expectedEntry": "Expected entry",
+    "actualEntry": "Actual entry",
+    "expectedAmount": "Expected amount in",
+    "actualAmount": "Actual amount in",
+    "exit": "Exit",
+    "stop": "Stop-loss",
+    "override": "Stop-loss override",
+    "overrides": {
+      "none": "None",
+      "extremely_volatile": "Extremely volatile",
+      "time_sl": "Time stop-loss"
+    },
+    "notYet": "Not entered",
+    "none": "None",
+    "stopsByRule": "Stop-losses 2 and 3 come from the \"stop climbs\" rule: the entry after exit 1, then exit 1 after exit 2.",
+    "curve": "How the play went",
+    "modes": {
+      "live": "Since entry",
+      "backtest": "Backtest"
+    },
+    "from": "Bought at the close on",
+    "noCurve": "No prices for this play yet.",
+    "hold": "Held with no exits",
+    "entryAt": "entry",
+    "ended": {
+      "open": "Still open",
+      "stop": "Stopped out",
+      "target": "Every exit filled",
+      "time": "Time exit",
+      "expiry": "Expired"
+    },
+    "events": {
+      "entry": "Entry",
+      "stop": "Stop",
+      "time": "Time exit",
+      "expiry": "Expiry",
+      "exit1": "Exit 1",
+      "exit2": "Exit 2",
+      "exit3": "Exit 3"
+    },
+    "sources": {
+      "contract": "Replayed over the contract's own traded prices, one candle a day.",
+      "model": "Replayed over prices worked out from the stock's candles at the planned volatility."
+    },
+    "caution": "When one candle touched both the stop and an exit, the stop is counted first. Fills are assumed at the stop and exit prices; a thin contract may not give them.",
+    "demoOnly": "The demo holds one recorded backtest per play."
   }
 }

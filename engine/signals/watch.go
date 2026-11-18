@@ -31,6 +31,14 @@ type position struct {
 	exitCalled bool    // the source said it is out, and we follow its exits
 }
 
+// stop is the stop in force once that many targets have filled: the plan's own, then its ladder.
+func (p *position) stop(filled int) float64 {
+	if filled == 0 || len(p.plan.StopsAfter) == 0 {
+		return p.plan.Stop
+	}
+	return p.plan.StopsAfter[min(filled, len(p.plan.StopsAfter))-1]
+}
+
 func (p *position) pnl(price, qty float64) float64 {
 	multiplier := float64(SHARE_MULTIPLIER)
 	if p.plan.Signal.Right != "" {
@@ -65,7 +73,7 @@ func (p *position) step(q Quote, priced bool, now time.Time) []Entry {
 		res := &Result{PnLUSD: realized + p.pnl(q.Bid, left), Reason: reason, Qty: left, Price: q.Bid}
 		return append(out, p.line(ACTION_CLOSE, now, res, ""))
 	}
-	if q.Bid <= p.plan.Stop {
+	if q.Bid <= p.stop(p.next) {
 		return closeAll(REASON_STOP)
 	}
 	for _, t := range p.plan.Targets[p.next:] {
