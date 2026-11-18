@@ -8,12 +8,19 @@
   "loop": {
     "title": "ONE LINK IN",
     "line": "Paste a trade idea. Money 24 drafts the whole plan and trades it on paper.",
-    "steps": ["LINK", "CONTRACT", "ENTRY + EXITS", "ODDS", "RULEBOOK", "PAPER TRADE"],
+    "steps": [
+      "LINK",
+      "CONTRACT",
+      "ENTRY + EXITS",
+      "ODDS",
+      "RULEBOOK",
+      "PAPER TRADE"
+    ],
     "foot": "Every play has a stop, a way out and a worst case before it runs."
   },
   "modes": {
     "title": "3 POWER MODES",
-    "line": "More power aims higher and risks more.",
+    "line": "Three settings. More power aims higher and risks more.",
     "planned": "PLANNED",
     "riskLabel": "Risk",
     "foot": "No mode is active yet. Every one of them starts on paper.",
@@ -23,24 +30,21 @@
         "name": "LOW",
         "level": 1,
         "risk": "Lower",
-        "plays": ["Stocks", "Options with days left"],
-        "text": "Slower plays with every rule on. The smallest swings Money 24 takes."
+        "text": "The slowest setting, with the smallest swings."
       },
       {
         "id": "medium",
         "name": "MEDIUM",
         "level": 2,
-        "risk": "High",
-        "plays": ["Everything in Low", "Friday 0DTE options"],
-        "text": "Adds same-day options on Fridays. They move fast and can go to zero by the close."
+        "risk": "Higher",
+        "text": "Faster plays and bigger swings, both ways."
       },
       {
         "id": "high",
         "name": "HIGH",
         "level": 3,
         "risk": "Extreme",
-        "plays": ["Everything in Medium", "Meme coin blasting"],
-        "text": "Adds brand-new on-chain coins, the riskiest thing here. Expect to lose whole stakes."
+        "text": "The fastest and riskiest plays. Expect to lose whole stakes."
       }
     ]
   },
@@ -51,10 +55,30 @@
     "snapshotPending": "This is a snapshot of recorded data. Nothing in it is live.",
     "where": "Everything you see comes from Money 24's own runner and the public sources on the next screen.",
     "doors": [
-      { "id": "plays", "name": "PLAYS", "href": "plays.html", "text": "Three airline puts with their exits, odds and rule checks. Drag the stake dial." },
-      { "id": "trading", "name": "TRADING", "href": "trading.html", "text": "The paper journal: what the runner read, planned and closed." },
-      { "id": "markets", "name": "MARKETS", "href": "markets.html", "text": "Quotes and charts for six symbols, one day to all time." },
-      { "id": "news", "name": "NEWS", "href": "feed.html", "text": "Four hundred headlines and a month of earnings, auctions and releases." }
+      {
+        "id": "plays",
+        "name": "PLAYS",
+        "href": "plays.html",
+        "text": "Three airline puts with their exits, odds and rule checks. Drag the stake dial."
+      },
+      {
+        "id": "trading",
+        "name": "TRADING",
+        "href": "trading.html",
+        "text": "The paper journal: what the runner read, planned and closed."
+      },
+      {
+        "id": "markets",
+        "name": "MARKETS",
+        "href": "markets.html",
+        "text": "Quotes and charts for six symbols, one day to all time."
+      },
+      {
+        "id": "news",
+        "name": "NEWS",
+        "href": "feed.html",
+        "text": "Four hundred headlines and a month of earnings, auctions and releases."
+      }
     ]
   },
   "sources": {

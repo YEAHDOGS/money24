@@ -145,9 +145,6 @@
               <h3 class="mode-name">{mode.name}</h3>
               <span class="risk">{copy.modes.riskLabel}: {mode.risk}</span>
             </div>
-            <ul class="mode-plays">
-              {#each mode.plays as play (play)}<li>{play}</li>{/each}
-            </ul>
             <p class="mode-text">{mode.text}</p>
           </li>
         {/each}
@@ -688,23 +685,6 @@
   .panel:global(.in) .bar.lit { background: white; }
   .panel:global(.in) .mode-medium .bar.lit { background: var(--color-warn); }
   .panel:global(.in) .mode-high .bar.lit { background: var(--color-neon-red); }
-  .mode-plays {
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem 0.4rem;
-    margin: 0.7rem 0 0;
-    padding: 0;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .mode-plays li {
-    padding: 0.2rem 0.45rem;
-    background: var(--pill-bg);
-    color: var(--pill-text);
-  }
   .mode-text {
     margin-top: 0.6rem;
     font-size: 0.92rem;
