@@ -1,6 +1,9 @@
 // Live connection to the m24d trading runner: loads the recent journal and the source catalog, then
 // holds one Server-Sent Events stream of new journal entries. EventSource reconnects on its own and
 // sends Last-Event-ID, so the runner backfills anything missed while asleep or offline.
+// With no runner (the public site, or ?demo) it shows a recorded journal instead (src/lib/demo.js).
+import strings from './strings.json';
+import { DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
 
 const DEFAULT_API = 'http://127.0.0.1:8025';
 const RECAP_ACTION = 'recap';
@@ -12,7 +15,8 @@ export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || DEFAULT_API;
 const INITIAL_LIMIT = 300;
 const MAX_ITEMS = 1000;
 const RETRY_MS = 3000;
-const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline' };
+const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline', demo: DEMO_STATUS };
+const DEMO_SNAPSHOT = 'trading.json';
 
 /** @typedef {{qty:number, price:number}} Target */
 /** @typedef {{source_id:string, kind:string, symbol?:string, right?:string, strike?:number, expiry?:string,
@@ -28,6 +32,8 @@ export class TradingClient {
   /** @type {any[]} */
   sources = $state([]);
   status = $state(STATUS.connecting);
+  /** When the demo journal was recorded (ISO time), empty off the demo */
+  demoTakenAt = $state('');
   /** Called with each live entry after it lands, e.g. to open the plan of a post just shared. */
   onEntry = (/** @type {Entry} */ _e) => {};
 
@@ -49,6 +55,7 @@ export class TradingClient {
    * @param {string} input
    */
   async share(input) {
+    if (this.status === STATUS.demo) throw new Error(strings.demo.readOnly);
     const headers = { 'Content-Type': 'application/json' };
     if (this.#secret) headers.Authorization = `Bearer ${this.#secret}`;
     const res = await fetch(`${this.#base}/signals`, {
@@ -60,8 +67,9 @@ export class TradingClient {
     return /** @type {Promise<Signal>} */ (res.json());
   }
 
-  /** Every source with posts on record, most trusted first. @returns {Promise<any[]>} */
+  /** Every source with posts on record, most trusted first. The demo carries none. @returns {Promise<any[]>} */
   async ranking() {
+    if (demoFirst()) return [];
     const res = await fetch(`${this.#base}/api/trust`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
@@ -69,6 +77,7 @@ export class TradingClient {
 
   /** One source's trust record and every entry it called. @returns {Promise<{trust:any, outcomes:any[]}>} */
   async sourceRecord(/** @type {string} */ id) {
+    if (this.status === STATUS.demo) throw new Error(strings.demo.noRecord);
     const res = await fetch(`${this.#base}/api/trust/source?${new URLSearchParams({ id })}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
@@ -76,6 +85,7 @@ export class TradingClient {
 
   /** Pulls an X source's public sample of posts into the record. @returns {Promise<{added:number}>} */
   async loadHistory(/** @type {string} */ id) {
+    if (this.status === STATUS.demo) throw new Error(strings.demo.readOnly);
     const headers = this.#secret ? { Authorization: `Bearer ${this.#secret}` } : {};
     const res = await fetch(`${this.#base}/api/trust/load?${new URLSearchParams({ id })}`, { method: 'POST', headers });
     if (!res.ok) throw new Error((await res.text()).trim() || `HTTP ${res.status}`);
@@ -83,6 +93,10 @@ export class TradingClient {
   }
 
   async start() {
+    if (demoFirst()) {
+      await this.#startDemo();
+      return;
+    }
     try {
       const [journal, catalog] = await Promise.all([
         fetch(`${this.#base}/api/journal?limit=${INITIAL_LIMIT}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
@@ -95,6 +109,19 @@ export class TradingClient {
     } catch {
       this.status = STATUS.offline;
       this.#retry = setTimeout(() => this.start(), RETRY_MS);
+    }
+  }
+
+  /** Loads the recorded journal and catalog. No stream: nothing in it changes. Missing snapshot: offline. */
+  async #startDemo() {
+    try {
+      const snap = await loadDemo(DEMO_SNAPSHOT);
+      this.sources = snap.sources ?? [];
+      this.items = [...snap.journal].reverse();
+      this.demoTakenAt = snap.taken_at;
+      this.status = STATUS.demo;
+    } catch {
+      this.status = STATUS.offline;
     }
   }
 

@@ -8,12 +8,6 @@
     "central_bank": "Central bank",
     "macro": "Macro"
   },
-  "status": {
-    "connecting": "Connecting",
-    "live": "Live",
-    "reconnecting": "Reconnecting",
-    "offline": "Engine offline"
-  },
   "pollLabel": "Poll every",
   "pollFast": "Below 15s some sources may rate-limit you.",
   "pollFloor": "Slower floors:",

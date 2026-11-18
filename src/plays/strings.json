@@ -1,12 +1,5 @@
 {
   "title": "Money 24 Plays",
-  "paper": "Paper only",
-  "status": {
-    "connecting": "Connecting",
-    "live": "Live",
-    "offline": "Runner offline",
-    "demo": "Demo"
-  },
   "offlineHint": "Start the runner (npm start, or go run ./cmd/m24d on port 8025). Plays live in the runner.",
   "tabs": {
     "plays": "Plays",

@@ -1,8 +1,11 @@
 // Market data for the Markets page, read from the m24d runner's /api/market routes: one symbol's
 // quote, candles, news and related tickers, plus the reader's own followed list. Everything is
 // polled on slow timers; the runner caches, so many open windows cost the provider nothing extra.
+// With no runner (the public site, or ?demo) it shows a handful of recorded symbols instead
+// (src/lib/demo.js): each range at its default candle size, read once, never polled.
 
 import { DEFAULT_RUNNER } from '../trading/trading-client.svelte.js';
+import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
 
 export const RANGES = ['1d', '5d', '1mo', '6mo', 'ytd', '1y', '5y', 'max'];
 /** Candle sizes each range can be drawn in. The first is the default. Mirrors engine/market. */
@@ -28,6 +31,11 @@ const STORE_RUNNER = 'm24.trading.runner';
 const STORE_FOLLOWING = 'm24.markets.following';
 const STORE_SYMBOL = 'm24.markets.symbol';
 const NOT_FOUND = 404;
+const PROBLEM_OFFLINE = 'offline';
+const PROBLEM_MISSING = 'missing';
+const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', demo: DEMO_STATUS };
+const DEMO_DIR = 'markets/';
+const DEMO_INDEX = 'index.json';
 
 /** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
 function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
@@ -69,11 +77,23 @@ export class MarketClient {
   loading = $state(true);
   /** 'offline' when the runner cannot be reached, 'missing' for an unknown symbol, else ''. */
   problem = $state('');
+  /** True on the demo: recorded symbols only, nothing polled, nothing saved to this device. */
+  demo = $state(false);
+  /** When the demo was recorded (ISO time), empty off the demo */
+  demoTakenAt = $state('');
+  /** @type {any[]} the symbols the demo recorded: all its search box can find */
+  demoSymbols = $state([]);
+  /** The connection, for the header: connecting until the first answer, then live, offline or demo. */
+  status = $derived(this.demo ? STATUS.demo : this.problem === PROBLEM_OFFLINE ? STATUS.offline : this.summary ? STATUS.live : STATUS.connecting);
 
   #base = stored(STORE_RUNNER, DEFAULT_RUNNER).replace(/\/+$/, '');
   #timers = [];
   #searchTimer = 0;
   #opened = 0;
+  /** @type {Record<string, any>} the demo's short quotes, by symbol */
+  #demoQuotes = {};
+  /** @type {Map<string, Promise<any>>} the demo's recorded symbols, read once each */
+  #demoFiles = new Map();
 
   constructor() {
     try {
@@ -90,13 +110,17 @@ export class MarketClient {
     return res.json();
   }
 
-  start() {
+  async start() {
     // A link can name the symbol and the range: markets.html?s=NVDA&r=5d
     const link = new URLSearchParams(location.search);
     const range = link.get('r') ?? '';
     if (RANGES.includes(range)) {
       this.range = range;
       this.interval = INTERVALS[range][0];
+    }
+    if (demoFirst()) {
+      await this.#startDemo(link.get('s') ?? '');
+      return;
     }
     this.open(link.get('s') || stored(STORE_SYMBOL, DEFAULT_SYMBOL));
     this.#timers = [
@@ -110,6 +134,54 @@ export class MarketClient {
     clearTimeout(this.#searchTimer);
   }
 
+  /** Loads the demo's list of recorded symbols and opens one. Missing snapshot: offline. */
+  async #startDemo(/** @type {string} */ wanted) {
+    this.demo = true;
+    try {
+      const index = await loadDemo(DEMO_DIR + DEMO_INDEX);
+      this.demoSymbols = index.symbols;
+      this.demoTakenAt = index.taken_at;
+      this.#demoQuotes = index.quotes;
+      this.following = index.following;
+      this.#lists();
+      await this.open(wanted || index.symbols[0].symbol);
+    } catch {
+      this.demo = false;
+      this.problem = PROBLEM_OFFLINE;
+      this.loading = false;
+    }
+  }
+
+  /** One recorded symbol: its summary, news, related tickers and a chart per range. Rejects when it was not recorded. */
+  #demoFile(/** @type {string} */ symbol) {
+    if (!this.demoSymbols.some((m) => m.symbol === symbol)) return Promise.reject(NOT_FOUND);
+    if (!this.#demoFiles.has(symbol)) this.#demoFiles.set(symbol, loadDemo(`${DEMO_DIR}${encodeURIComponent(symbol)}.json`));
+    return /** @type {Promise<any>} */ (this.#demoFiles.get(symbol));
+  }
+
+  /** Opens a recorded symbol. One the demo does not hold is 'missing'; the page names the recorded ones. */
+  async #openDemo(/** @type {number} */ opened) {
+    try {
+      const file = await this.#demoFile(this.symbol);
+      if (opened !== this.#opened) return;
+      this.summary = file.summary;
+      this.news = file.news;
+      this.related = file.related;
+      this.#demoChart(file, true);
+    } catch {
+      if (opened !== this.#opened) return;
+      this.problem = PROBLEM_MISSING;
+    }
+    this.loading = false;
+  }
+
+  /** The recorded chart for the open range, at the one candle size it was recorded in. */
+  #demoChart(/** @type {any} */ file, /** @type {boolean} */ isNew) {
+    this.chartIsNew = isNew;
+    this.chart = file.charts[this.range] ?? null;
+    this.interval = this.chart?.interval ?? this.interval;
+  }
+
   /** Shows another symbol: everything about the old one is dropped first. */
   async open(/** @type {string} */ symbol) {
     this.symbol = symbol.trim().toUpperCase();
@@ -121,15 +193,19 @@ export class MarketClient {
     this.problem = '';
     this.loading = true;
     const opened = ++this.#opened;
-    store(STORE_SYMBOL, this.symbol);
     this.#link();
+    if (this.demo) {
+      await this.#openDemo(opened);
+      return;
+    }
+    store(STORE_SYMBOL, this.symbol);
     try {
       const [summary] = await Promise.all([this.#get('summary', { symbol: this.symbol }), this.#candles(true)]);
       if (opened !== this.#opened) return;
       this.summary = summary;
     } catch (status) {
       if (opened !== this.#opened) return;
-      this.problem = status === NOT_FOUND ? 'missing' : 'offline';
+      this.problem = status === NOT_FOUND ? PROBLEM_MISSING : PROBLEM_OFFLINE;
     }
     this.loading = false;
     this.#lists();
@@ -150,9 +226,10 @@ export class MarketClient {
     }
   }
 
-  /** Keeps the address bar a link to what is on screen. */
+  /** Keeps the address bar a link to what is on screen, and to the demo when ?demo asked for it. */
   #link() {
-    history.replaceState(null, '', `?${new URLSearchParams({ s: this.symbol, r: this.range })}`);
+    const keepDemo = new URLSearchParams(location.search).has(DEMO_PARAM) ? `&${DEMO_PARAM}` : '';
+    history.replaceState(null, '', `?${new URLSearchParams({ s: this.symbol, r: this.range })}${keepDemo}`);
   }
 
   async setRange(/** @type {string} */ range) {
@@ -163,11 +240,16 @@ export class MarketClient {
   }
 
   async setInterval(/** @type {string} */ interval) {
+    if (this.demo) return; // one candle size per range was recorded
     this.interval = interval;
     await this.#candles(true).catch(() => {});
   }
 
   async #candles(/** @type {boolean} */ isNew) {
+    if (this.demo) {
+      this.#demoChart(await this.#demoFile(this.symbol), isNew);
+      return;
+    }
     const [symbol, range, interval] = [this.symbol, this.range, this.interval];
     const chart = await this.#get('chart', { symbol, range, interval });
     // An answer for a view the reader has already left is thrown away.
@@ -177,7 +259,7 @@ export class MarketClient {
   }
 
   async #refresh() {
-    if (!this.symbol || this.problem === 'missing' || document.hidden) return;
+    if (!this.symbol || this.problem === PROBLEM_MISSING || document.hidden) return;
     const symbol = this.symbol;
     try {
       const summary = await this.#get('summary', { symbol });
@@ -186,11 +268,15 @@ export class MarketClient {
       this.problem = '';
       if (LIVE_RANGES.has(this.range) || !this.chart) await this.#candles(!this.chart);
     } catch {
-      this.problem = this.summary ? '' : 'offline';
+      this.problem = this.summary ? '' : PROBLEM_OFFLINE;
     }
   }
 
   async #lists() {
+    if (this.demo) {
+      this.followed = this.following.map((s) => this.#demoQuotes[s]).filter(Boolean);
+      return;
+    }
     if (!this.following.length) {
       this.followed = [];
       return;
@@ -206,6 +292,11 @@ export class MarketClient {
       this.matches = [];
       return;
     }
+    if (this.demo) {
+      const needle = q.toUpperCase();
+      this.matches = this.demoSymbols.filter((m) => m.symbol.includes(needle) || m.name.toUpperCase().includes(needle));
+      return;
+    }
     this.#searchTimer = setTimeout(async () => {
       this.matches = await this.#get('search', { q }).then((r) => r.matches).catch(() => []);
     }, SEARCH_DELAY_MS);
@@ -214,7 +305,7 @@ export class MarketClient {
   toggleFollow(/** @type {string} */ symbol) {
     const has = this.following.includes(symbol);
     this.following = has ? this.following.filter((s) => s !== symbol) : [symbol, ...this.following].slice(0, MAX_FOLLOWING);
-    store(STORE_FOLLOWING, JSON.stringify(this.following));
+    if (!this.demo) store(STORE_FOLLOWING, JSON.stringify(this.following));
     this.#lists();
   }
 }

@@ -6,6 +6,7 @@
    */
   import { onMount } from 'svelte';
   import AppHeader from '../lib/AppHeader.svelte';
+  import AppFooter from '../lib/AppFooter.svelte';
   import Newspaper from '@lucide/svelte/icons/newspaper';
   import CalendarDays from '@lucide/svelte/icons/calendar-days';
   import Activity from '@lucide/svelte/icons/activity';
@@ -36,7 +37,6 @@
   const IS_TAURI = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
   // In the desktop app, links navigate and the shell hands them to the system browser.
   const LINK_TARGET = IS_TAURI ? undefined : '_blank';
-  const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', reconnecting: 'text-warn', offline: 'text-bad' };
 
   /** The tab named in the address bar (#calendar), else the last one used, else the first. */
   function currentTab() {
@@ -97,16 +97,9 @@
 
 <svelte:head><title>{strings.title}</title></svelte:head>
 
-<div class="grid h-dvh w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] select-text">
+<div class="grid h-dvh w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto_auto] select-text">
 
-  <AppHeader page="news">
-    {#snippet status()}
-      <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
-        <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
-        <span class="max-[359px]:sr-only">{strings.status[client.status]}</span>
-      </p>
-    {/snippet}
-  </AppHeader>
+  <AppHeader page="news" status={client.status} service="news" />
 
   <!-- PAGES: stacked in one cell; the active one slides in, so nothing around them moves -->
   <main class="relative min-h-0 overflow-hidden">
@@ -129,7 +122,7 @@
   </main>
 
   <!-- TAB BAR: bottom of every screen, within thumb reach on phones -->
-  <nav class="border-t border-line" aria-label={strings.views}>
+  <nav data-tour="news-tabs" class="border-t border-line" aria-label={strings.views}>
     <div class="relative mx-auto grid max-w-7xl ultrawide:max-w-none" role="tablist" style:grid-template-columns="repeat({TABS.length}, minmax(0, 1fr))">
       <!-- One marker slides between tabs -->
       <span class="pointer-events-none absolute top-0 left-0 h-0.5 bg-neon-red transition-transform duration-300 ease-out" style:width="{PERCENT / TABS.length}%" style:transform="translateX({activeIndex * PERCENT}%)"></span>
@@ -150,4 +143,6 @@
       {/each}
     </div>
   </nav>
+
+  <AppFooter recorded={client.demoTakenAt} />
 </div>

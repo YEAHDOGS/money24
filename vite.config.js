@@ -24,12 +24,31 @@ const PAGES = {
 }
 // Tauri's dev window loads this port; it must not drift to another one.
 const DEV_PORT = 5173
+// The app pages and the terms hold their first paint until the page script has run (blocking="render" in
+// their HTML), so moving between pages never shows an empty one. Vite rebuilds the entry script tag
+// and drops that attribute; this puts it back. The landing page paints at once and is left alone.
+const LANDING_PAGE = '/index.html'
+const BUILT_ENTRY_TAG = '<script type="module" crossorigin'
+const BLOCKING_ENTRY_TAG = '<script type="module" blocking="render" crossorigin'
+
+/** @returns {import('vite').Plugin} */
+function keepRenderBlocking() {
+  return {
+    name: 'm24-keep-render-blocking',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler: (html, ctx) => (ctx.path === LANDING_PAGE ? html : html.replace(BUILT_ENTRY_TAG, BLOCKING_ENTRY_TAG)),
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    svelte()
+    svelte(),
+    keepRenderBlocking()
   ],
   server: {
     port: DEV_PORT,

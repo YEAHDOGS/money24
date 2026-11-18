@@ -40,7 +40,7 @@
   }
 </script>
 
-<div class="relative min-w-0 flex-1" role="search">
+<div data-tour="markets-search" class="relative min-w-0 flex-1" role="search">
   <label class="flex items-center gap-2 rounded-sm border border-line bg-card px-2.5 focus-within:border-neon-red">
     <Search class="size-4 shrink-0 text-muted" aria-hidden="true" />
     <span class="sr-only">{strings.searchLabel}</span>

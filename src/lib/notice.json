@@ -1,0 +1,29 @@
+{
+  "label": "Important notice",
+  "wip": "Work in progress",
+  "demo": "Demo · Trial room",
+  "open": "Read the notice",
+  "ticker": [
+    "Money 24 is not active yet",
+    "Heavy development",
+    "Not financial advice",
+    "This is DOGS software",
+    "DOGS is not responsible for anything you do based on Money 24",
+    "We do not know the risks of this yet",
+    "The Terms of Use can change at any time"
+  ],
+  "dialog": {
+    "kicker": "Money 24 by DOGS",
+    "title": "Work in progress",
+    "demoLine": "You are in the demo trial room. Everything on screen was recorded earlier. Nothing here is live, and nothing here can place an order.",
+    "points": [
+      { "lead": "Money 24 is not active yet.", "text": "It is still in heavy development. Anything can change, break or disappear without notice." },
+      { "lead": "This is not financial advice.", "text": "Money 24 is DOGS software. It is not a broker, an adviser or a recommendation to buy or sell anything." },
+      { "lead": "We are not responsible for what you do with it.", "text": "DOGS is not responsible for anything you do, or any money you lose, based on Money 24." },
+      { "lead": "We do not know the risks of this yet.", "text": "Money 24 has not been proven in real markets. Trading can lose everything you put in." },
+      { "lead": "The Terms of Use can change at any time.", "text": "They are a draft and are subject to change at any point in the future." }
+    ],
+    "terms": "Read the Terms of Use",
+    "accept": "I understand"
+  }
+}

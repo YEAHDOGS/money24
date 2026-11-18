@@ -28,8 +28,9 @@
     try {
       const got = await client.sourceRecord(sourceId);
       if (sourceId === id) record = got;
-    } catch {
-      if (sourceId === id) [message, failed] = [T.offline, true];
+    } catch (err) {
+      // The demo carries no source records and says so; anything else means the runner is not answering.
+      if (sourceId === id) [message, failed] = [client.status === 'demo' && err instanceof Error ? err.message : T.offline, true];
     }
   }
 

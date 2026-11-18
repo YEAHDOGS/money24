@@ -19,7 +19,15 @@ Before launch also confirm: the entity name (DOGS as written, or its full legal 
 
 ---
 
-**Effective date:** November 14, 2026
+**Effective date:** November 18, 2026
+
+> **Work in progress. Money 24 is not active yet.**
+>
+> Money 24 is still in heavy development. Anything in it can change, break or disappear without notice, and we do not yet know all the risks of using it.
+>
+> Nothing in Money 24 is financial advice. Money 24 is DOGS software, and DOGS is not responsible for anything you do, or any money you lose, based on Money 24.
+>
+> These Terms are a draft and can change at any time.
 
 These Terms of Use ("Terms") are a contract between you and DOGS ("DOGS", "we", "us") for Money 24 by DOGS, including the website, the desktop and mobile apps, the trading engine, and every related service ("Money 24"). Please read them. They limit our liability and, in §14, require individual arbitration and waive class actions.
 
@@ -34,6 +42,8 @@ These Terms of Use ("Terms") are a contract between you and DOGS ("DOGS", "we", 
 
 Money 24 is software. It reads market data and news, scores possible trades ("plays"), drafts trade plans with entries, ladder exits, runners, stop losses and failsafes, estimates the odds of those plans, and paper trades them.
 
+- **Money 24 is a work in progress and is not active yet.** It is in heavy development. Features can change, break or be removed without notice, and we do not yet know all the risks of using it.
+- **The public website is a demo.** It shows data recorded earlier from a test runner: plays, headlines, a calendar, quotes and charts. Nothing in the demo is live, current or a signal to trade.
 - **Today Money 24 trades on paper only.** Paper trades are simulations. No real money moves.
 - If live execution is offered later, it will run only on **your own** brokerage account, with **your own** API keys, and only after **your explicit approval**. DOGS never holds your money or securities and never has custody of your account.
 
@@ -160,7 +170,7 @@ Some states do not allow certain warranty exclusions, liability limits or arbitr
 
 ## 16. Changes, termination and general terms
 
-- We may change these Terms. We will update the effective date and, for material changes, give notice in Money 24. Continuing to use Money 24 after changes take effect means you accept them.
+- We may change these Terms at any time, for any reason, including while Money 24 is still being built. We will update the effective date and, for material changes, give notice in Money 24. Continuing to use Money 24 after changes take effect means you accept them.
 - We may suspend or end your access at any time, for example if you break these Terms. You may stop using Money 24 at any time. Sections that by their nature should survive (including §§3–6 and §§11–15) survive termination.
 - If a part of these Terms is unenforceable, the rest stays in effect. These Terms are the entire agreement between you and DOGS about Money 24. Our failure to enforce a term is not a waiver. You may not assign these Terms; we may assign them with the business.
 

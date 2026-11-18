@@ -9,12 +9,13 @@
   <link rel="manifest" href="/trading.webmanifest" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <title>Money 24 Plays</title>
+  <!-- Blocks the first paint until the app has mounted, so moving between pages never shows an empty one. -->
+  <script type="module" blocking="render" src="/src/plays/main.js"></script>
 </head>
 
 <body class="bg-app text-white">
   <div id="plays"></div>
   <noscript>Money 24 Plays needs JavaScript to show your plays. Terms of Use: <a href="terms.html">terms.html</a>.</noscript>
-  <script type="module" src="/src/plays/main.js"></script>
 </body>
 
 </html>

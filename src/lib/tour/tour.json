@@ -1,0 +1,49 @@
+{
+  "label": "A short tour of Money 24",
+  "skip": "Skip",
+  "next": "Next",
+  "go": "Go",
+  "skipTour": "Skip the tour",
+  "close": "Put this away",
+  "restart": "Tour",
+  "card": "Card {n} of {of}",
+  "cards": [
+    {
+      "id": "what",
+      "kicker": "What this is",
+      "title": "This is Money 24",
+      "text": "It turns a trade idea into a full plan: the entry, the exits, the stop and the odds. Then it trades the plan on paper. It is a work in progress and not active yet."
+    },
+    {
+      "id": "snapshot",
+      "kicker": "What you are looking at",
+      "title": "A snapshot",
+      "text": "Everything here was recorded on {when}, from Money 24's own runner and public sources. Nothing is live, and nothing you do here can place an order.",
+      "textPending": "Everything here was recorded earlier, from Money 24's own runner and public sources. Nothing is live, and nothing you do here can place an order.",
+      "demoOnly": true
+    },
+    {
+      "id": "around",
+      "kicker": "How to get around",
+      "title": "Four pages",
+      "text": "Plays, Trading, Markets and News are along the top. Start on Plays: pick one and drag its stake dial."
+    }
+  ],
+  "blurbs": [
+    { "id": "notice", "page": null, "target": "notice", "side": "bottom", "at": 0.12, "text": "The fine print, on the move. Click the strip to read all of it." },
+    { "id": "status", "page": null, "target": "status", "side": "bottom", "at": 0.2, "text": "Demo means recorded. On your own machine this turns green and says Live." },
+
+    { "id": "plays-inbox", "page": "plays", "target": "plays-inbox", "side": "right", "at": 0.2, "text": "Paste a Robinhood or Webull link, or type AAL 12.5P 11/20. On your own machine it becomes a paper trade at once." },
+    { "id": "plays-list", "page": "plays", "target": "plays-list", "side": "right", "at": 0.3, "text": "Every play, with what has to happen for it to pay. Pick one." },
+    { "id": "plays-rate", "page": "plays", "target": "plays-rate", "side": "left", "at": 0.5, "text": "The odds the whole play ends in profit at the stake on the dial." },
+    { "id": "plays-dial", "page": "plays", "target": "plays-dial", "side": "top", "at": 0.3, "text": "Drag the stake. Every number on the play follows it." },
+
+    { "id": "desk-share", "page": "desk", "target": "desk-share", "side": "bottom", "at": 0.3, "text": "Callouts come in here. The demo only reads; your own runner paper trades them." },
+    { "id": "desk-sources", "page": "desk", "target": "desk-sources", "side": "right", "at": 0.2, "text": "Who the runner listens to: callers, option flow, news and leaderboards." },
+
+    { "id": "markets-search", "page": "markets", "target": "markets-search", "side": "bottom", "at": 0.3, "text": "Six symbols were recorded. Try SPY or BTC-USD." },
+    { "id": "markets-ranges", "page": "markets", "target": "markets-ranges", "side": "bottom", "at": 0.6, "text": "One day to all time. The chart redraws from the recording." },
+
+    { "id": "news-tabs", "page": "news", "target": "news-tabs", "side": "top", "at": 0.5, "text": "News, Calendar and Network. The calendar holds earnings, auctions and economic releases." }
+  ]
+}

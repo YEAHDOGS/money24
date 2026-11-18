@@ -1,9 +1,13 @@
 // Live connection to the newsd engine: loads recent posts, then holds one Server-Sent Events stream
 // that delivers new posts, network-meter changes and settings. The browser's EventSource reconnects
 // on its own and sends Last-Event-ID, so the engine backfills anything missed while asleep or offline.
+// With no engine (the public site with no news service set, or ?demo) it shows a recorded feed,
+// calendar and network meter instead (src/lib/demo.js).
+import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
 
 const DEFAULT_API = 'http://127.0.0.1:8024';
 const API_BASE = import.meta.env.VITE_NEWS_API || DEFAULT_API;
+const DEMO_SNAPSHOT = 'news.json';
 const INITIAL_LIMIT = 200;
 const MAX_ITEMS = 400;
 const MAX_PENDING = 400;
@@ -13,7 +17,18 @@ const HISTORY_POINTS = 100;
 const SETTINGS_DEBOUNCE_MS = 250;
 const MAX_CYCLES = 60;
 const CALENDAR_DEBOUNCE_MS = 800; // one reload per burst of calendar changes
-const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline' };
+const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline', demo: DEMO_STATUS };
+
+/** The demo, unless a hosted news service was built in: then only ?demo asks for it. */
+function newsDemo() {
+  if (new URLSearchParams(location.search).has(DEMO_PARAM)) return true;
+  return !import.meta.env.VITE_NEWS_API && demoFirst();
+}
+
+/** Newest first by publish time, falling back to when the engine saw it. */
+function byPublished(/** @type {Post} */ a, /** @type {Post} */ b) {
+  return Date.parse(b.published_at ?? b.seen_at) - Date.parse(a.published_at ?? a.seen_at);
+}
 
 /** @typedef {{id:number, seen_at:string, published_at:string|null, feed:string, source:string, kind:string,
  *   title:string, url:string, summary?:string, lang?:string, country?:string, tags:string[],
@@ -44,6 +59,8 @@ export class FeedClient {
   calendarLoaded = $state(false);
   /** While true, new posts wait in `pending` instead of shifting what the reader is looking at. */
   holding = false;
+  /** When the demo feed was recorded (ISO time), empty off the demo */
+  demoTakenAt = $state('');
 
   #es = null;
   #lastId = 0;
@@ -56,6 +73,10 @@ export class FeedClient {
   #calendarTimer = 0;
 
   async start() {
+    if (newsDemo()) {
+      await this.#startDemo();
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/events?limit=${INITIAL_LIMIT}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -64,12 +85,33 @@ export class FeedClient {
       for (const p of posts) this.#seen.add(p.id);
       this.#lastId = posts[0]?.id ?? 0; // newest arrival: the stream resumes after it
       // The backlog reads best by publish time; live posts then enter at the top as they arrive.
-      this.items = [...posts].sort((a, b) =>
-        Date.parse(b.published_at ?? b.seen_at) - Date.parse(a.published_at ?? a.seen_at));
+      this.items = [...posts].sort(byPublished);
       this.#connect();
     } catch {
       this.status = STATUS.offline;
       this.#retry = setTimeout(() => this.start(), RETRY_MS);
+    }
+  }
+
+  /**
+   * Loads the recorded feed, calendar and meter. No stream: nothing in it changes. The meter's
+   * recorded readings are replayed in order, so the network page draws the same rates it drew live.
+   * Missing snapshot: offline.
+   */
+  async #startDemo() {
+    try {
+      const snap = await loadDemo(DEMO_SNAPSHOT);
+      this.items = [...snap.events].sort(byPublished);
+      this.calendar = snap.calendar ?? [];
+      this.calendarLoaded = true;
+      this.settings = snap.settings ?? null;
+      for (const reading of snap.stats ?? []) this.#applyStats(reading);
+      this.cycles = snap.cycles ?? [];
+      this.report = this.cycles[0] ?? null;
+      this.demoTakenAt = snap.taken_at;
+      this.status = STATUS.demo;
+    } catch {
+      this.status = STATUS.offline;
     }
   }
 
@@ -189,6 +231,7 @@ export class FeedClient {
   /** Change the global poll interval. Debounced, optimistic; the engine confirms over the stream. */
   setPollEvery(ms) {
     if (this.settings) this.settings = { ...this.settings, poll_every_ms: ms };
+    if (this.status === STATUS.demo) return; // the demo's slider moves the numbers on this page only
     clearTimeout(this.#settingsTimer);
     this.#settingsTimer = setTimeout(() => {
       fetch(`${API_BASE}/api/settings`, {

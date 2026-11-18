@@ -85,7 +85,7 @@
   }
 </script>
 
-<div {@attach wheel}>
+<div data-tour="plays-dial" {@attach wheel}>
   <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
     <label for="stake-dial" class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.dial.label}</label>
     <p class="font-mono tabular-nums">

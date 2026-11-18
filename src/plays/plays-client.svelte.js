@@ -1,42 +1,22 @@
 // The plays page's connection to the m24d runner: plays with their reports, the link history, the
 // rulebook and the AI providers. Plays live in the runner; this only reads and asks. The runner URL
 // and secret are the trading desk's, so a phone pointed at a VPS runner works here too.
-// With no runner (the public site, or ?demo) it shows a recorded snapshot instead: public/demo/,
-// written by scripts/demo-snapshot.js. The demo reads and previews; anything that writes says so.
+// With no runner (the public site, or ?demo) it shows a recorded snapshot instead (src/lib/demo.js).
+// The demo reads and previews; anything that writes says so.
 import strings from './strings.json';
+import { DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
+
+export { stored, STORE_RUNNER } from '../lib/demo.js';
 
 const DEFAULT_API = 'http://127.0.0.1:8025';
-export const STORE_RUNNER = 'm24.trading.runner';
 export const STORE_SECRET = 'm24.trading.secret';
 export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || DEFAULT_API;
 const POLL_MS = 5000;
 const POLL_FAST_MS = 2000; // while an AI read is running
-const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', demo: 'demo' };
+const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', demo: DEMO_STATUS };
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
-const DEMO_BASE = `${import.meta.env.BASE_URL}demo/`;
 const DEMO_SNAPSHOT = 'plays.json';
 const DEMO_PREVIEW_DIR = 'preview/';
-const DEMO_PARAM = 'demo';
-const LOCAL_HOST = /(^|\.)localhost$|^127\.|^\[::1\]$/;
-
-/**
- * Whether the page opens on the demo without asking a runner: ?demo, or a public website where the
- * visitor never set a runner up (asking 127.0.0.1 from there only triggers a local-network prompt).
- */
-export function demoFirst() {
-  const url = new URL(location.href);
-  if (url.searchParams.has(DEMO_PARAM)) return true;
-  return url.protocol.startsWith('http') && !LOCAL_HOST.test(url.hostname) && stored(STORE_RUNNER, '') === '';
-}
-
-/** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
-export function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
-  try {
-    return localStorage.getItem(key) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 /** @typedef {{ play: any, report: any }} Item */
 
@@ -129,9 +109,7 @@ export class PlaysClient {
   /** Loads the recorded snapshot. No polling: nothing in it changes. Missing snapshot: offline. */
   async #startDemo() {
     try {
-      const res = await fetch(DEMO_BASE + DEMO_SNAPSHOT);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const snap = await res.json();
+      const snap = await loadDemo(DEMO_SNAPSHOT);
       Object.assign(this, { items: snap.items, links: snap.links, rules: snap.rules, providers: snap.providers });
       this.demoTakenAt = snap.taken_at;
       this.status = STATUS.demo;
@@ -143,8 +121,7 @@ export class PlaysClient {
   /** The demo's dial: the recorded size nearest to units, merged onto the play as recorded. @returns {Promise<Item>} */
   async #demoPreview(/** @type {string} */ id, /** @type {number} */ units) {
     if (!this.#demoSizes.has(id)) {
-      const url = `${DEMO_BASE}${DEMO_PREVIEW_DIR}${encodeURIComponent(id)}.json`;
-      this.#demoSizes.set(id, fetch(url).then((r) => (r.ok ? r.json() : {})).catch(() => ({})));
+      this.#demoSizes.set(id, loadDemo(`${DEMO_PREVIEW_DIR}${encodeURIComponent(id)}.json`).catch(() => ({})));
     }
     const sizes = await this.#demoSizes.get(id);
     const item = this.items.find((x) => x.play.id === id);

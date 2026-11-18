@@ -10,25 +10,31 @@
   <meta name="theme-color" content="#050508" />
   <title>Terms of Use · Money 24 by DOGS</title>
   <meta name="description" content="Terms of Use for Money 24 by DOGS. Not financial advice. Trading involves substantial risk of loss." />
-  <!-- Plain HTML and CSS, no JavaScript: readable with JS off and on old browsers. Source text: docs/TERMS.md. -->
+  <!-- The text is plain HTML and CSS: readable with JS off and on old browsers. Source text: docs/TERMS.md.
+       The one script swaps the plain header below for the app header every page wears. It blocks the first
+       paint, so the header is already there when the page appears and nothing flashes on the way in. -->
   <link rel="stylesheet" href="/src/terms/terms.css" />
+  <script type="module" blocking="render" src="/src/terms/main.js"></script>
 </head>
 
 <body class="terms">
   <a class="skip" href="#terms-body">Skip to the terms</a>
 
-  <header class="masthead">
-    <!-- The same pages, order and labels as the app header (src/lib/app-nav.json). -->
-    <a class="brand" href="/" aria-label="Money 24 home">MONEY<span class="accent">24</span><span class="section">TERMS</span></a>
-    <nav class="top-links" aria-label="Money 24 apps">
-      <a href="/plays.html">Plays</a>
-      <a href="/trading.html">Trading</a>
-      <a href="/markets.html">Markets</a>
-      <a href="/feed.html">News</a>
-      <a href="/terms.html" aria-current="page">Terms</a>
-    </nav>
-  </header>
+  <div id="header-slot" class="header-slot">
+    <!-- Without JavaScript: the same pages, order and labels as the app header (src/lib/app-nav.json). -->
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Money 24 home">MONEY<span class="accent">24</span><span class="section">TERMS</span></a>
+      <nav class="top-links" aria-label="Money 24 apps">
+        <a href="/plays.html">Plays</a>
+        <a href="/trading.html">Trading</a>
+        <a href="/markets.html">Markets</a>
+        <a href="/feed.html">News</a>
+      </nav>
+      <p class="wip-line">Work in progress. Money 24 is not active yet. Not financial advice.</p>
+    </header>
+  </div>
 
+  <div class="terms-scroll">
   <div class="layout">
     <nav class="toc" aria-label="Contents">
       <h2 class="toc-title">Contents</h2>
@@ -55,7 +61,16 @@
 
     <main id="terms-body" class="doc">
       <h1 class="doc-title">Terms of Use</h1>
-      <p class="meta">Money 24 by DOGS · Effective November 14, 2026</p>
+      <p class="meta">Money 24 by DOGS · Effective November 18, 2026</p>
+
+      <div class="callout wip" role="note">
+        <p class="callout-lead">Work in progress. Money 24 is not active yet.</p>
+        <p>Money 24 is still in heavy development. Anything in it can change, break or disappear without notice,
+          and we do not yet know all the risks of using it.</p>
+        <p>Nothing in Money 24 is financial advice. Money 24 is DOGS software, and DOGS is not responsible for
+          anything you do, or any money you lose, based on Money 24.</p>
+        <p>These Terms are a draft and can change at any time.</p>
+      </div>
 
       <p class="draft" role="note"><strong>Draft.</strong> Written by an AI agent, not a lawyer, and pending review by a
         licensed securities attorney. Items marked <mark class="ph">[LIKE THIS]</mark> are not filled in yet.</p>
@@ -85,6 +100,10 @@
           with entries, ladder exits, runners, stop losses and failsafes, estimates the odds of those plans, and paper
           trades them.</p>
         <ul>
+          <li><strong>Money 24 is a work in progress and is not active yet.</strong> It is in heavy development. Features
+            can change, break or be removed without notice, and we do not yet know all the risks of using it.</li>
+          <li><strong>The public website is a demo.</strong> It shows data recorded earlier from a test runner: plays,
+            headlines, a calendar, quotes and charts. Nothing in the demo is live, current or a signal to trade.</li>
           <li><strong>Today Money 24 trades on paper only.</strong> Paper trades are simulations. No real money moves.
           </li>
           <li>If live execution is offered later, it will run only on <strong>your own</strong> brokerage account, with
@@ -328,8 +347,9 @@
       <section id="general">
         <h2><span class="num">16</span>Changes, termination and general terms</h2>
         <ul>
-          <li>We may change these Terms. We will update the effective date and, for material changes, give notice in
-            Money 24. Continuing to use Money 24 after changes take effect means you accept them.</li>
+          <li>We may change these Terms at any time, for any reason, including while Money 24 is still being built.
+            We will update the effective date and, for material changes, give notice in Money 24. Continuing to use
+            Money 24 after changes take effect means you accept them.</li>
           <li>We may suspend or end your access at any time, for example if you break these Terms. You may stop using
             Money 24 at any time. Sections that by their nature should survive (including sections 3 to 6 and 11 to 15)
             survive termination.</li>
@@ -348,6 +368,7 @@
         <p>&copy; 2026 DOGS. Not financial advice. <a href="#terms-body">Back to top</a></p>
       </footer>
     </main>
+  </div>
   </div>
 </body>
 

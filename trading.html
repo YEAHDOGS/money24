@@ -9,12 +9,13 @@
   <link rel="manifest" href="/trading.webmanifest" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <title>Money 24 Trading</title>
+  <!-- Blocks the first paint until the app has mounted, so moving between pages never shows an empty one. -->
+  <script type="module" blocking="render" src="/src/trading/main.js"></script>
 </head>
 
 <body class="bg-app text-white">
   <div id="trading"></div>
   <noscript>Money 24 Trading needs JavaScript to show the live journal.</noscript>
-  <script type="module" src="/src/trading/main.js"></script>
 </body>
 
 </html>

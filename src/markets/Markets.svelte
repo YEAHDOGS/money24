@@ -14,6 +14,7 @@
   import { age, compact, marketTime, percent, price, signed } from './market-format.js';
   import ProChart from './ProChart.svelte';
   import AppHeader from '../lib/AppHeader.svelte';
+  import AppFooter from '../lib/AppFooter.svelte';
   import SymbolSearch from './SymbolSearch.svelte';
   import TickList from './TickList.svelte';
 
@@ -81,6 +82,12 @@
   /** How far the last quarter's earnings per share landed from what analysts expected, in percent. */
   const surprise = $derived(lastQuarter?.eps_estimate ? ((lastQuarter.eps - lastQuarter.eps_estimate) / Math.abs(lastQuarter.eps_estimate)) * PERCENT : null);
   const headline = $derived(client.news[0]);
+  /** What went wrong, in words. On the demo an unknown symbol names the ones that were recorded. */
+  const problemText = $derived.by(() => {
+    if (!client.problem) return '';
+    if (!client.demo) return strings[client.problem];
+    return strings.demo.missing.replace('{symbols}', client.demoSymbols.map((m) => m.symbol).join(', '));
+  });
 </script>
 
 <svelte:head><title>{client.symbol ? `${client.symbol} · ` : ''}{strings.title}</title></svelte:head>
@@ -101,7 +108,7 @@
 {/snippet}
 
 <div class="flex h-dvh w-full flex-col">
-<AppHeader page="markets">
+<AppHeader page="markets" status={client.status}>
   {#snippet tools()}
     <SymbolSearch matches={client.matches} onSearch={(q) => client.search(q)} onPick={(symbol) => { tab = TAB_CHART; client.open(symbol); }} />
   {/snippet}
@@ -146,12 +153,12 @@
           </p>
         {/if}
       {:else if client.problem}
-        <p class="pt-2 text-sm text-bad" role="alert">{strings[client.problem]}</p>
+        <p class="pt-2 text-sm text-bad" role="alert">{problemText}</p>
       {/if}
     </div>
 
     <!-- RANGES: the red bar slides under the open one -->
-    <div class="relative mt-2 grid grid-cols-8 border-b border-line short:mt-1" role="group" aria-label={strings.ranges[client.range]}>
+    <div data-tour="markets-ranges" class="relative mt-2 grid grid-cols-8 border-b border-line short:mt-1" role="group" aria-label={strings.ranges[client.range]}>
       {#each RANGES as r (r)}
         <button type="button" aria-pressed={client.range === r} onclick={() => client.setRange(r)}
           class="spring py-2 text-xs font-bold tracking-wider short:py-1 focus-visible:bg-white/5 focus-visible:outline-none {client.range === r ? 'text-white' : 'text-white/50 hover:text-white'}">
@@ -161,7 +168,7 @@
       <span class="pointer-events-none absolute bottom-0 left-0 h-0.5 w-1/8 bg-neon-red transition-transform duration-300 ease-out" style:transform="translateX({RANGES.indexOf(client.range) * PERCENT}%)"></span>
     </div>
 
-    <ProChart symbol={client.symbol} chart={client.chart} isNew={client.chartIsNew} interval={client.interval} intervals={INTERVALS[client.range]} onInterval={(i) => client.setInterval(i)} />
+    <ProChart symbol={client.symbol} chart={client.chart} isNew={client.chartIsNew} interval={client.interval} intervals={client.demo ? [client.interval] : INTERVALS[client.range]} onInterval={(i) => client.setInterval(i)} />
 
     {@render statGrid('grid-cols-2 border-t border-line max-md:hidden short:hidden lg:grid-cols-3 xl:grid-cols-4 landscape-phone:hidden!')}
   </main>
@@ -270,4 +277,5 @@
     {/each}
   </nav>
 </div>
+<AppFooter recorded={client.demoTakenAt} />
 </div>

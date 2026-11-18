@@ -4,10 +4,50 @@
   "home": "Money 24 home",
   "label": "Money 24 apps",
   "pages": [
-    { "id": "plays", "href": "plays.html", "label": "Plays", "section": "PLAYS" },
-    { "id": "desk", "href": "trading.html", "label": "Trading", "section": "TRADING" },
-    { "id": "markets", "href": "markets.html", "label": "Markets", "section": "MARKETS" },
-    { "id": "news", "href": "feed.html", "label": "News", "section": "NEWS" },
-    { "id": "terms", "href": "terms.html", "label": "Terms", "section": "TERMS" }
-  ]
+    {
+      "id": "plays",
+      "href": "plays.html",
+      "label": "Plays",
+      "section": "PLAYS"
+    },
+    {
+      "id": "desk",
+      "href": "trading.html",
+      "label": "Trading",
+      "section": "TRADING"
+    },
+    {
+      "id": "markets",
+      "href": "markets.html",
+      "label": "Markets",
+      "section": "MARKETS"
+    },
+    {
+      "id": "news",
+      "href": "feed.html",
+      "label": "News",
+      "section": "NEWS"
+    }
+  ],
+  "terms": {
+    "id": "terms",
+    "href": "terms.html",
+    "label": "Terms of Use",
+    "section": "TERMS"
+  },
+  "status": {
+    "connecting": "Connecting",
+    "reconnecting": "Reconnecting",
+    "live": "Live",
+    "offline": "Offline",
+    "demo": "Demo"
+  },
+  "statusWidest": "Reconnecting",
+  "paper": "Paper only",
+  "footer": {
+    "label": "About Money 24",
+    "copyright": "DOGS",
+    "disclaimer": "Not financial advice",
+    "recorded": "Demo recorded {when}"
+  }
 }

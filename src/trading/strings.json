@@ -1,12 +1,5 @@
 {
   "title": "Money 24 Trading",
-  "paper": "Paper only",
-  "status": {
-    "connecting": "Connecting",
-    "live": "Live",
-    "reconnecting": "Reconnecting",
-    "offline": "Runner offline"
-  },
   "result": "Result",
   "actions": {
     "all": "All",
@@ -97,5 +90,10 @@
     "end": "End",
     "exit": "Their exit",
     "method": "How this is scored: each entry is priced at the market when it was posted. If the source later posted its own exit, the call is judged on that exit. If not, it is judged on the next five trading days (five calendar days for coins): a win means the price ran at least 2% the called way at some point. Option calls are followed on the stock, not the option. Trust is the win rate marked down for a small sample."
+  },
+  "demo": {
+    "hint": "Demo: the journal recorded from the Money 24 runner on {when}. Nothing here is live. To send callouts and paper trade, run Money 24 on your own machine.",
+    "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to send callouts and paper trade.",
+    "noRecord": "Source records are not part of the demo. Run Money 24 on your own machine to score a source."
   }
 }

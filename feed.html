@@ -7,12 +7,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#050508" />
   <title>Money 24 News</title>
+  <!-- Blocks the first paint until the app has mounted, so moving between pages never shows an empty one. -->
+  <script type="module" blocking="render" src="/src/feed/main.js"></script>
 </head>
 
 <body class="bg-app text-white">
   <div id="feed"></div>
   <noscript>Money 24 News needs JavaScript to show the live feed.</noscript>
-  <script type="module" src="/src/feed/main.js"></script>
 </body>
 
 </html>

@@ -30,7 +30,7 @@
   const how = $derived(win > 0 ? fill(strings.detail.winAt, { level }) : filled <= 0 ? strings.detail.winNoFill : strings.detail.winNone);
 </script>
 
-<figure class="m-0 flex shrink-0 flex-col items-center text-center {tone}" aria-label={`${strings.detail.winRate} ${win}%. ${how}`}>
+<figure data-tour="plays-rate" class="m-0 flex shrink-0 flex-col items-center text-center {tone}" aria-label={`${strings.detail.winRate} ${win}%. ${how}`}>
   <div class="relative grid size-24 place-items-center @md:size-28 @lg:size-36 @4xl:size-44">
     <svg viewBox="0 0 100 100" class="absolute inset-0 size-full -rotate-90" aria-hidden="true">
       <circle cx="50" cy="50" r="45" fill="none" class="stroke-line" stroke-width="6" />

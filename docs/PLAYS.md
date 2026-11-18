@@ -136,10 +136,14 @@ the local desk or the webhook secret, like the rest of m24d.
 
 ## 6. The public demo
 
-With no runner set up, the public site (money24.dogs.red) opens the plays board on a recorded
-snapshot in `public/demo/`, labelled Demo: real plays and reports from a runner, with the stake dial
-recorded at every size so every number still moves. Writing (paper trading, links, rules, AI reads)
-says to run Money 24 locally. `?demo` forces it anywhere. Re-record it with a runner going:
+With no runner set up, the public site (money24.dogs.red) opens every app page on a recorded
+snapshot in `public/demo/`, labelled Demo: real plays and reports from a runner (the stake dial
+recorded at every size, so every number still moves), the paper journal and source catalog, 400
+headlines with the calendar and network meter, and six symbols' quotes and charts. Writing (paper
+trading, links, rules, AI reads, callouts) says to run Money 24 locally. `?demo` forces it anywhere.
+Source trust records and stored posts are left out of the public snapshot on purpose. A first visit
+gets the work-in-progress notice and then a short tour (`src/lib/tour/`); the footer's Tour button
+or `?tour` shows it again. Re-record it with the services going:
 
 ```sh
 npm start                # paste the plays you want to show

@@ -14,6 +14,7 @@
   import PlayDetail from './PlayDetail.svelte';
   import RulesEditor from './RulesEditor.svelte';
   import AppHeader from '../lib/AppHeader.svelte';
+  import AppFooter from '../lib/AppFooter.svelte';
   import RunnerSettings from '../trading/RunnerSettings.svelte';
   import Zap from '@lucide/svelte/icons/zap';
   import Inbox from '@lucide/svelte/icons/inbox';
@@ -38,7 +39,6 @@
   ];
   const FILTER_ALL = 'all';
   const FILTERS = [FILTER_ALL, 'armed', 'draft', 'closed'];
-  const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', offline: 'text-bad', demo: 'text-paper' };
   /** @type {Intl.DateTimeFormatOptions} */
   const DEMO_DATE = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
 
@@ -103,14 +103,6 @@
 
 <svelte:head><title>{strings.title}</title></svelte:head>
 
-{#snippet statusLine()}
-  <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
-    <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
-    <span class="max-[419px]:sr-only">{strings.status[client.status]}</span>
-  </p>
-  <span class="whitespace-nowrap rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-warn">{strings.paper}</span>
-{/snippet}
-
 {#snippet offline()}
   {#if client.status === 'offline'}
     <p class="border-b border-line px-4 py-2 text-xs leading-snug text-bad" role="alert">{strings.offlineHint}</p>
@@ -122,7 +114,7 @@
 {/snippet}
 
 {#snippet playsList()}
-  <section aria-label={strings.tabs.plays} class="flex min-h-0 flex-col">
+  <section aria-label={strings.tabs.plays} data-tour="plays-list" class="flex min-h-0 flex-col">
     <div class="flex flex-wrap items-center gap-1.5 border-b border-line px-3 py-2 lg:px-4">
       {#each FILTERS as f (f)}
         <button type="button" aria-pressed={filter === f} onclick={() => { filter = f; }}
@@ -150,7 +142,7 @@
 {/snippet}
 
 {#snippet inboxPane()}
-  <div class="flex min-h-0 flex-1 flex-col">
+  <div data-tour="plays-inbox" class="flex min-h-0 flex-1 flex-col">
     <LinkInbox {client} onPick={pick} />
   </div>
 {/snippet}
@@ -170,7 +162,7 @@
 {/snippet}
 
 <div class="flex h-dvh w-full flex-col">
-<AppHeader page="plays" status={statusLine} />
+<AppHeader page="plays" status={client.status} />
 
 {#if mode === MODE_WIDE}
   <div class="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-cols-[12rem_15rem_minmax(0,1fr)] border-line select-text lg:grid-cols-[16rem_20rem_minmax(0,1fr)] xl:border-x desktop-portrait:grid-cols-[16rem_minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,36%)_minmax(0,1fr)] ultrawide:max-w-none ultrawide:grid-cols-[22rem_28rem_minmax(0,1fr)]">
@@ -228,4 +220,5 @@
     </nav>
   </div>
 {/if}
+<AppFooter recorded={client.demoTakenAt} />
 </div>

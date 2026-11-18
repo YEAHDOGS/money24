@@ -5,6 +5,7 @@
    * Phones: one column with Journal / Plan / Sources tabs at the bottom, within thumb reach.
    */
   import AppHeader from '../lib/AppHeader.svelte';
+  import AppFooter from '../lib/AppFooter.svelte';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
@@ -33,7 +34,8 @@
   // Android share sheet (PWA share_target) and links land here as ?title=&text=&url=.
   const SHARE_PARAMS = ['title', 'text', 'url'];
   const SOURCE_PARAM = 'source';
-  const STATUS_DOT = { live: 'text-ok', connecting: 'text-warn', reconnecting: 'text-warn', offline: 'text-bad' };
+  /** @type {Intl.DateTimeFormatOptions} */
+  const DEMO_DATE = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
   // Literal class strings so Tailwind sees them. Colors come from theme tokens.
   const BUCKET_CLASSES = {
     entry: 'text-ok border-ok',
@@ -175,15 +177,7 @@
 <svelte:head><title>{strings.title}</title></svelte:head>
 
 <div class="flex h-dvh w-full flex-col">
-<AppHeader page="desk">
-  {#snippet status()}
-    <p class="flex items-center gap-2 text-xs font-semibold {STATUS_DOT[client.status]}" role="status">
-      <span class="relative size-2 rounded-full bg-current {client.status === 'live' ? 'live-dot' : ''}"></span>
-      <span class="max-[419px]:sr-only">{strings.status[client.status]}</span>
-    </p>
-    <span class="whitespace-nowrap rounded-sm border border-warn px-1.5 py-px text-[0.62rem] font-bold uppercase tracking-wider text-warn">{strings.paper}</span>
-  {/snippet}
-</AppHeader>
+<AppHeader page="desk" status={client.status} />
 
 <div class="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] select-text border-line md:grid-cols-[13rem_minmax(0,1fr)_19rem] md:grid-rows-1 lg:grid-cols-[15rem_minmax(0,1fr)_24rem] xl:border-x desktop-portrait:grid-cols-[15rem_minmax(0,1fr)]! desktop-portrait:grid-rows-[minmax(0,1fr)_minmax(0,40%)]! landscape-phone:grid-cols-[minmax(0,1fr)_17rem]! landscape-phone:grid-rows-[minmax(0,1fr)]! ultrawide:max-w-none ultrawide:grid-cols-[20rem_minmax(0,1fr)_34rem]">
 
@@ -201,7 +195,7 @@
     </nav>
 
     <div class="list-scroll min-h-0 flex-1 overflow-y-auto border-t border-line py-2 {tab === TAB_SOURCES ? '' : 'max-md:hidden'} landscape-phone:hidden!">
-      <h2 class="px-4 pb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.sources} · {client.sources.length}</h2>
+      <h2 data-tour="desk-sources" class="px-4 pb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.sources} · {client.sources.length}</h2>
       {#each Object.entries(sourcesByRole) as [role, list] (role)}
         <h3 class="px-4 pt-2 pb-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-white/40">{strings.roles[role] ?? role}</h3>
         <ul>
@@ -229,6 +223,11 @@
 
   <!-- JOURNAL -->
   <main class="flex min-h-0 flex-col border-line md:border-r landscape-phone:flex! {tab === TAB_JOURNAL ? '' : 'max-md:hidden'}">
+    {#if client.status === 'demo'}
+      <p class="border-b border-line px-4 py-2 text-xs leading-snug text-paper lg:px-6" role="status">
+        {strings.demo.hint.replace('{when}', new Date(client.demoTakenAt).toLocaleString(undefined, DEMO_DATE))}
+      </p>
+    {/if}
     <ShareBox onShare={share} initial={sharedIn} />
     <div class="flex flex-wrap gap-1.5 border-b border-line px-4 py-2 short:py-1 md:hidden landscape-phone:flex!" role="group" aria-label="Filter">
       {#each [ALL, ...BUCKETS] as b (b)}
@@ -364,4 +363,5 @@
     {/each}
   </nav>
 </div>
+<AppFooter recorded={client.demoTakenAt} />
 </div>

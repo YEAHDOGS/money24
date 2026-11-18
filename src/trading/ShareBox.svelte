@@ -33,7 +33,7 @@
   }
 </script>
 
-<form class="border-b border-line px-4 py-3 short:py-2 lg:px-6" onsubmit={submit}>
+<form data-tour="desk-share" class="border-b border-line px-4 py-3 short:py-2 lg:px-6" onsubmit={submit}>
   <label for="share-input" class="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{strings.shareLabel}</label>
   <div class="mt-1.5 flex gap-2">
     <input
