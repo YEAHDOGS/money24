@@ -125,6 +125,14 @@ body {
   }
 }
 
+/* Long lists of rows with pictures (the stories board, the Home headlines): a row far off screen is not
+   laid out or painted until it is scrolled near. Its last known height is remembered, so the scrollbar
+   holds still. Browsers without it (Firefox before 125, Safari before 18) simply draw every row. */
+.row-far {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 6.5rem;
+}
+
 /* World map (src/feed/WorldMap.svelte): a country brightens under the pointer, the loudest places pulse,
    and an open story's arcs draw themselves. Opacity and transform only, so nothing on the map moves. */
 .map-land {

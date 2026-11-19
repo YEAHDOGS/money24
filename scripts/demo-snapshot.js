@@ -5,9 +5,10 @@
 //                          providers (names only, never keys), the stake dial at every size, and
 //                          each play's curve: since its entry, and backtested from BACKTEST_FROM
 //   trading.json           the paper journal and the source catalog
-//   news.json, stories/    recent headlines, the calendar, the poll setting and the network meter; the
-//                          stories board (tradable and all), the world map, and one file per story with
-//                          its articles and its recorded numbers
+//   news.json              recent headlines, the calendar, the poll setting and the network meter
+//   stories.json           the tradable stories board and the world map: what Home and the Stories tab open on
+//   stories-all.json       the board with every story, loaded only when the Tradable switch is turned off
+//   stories/               one file per story with its articles and its recorded numbers, loaded when it is opened
 //   markets/               a handful of symbols: quote, news, related tickers, a chart per range
 //   home.json              the Home page's quote ribbon and the paper account's starting capital
 //
@@ -30,6 +31,8 @@ const DEFAULT_NEWS = 'http://127.0.0.1:8024';
 const PLAYS_FILE = 'plays.json';
 const TRADING_FILE = 'trading.json';
 const NEWS_FILE = 'news.json';
+const STORIES_FILE = 'stories.json';
+const STORIES_ALL_FILE = 'stories-all.json';
 const MARKETS_INDEX = 'index.json';
 const HOME_FILE = 'home.json';
 // The Home ribbon's set symbols: one list, shared with the page (src/home/home-client.svelte.js).
@@ -177,7 +180,9 @@ async function recordNews(/** @type {string} */ takenAt) {
     get(news, `/api/stories?limit=${STORIES_LIMIT}&tradable=1`), get(news, `/api/stories?limit=${STORIES_LIMIT}`), get(news, '/api/stories/map'), meter(),
   ]);
   const files = await recordStories([...stories.stories, ...storiesAll.stories]);
-  write(DEMO_DIR, NEWS_FILE, { taken_at: takenAt, events, calendar, settings, stats, cycles, stories, stories_all: storiesAll, world });
+  write(DEMO_DIR, NEWS_FILE, { taken_at: takenAt, events, calendar, settings, stats, cycles });
+  write(DEMO_DIR, STORIES_FILE, { taken_at: takenAt, stories, world });
+  write(DEMO_DIR, STORIES_ALL_FILE, { taken_at: takenAt, stories: storiesAll });
   return `${events.length} headlines, ${calendar.length} calendar events, ${stats.length} meter readings, ${stories.stories.length} tradable stories, ${files} story files`;
 }
 

@@ -1,12 +1,15 @@
 // The stories board and the world map behind it: what newsd grouped, read and scored. The feed
 // client owns the live stream and calls refresh() when the engine says stories changed; this
 // class only loads while one of its pages is on screen, so a hidden tab costs nothing.
-// On the demo it reads the recorded boards (public/demo/news.json) and one file per story.
+// On the demo it reads the recorded board (public/demo/stories.json), the full board only when the
+// Tradable switch is turned off (stories-all.json), and one file per story when it is opened.
 import { loadDemo, stored } from '../lib/demo.js';
 
 const BOARD_LIMIT = 120;
 const MIN_REFRESH_MS = 20000; // stories change every half minute at most; one reload per burst
 const DEMO_STORY_DIR = 'stories/';
+const DEMO_STORIES = 'stories.json';
+const DEMO_STORIES_ALL = 'stories-all.json';
 const HTTP_NOT_FOUND = 404;
 const STORE_TRADABLE = 'm24.news.tradable';
 
@@ -39,8 +42,9 @@ export class StoryBoard {
   watching = false;
 
   #api = '';
-  /** @type {{tradable: Board, all: Board} | null} the recorded boards, on the demo */
-  #demo = null;
+  #demo = false;
+  /** @type {{tradable: Board | null, all: Board | null}} the recorded boards, each read once */
+  #recorded = { tradable: null, all: null };
   #loadedAt = 0;
   #stale = false;
 
@@ -49,13 +53,25 @@ export class StoryBoard {
     this.#api = api;
   }
 
-  /** The recorded boards and map. @param {any} snap public/demo/news.json */
-  fromDemo(snap) {
-    this.outdated = !snap.stories;
-    if (this.outdated) return;
-    this.#demo = { tradable: snap.stories, all: snap.stories_all ?? snap.stories };
-    this.board = this.tradable ? this.#demo.tradable : this.#demo.all;
-    this.world = snap.world ?? null;
+  /** Read the recorded boards instead of a live service. */
+  useDemo() {
+    this.#demo = true;
+    if (this.watching) this.load();
+  }
+
+  /** The recorded board for the Tradable switch as it stands. A missing recording reads as an old service. */
+  async #loadDemo() {
+    try {
+      if (!this.#recorded.tradable) {
+        const snap = await loadDemo(DEMO_STORIES);
+        this.#recorded.tradable = snap.stories;
+        this.world = snap.world ?? null;
+      }
+      if (!this.tradable && !this.#recorded.all) this.#recorded.all = (await loadDemo(DEMO_STORIES_ALL)).stories;
+      this.board = this.tradable ? this.#recorded.tradable : this.#recorded.all;
+    } catch {
+      this.outdated = !this.board;
+    }
   }
 
   /** Shows only tradable stories, or all of them, and remembers the choice. @param {boolean} on */
@@ -64,10 +80,6 @@ export class StoryBoard {
     try {
       localStorage.setItem(STORE_TRADABLE, String(on));
     } catch { /* storage is optional */ }
-    if (this.#demo) {
-      this.board = on ? this.#demo.tradable : this.#demo.all;
-      return;
-    }
     this.#stale = true;
     this.#loadedAt = 0;
     this.load();
@@ -81,7 +93,8 @@ export class StoryBoard {
 
   /** Loads the board and the map, at most once per MIN_REFRESH_MS unless nothing is loaded yet. */
   async load() {
-    if (this.#demo || !this.#api) return;
+    if (this.#demo) return this.#loadDemo();
+    if (!this.#api) return;
     const fresh = Date.now() - this.#loadedAt < MIN_REFRESH_MS;
     if (this.board && (fresh || !this.#stale)) return;
     this.#loadedAt = Date.now();

@@ -107,7 +107,7 @@ export class FeedClient {
       const snap = await loadDemo(DEMO_SNAPSHOT);
       this.items = [...snap.events].sort(byPublished);
       this.calendar = snap.calendar ?? [];
-      this.stories.fromDemo(snap);
+      this.stories.useDemo();
       this.calendarLoaded = true;
       this.settings = snap.settings ?? null;
       for (const reading of snap.stats ?? []) this.#applyStats(reading);

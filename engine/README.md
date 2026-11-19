@@ -101,8 +101,9 @@ volume without a story.
 - Google News editions (`"bundle": true` sources) carry many outlets per feed. Their country is the edition that showed
   the article, not the outlet's home, and their links pass through news.google.com.
 - Pictures are links to the outlets' own images, read from the feed (`media:content`, `media:thumbnail` or an
-  image enclosure). newsd stores the link, never the image, and the page loads it from the outlet with no
-  referrer. A story shows the first picture any of its articles came with; Google News items carry none, so
+  image enclosure). newsd stores the link, never the image. The page never loads an outlet's full-size
+  original: it asks a free resizing service (wsrv.nl, see `src/lib/picture.js`) for the photo at the width it
+  is shown, which takes a thumbnail from hundreds of kilobytes to about five. A story shows the first picture any of its articles came with; Google News items carry none, so
   about a quarter of tradable stories have a photo and the rest wear generated art.
 - Headlines only group with headlines in the same language.
 - Filings are not grouped: the SEC feeds would add thousands of one-article stories.

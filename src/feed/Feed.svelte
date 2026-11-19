@@ -1,8 +1,9 @@
 <script>
   /**
    * Money 24 news app shell: a slim header, one page at a time, and a tab bar along the bottom on
-   * every screen. A page is one entry in TABS plus its component below; pages stay mounted, so
-   * switching tabs keeps each one's scroll position and filters.
+   * every screen. A page is one entry in TABS plus its component below. A page is built the first
+   * time its tab is opened and then stays mounted, so switching tabs keeps each one's scroll position
+   * and filters, and opening the app does not pay for four pages nobody has looked at yet.
    */
   import { onMount } from 'svelte';
   import AppHeader from '../lib/AppHeader.svelte';
@@ -64,6 +65,9 @@
   let tab = $state(currentTab());
   /** The story open on the Stories page; the map opens one by setting it. */
   let storyId = $state(0);
+  /** @type {Record<string, boolean>} the tabs opened so far: only these have their page built */
+  let opened = $state({ [currentTab()]: true });
+  $effect(() => { opened[tab] = true; });
   let providerId = $state(localStorage.getItem(STORE_PROVIDER) ?? pricing.providers[0].id);
   let worstCase = $state(localStorage.getItem(STORE_WORST) !== 'false');
 
@@ -138,7 +142,9 @@
         aria-labelledby="tab-{t.id}"
         class="absolute inset-0 transition-[opacity,visibility] duration-200 ease-out {tab === t.id ? 'visible opacity-100' : 'invisible opacity-0'}"
       >
-        {#if t.id === TAB_STORIES}
+        {#if !opened[t.id]}
+          <!-- not opened yet -->
+        {:else if t.id === TAB_STORIES}
           <StoriesPage {client} {now} linkTarget={LINK_TARGET} bind:storyId />
         {:else if t.id === TAB_MAP}
           <MapPage {client} active={tab === TAB_MAP} onOpenStory={openStory} />

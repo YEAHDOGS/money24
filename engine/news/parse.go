@@ -21,6 +21,8 @@ const (
 	SCHEME_HTTPS      = "https"
 	MAX_BUNDLE        = 8 // related articles read from one bundled item
 	MEDIA_IMAGE       = "image"
+	// The widest a picture is shown is about 400 CSS pixels, asked for at twice that on sharp screens.
+	PICTURE_WIDE_ENOUGH = 800
 )
 
 var (
@@ -103,14 +105,21 @@ type feedMedia struct {
 	Width  int    `xml:"width,attr"`
 }
 
-// picture is the widest image a feed item carries, as an https link, or "" when it carries none.
-// An item's media can also be video or audio; those are passed over.
+// picture is the image a feed item carries, as an https link, or "" when it carries none. When the
+// feed offers several sizes it is the smallest one still wide enough for a banner, and the widest when
+// none is: the page resizes it again, so a larger file only costs time. An item's media can also be
+// video or audio; those are passed over.
 func (it feedItem) picture() string {
 	best, width := "", -1
 	for _, group := range [][]feedMedia{it.Media, it.Thumbnails, it.Enclosures} {
 		for _, m := range group {
 			kind := firstNonEmpty(m.Medium, m.Type, MEDIA_IMAGE)
-			if !strings.HasPrefix(kind, MEDIA_IMAGE) || !strings.HasPrefix(m.URL, SCHEME_HTTPS+"://") || m.Width <= width {
+			if !strings.HasPrefix(kind, MEDIA_IMAGE) || !strings.HasPrefix(m.URL, SCHEME_HTTPS+"://") {
+				continue
+			}
+			smaller := m.Width >= PICTURE_WIDE_ENOUGH && m.Width < width
+			wider := width < PICTURE_WIDE_ENOUGH && m.Width > width
+			if !smaller && !wider {
 				continue
 			}
 			best, width = m.URL, m.Width

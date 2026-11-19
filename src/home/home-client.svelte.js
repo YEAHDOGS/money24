@@ -29,6 +29,7 @@ const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', dem
 const DEMO_PLAYS = 'plays.json';
 const DEMO_TRADING = 'trading.json';
 const DEMO_NEWS = 'news.json';
+const DEMO_STORIES = 'stories.json';
 const DEMO_HOME = 'home.json';
 const DEMO_MARKETS = 'markets/index.json';
 
@@ -204,13 +205,13 @@ export class HomeClient {
   }
 
   /**
-   * The recorded news: its stories when the snapshot has them (every story, as the live page asks
-   * for; else the board that was recorded), else its headlines.
+   * The recorded news: the tradable stories board, which is a small file of its own, and only when
+   * that was never recorded the headlines from the much larger news snapshot.
    */
   async #demoNews() {
-    const snap = await loadDemo(DEMO_NEWS);
-    const board = snap.stories_all ?? snap.stories;
-    return Array.isArray(board?.stories) ? newsFromStories(board, false) : newsFromEvents(snap.events ?? []);
+    const board = (await loadDemo(DEMO_STORIES).catch(() => null))?.stories;
+    if (Array.isArray(board?.stories)) return newsFromStories(board, false);
+    return newsFromEvents((await loadDemo(DEMO_NEWS)).events ?? []);
   }
 
   /**

@@ -621,9 +621,12 @@
     padding: 0;
     overflow-y: auto;
     border-block: 1px solid var(--step-border);
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-neon-red) transparent;
+    /* No scrollbar is ever drawn on the landing page. A list too long for a squat window still moves with
+       the wheel, a drag or a swipe; and a row sliding in as it is revealed can no longer flash a bar. */
+    scrollbar-width: none;
   }
+  .grid-list::-webkit-scrollbar, .steps::-webkit-scrollbar { display: none; }
+  .steps { scrollbar-width: none; }
   .grid-list > li {
     min-width: 0;
     border-bottom: 1px solid var(--step-border);
@@ -767,18 +770,21 @@
     color: var(--color-muted);
   }
 
-  /* Not active yet. Its lines are a list: on a squat window they scroll and the heading stays. */
+  /* Not active yet. Nothing in this panel scrolls, ever: its lettering, lines and spacing take their size
+     from the window's height as well as its width, so the whole notice fits whatever the window's shape. */
+  #wip .content {
+    padding-block: max(3.6rem, min(5.8rem, 11vh)) min(2.6rem, 6vh);
+    gap: min(0.85rem, 1.6vh);
+  }
+  #wip .word { font-size: clamp(1.5rem, min(17vw, 15vh), 13rem); }
+  #wip .line { font-size: clamp(0.75rem, min(4.6vw, 2.7vh), 2rem); }
   .wip-lines {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
-    min-height: 0;
+    gap: min(0.85rem, 1.6vh);
     margin: 0;
     padding: 0;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-warn) transparent;
   }
   .hazard-rule {
     width: min(100%, 28rem);
@@ -827,7 +833,6 @@
     .markets { display: flex; flex-wrap: wrap; gap: 0 0.8rem; margin: 0; }
     .step-name { padding: 0.25rem 0.5rem; font-size: 0.6rem; }
     .steps { gap: 0.3rem 0.5rem; margin: 0; min-height: 0; overflow-y: auto; }
-    .wip-lines { gap: 0.35rem; }
     .hazard-rule { height: 0.3rem; flex: none; }
     .hero-cta { bottom: 0.4rem; }
     .cta { padding: 0.3rem 0.6rem; font-size: 0.62rem; }

@@ -1,6 +1,7 @@
 package news
 
 import (
+	"compress/gzip"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 )
 
 const (
+	STREAM_PATH          = "/api/stream"
 	SSE_HEARTBEAT        = 25 * time.Second
 	SSE_RETRY_MS         = 3000
 	DEFAULT_LIMIT        = 100
@@ -55,7 +57,7 @@ func (s *Service) Handler(opts HTTPOptions) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /api/events", a.events)
-	mux.HandleFunc("GET /api/stream", a.stream)
+	mux.HandleFunc("GET "+STREAM_PATH, a.stream)
 	mux.HandleFunc("GET /api/network", a.network)
 	mux.HandleFunc("GET /api/calendar", a.calendar)
 	mux.HandleFunc("GET /api/stories", a.storyBoard)
@@ -63,8 +65,32 @@ func (s *Service) Handler(opts HTTPOptions) http.Handler {
 	mux.HandleFunc("GET /api/stories/{id}", a.storyDetail)
 	mux.HandleFunc("GET /api/settings", a.getSettings)
 	mux.HandleFunc("PUT /api/settings", a.putSettings)
-	return a.meter(a.guard(mux))
+	return a.meter(a.guard(gzipped(mux)))
 }
+
+// gzipped compresses answers for clients that accept it: the stories board is over a hundred kilobytes
+// of JSON and shrinks to a fifth. The live stream is left alone, because it has to flush as it goes.
+// It sits inside the meter, so the meter counts the bytes that actually leave.
+func gzipped(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == STREAM_PATH || !strings.Contains(r.Header.Get("Accept-Encoding"), ENCODING_GZIP) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Encoding", ENCODING_GZIP)
+		w.Header().Add("Vary", "Accept-Encoding")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		next.ServeHTTP(&gzipWriter{ResponseWriter: w, gz: gz}, r)
+	})
+}
+
+type gzipWriter struct {
+	http.ResponseWriter
+	gz *gzip.Writer
+}
+
+func (w *gzipWriter) Write(p []byte) (int, error) { return w.gz.Write(p) }
 
 // guard enforces Host, CORS and write-origin rules before any route runs.
 func (a *api) guard(next http.Handler) http.Handler {

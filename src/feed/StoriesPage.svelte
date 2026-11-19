@@ -116,7 +116,7 @@
 
     <ol class="list-scroll min-h-0 flex-1 overflow-y-auto">
       {#each visible as story, i (story.id)}
-        <li class="cal-rise border-b border-line" style:--i={Math.min(i, MAX_STAGGER)}>
+        <li class="row-far border-b border-line {i < MAX_STAGGER ? 'cal-rise' : ''}" style:--i={i}>
           <StoryRow {story} {now} open={storyId === story.id} onToggle={() => toggle(story.id)} />
           <!-- In place, where there is no third column -->
           {#if storyId === story.id}

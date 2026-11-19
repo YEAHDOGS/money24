@@ -1,7 +1,7 @@
 <script>
   /**
-   * A story's picture. When an outlet sent a photo with its article, that photo, loaded straight
-   * from the outlet and faded in over the art. Otherwise generated art: one of four backdrops,
+   * A story's picture. When an outlet sent a photo with its article, that photo, resized to the
+   * width it is shown at (src/lib/picture.js) and faded in over the art. Otherwise generated art: one of four backdrops,
    * picked by the story's number so a story always wears the same one, under a large mark for its
    * category. The frame's size comes from the caller, so a photo arriving never moves anything.
    * Decorative: the headline beside it says what the story is.
@@ -20,6 +20,7 @@
   import Megaphone from '@lucide/svelte/icons/megaphone';
   import ChartCandlestick from '@lucide/svelte/icons/chart-candlestick';
   import Newspaper from '@lucide/svelte/icons/newspaper';
+  import { PICTURE_THUMB, sized } from './picture.js';
 
   /** One mark per story category in src/feed/stories.json; anything else gets the newspaper. */
   const MARKS = {
@@ -32,11 +33,12 @@
   const MARK_STROKE = 1.25;
 
   /**
-   * @type {{ image?: string, seed?: number, category?: string, overlay?: '' | 'scrim' | 'veil', eager?: boolean, class?: string }}
-   * image: a link to the outlet's photo, empty for art. seed: the story's number. overlay: a dark
-   * layer for text set over the picture. eager: load at once (the first thing on screen).
+   * @type {{ image?: string, width?: number, seed?: number, category?: string, overlay?: '' | 'scrim' | 'veil', eager?: boolean, class?: string }}
+   * image: a link to the outlet's photo, empty for art. width: the widest the picture is shown, in
+   * CSS pixels (PICTURE_THUMB or PICTURE_BANNER). seed: the story's number. overlay: a dark layer
+   * for text set over the picture. eager: load at once (the first thing on screen).
    */
-  let { image = '', seed = 0, category = '', overlay = '', eager = false, class: frame = '' } = $props();
+  let { image = '', width = PICTURE_THUMB, seed = 0, category = '', overlay = '', eager = false, class: frame = '' } = $props();
 
   /** The photo that finished loading, and the one that failed: compared with `image`, so a reused frame starts over. */
   let loaded = $state('');
@@ -51,7 +53,7 @@
   <Mark class="absolute top-1/2 left-1/2 size-[52%] max-h-28 max-w-28 -translate-x-1/2 -translate-y-1/2 text-white/55" strokeWidth={MARK_STROKE} />
   {#if image && failed !== image}
     <img
-      src={image}
+      src={sized(image, width)}
       alt=""
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"

@@ -55,7 +55,7 @@
     {#each client.headlines as h (h.id)}
       {@const style = categoryStyle(mode, h.category)}
       {@const angle = angleStyle(h.angle)}
-      <li>
+      <li class="row-far">
         <a href={h.href} target={h.external ? linkTarget : undefined} rel={h.external ? 'noopener noreferrer' : undefined}
           class="spring grid grid-cols-[2.25rem_minmax(0,1fr)_auto] gap-x-2.5 px-3 py-2.5 hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-neon-red lg:px-4 short:py-2 tv:grid-cols-[3.5rem_minmax(0,1fr)_auto] tv:py-4">
           <time class="pt-0.5 text-right font-mono text-xs text-muted tabular-nums tv:text-base" datetime={h.at}>{age(h.at, now)}</time>
