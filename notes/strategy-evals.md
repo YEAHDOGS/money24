@@ -201,3 +201,40 @@ Source: https://www.instagram.com/p/Dehcr83MK5H/ — Kraken's official @krakenfx
 **Can we do this? Yes — with the division of labor stated plainly.** The evaluation is the account holder's own trading test; Muse does not trade it for him (prop terms and the standing no-impersonation line). What Muse does: the training ground. The challenge is hard math — +12% before -3% at 1x means many small wins risking ~0.25-0.5% per trade — but the absence of a time limit makes it the fairest rule set in the prop-firm collection (compare TradeCatalyst: fees + pressure). Kraken Funded trades manually inside the Kraken app, so the Money 24 engine does not plug into it; Kraken Prop (Kraken Pro, $5K-$200K) is the separate advanced route. Recommended path: replicate the exact rules (12% target / 3% floor / 1x) as a paper challenge on the scoreboard, pass it on paper, then risk the $20.
 
 **Status:** evaluated and filed in the collection. No signup, no fee paid — both are his explicit taps.
+
+---
+
+## 2026-11-18 — Business-model eval: selling the service (at the owner's ask)
+
+Examined https://money24.dogs.red live and the repo state.
+
+**What exists:** a working engine (newsd + m24d paper runner + scoreboard + Plays board), in paper phase. The public landing renders as one sentence and the made-by-DOGS badge. There is no commercial surface at all: no price, no plan, no checkout, no waitlist in the repo. Nobody could pay for Money 24 today even if they wanted to.
+
+**What the owner is not thinking about:**
+
+1. The legal gate is already in the project's own docs (ARCHITECTURE section 11, via notes/trading-service.md): copy-trading for customers can trigger investment-adviser or broker-dealer registration; a lawyer is required before anyone else gets it. Selling signals is regulated differently from selling software. The safer sellable shape is the tool (desk, scoreboard, journal, alert plumbing) plus transparency/education — not trade-following.
+2. The proof does not exist yet. The go-live gate (100 trades / 30 trading days / profitable after slippage / max drawdown 20% of $1,000 paper capital) has not been run as a public clock. The public scoreboard record is the one asset no signal Discord can fake: timestamped, per-source, losers auto-disabled. Until it exists, there is nothing to sell that others do not claim for free.
+3. The public demo opens on a recorded snapshot when no runner is live. A snapshot is a museum; the living feed is the demo that sells.
+4. Distribution is zero: no audience, no list, no channel. Trading products sell on trust plus attention. The org's own shorts-clipping lanes are distribution machinery that fits scoreboard content exactly.
+5. Retail signal subscribers are the highest-touch customers in the portfolio (churn, hand-holding, blame on losses) — in tension with the owner's operator-free end-state. Low-touch shapes: license the feed to one existing community (B2B, one customer), or sell the tool/kit.
+6. Paper fills flatter. Selling on paper numbers that live trading then contradicts produces refunds, chargebacks and reputation damage. The honest pitch is the transparent record plus the gate, not returns.
+
+**Can it profit without customers?** Not as a service. The doors:
+
+- Own-money trading: the float is roughly $100-200; even extraordinary monthly returns are tens of dollars. Capital is the wall, not the bot.
+- Prop-firm capital (notes/prop-firms.md): the only real no-customer route — firm capital, risk capped at the evaluation fee. But copy-trading is banned on prop accounts; only own strategies qualify, and the edge must pass paper first or the fee is a donation. Kraken Funded ($20 Starter, the owner's own hands) is the cheap probe, evaluated 2026-11-13.
+- Broker/exchange affiliate payouts: customers with extra steps, and they need an audience.
+- Sell the system once: a customer of one.
+
+So "no customers" reduces to prop capital, which requires an own strategy that has passed the paper gate — the two filed paper-source specs (VWAP x EMA9, pairs/stat-arb) are the candidates in waiting.
+
+**How it could sell, ranked for this owner:**
+
+1. License the Plays + scoreboard feed to one existing paid community (a Discord/Telegram that already has members). One customer, no retail support load; the public record is the pitch.
+2. Sell the tool: the desk as a kit or hosted service for other small traders ("run your own signal desk", BYO keys per the architecture). One-time kit fee or a monthly tool subscription; stays furthest from the adviser line.
+3. Founding-member subscription to the live Plays feed, sold as transparency/education with disclaimers — only after the 30-day public paper record exists. Highest ceiling, highest touch, legal care required.
+4. Content first: daily scoreboard clips/posts build the audience that makes 1-3 possible.
+
+**Next step (one move):** start the public proof clock and put a price on the page. The scoreboard runs publicly toward the existing gate; the landing gains one offer — founding access to the live Plays feed, priced, with waitlist capture. First-dollar test: 10 founding members x $25/mo = $250/mo — small, but it is the proven first dollar the portfolio doctrine requires before scale. No new features until the record exists.
+
+**Status:** evaluated and filed. Nothing built, nothing sold, no spend. Decisions that remain the owner's: the offer and the price, the ThetaData data decision (parked), the VWAP greenlight (parked), the Kraken probe (parked).
