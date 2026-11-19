@@ -33,6 +33,9 @@ SQLite, and streams new items live over Server-Sent Events. The same binary runs
 | `GET /api/events?limit=&before=&kind=&tag=` | newest events (max 500) |
 | `GET /api/stream?after=` | SSE: `settings`, `stats` (meter changes), and one message per new event |
 | `GET /api/calendar?from=&to=` | scheduled events between two Unix-ms times (default: last week to four weeks ahead) |
+| `GET /api/stories?limit=&category=&tag=&country=&q=&tradable=1` | the stories board: loudest first, with category counts and unexplained movers |
+| `GET /api/stories/map` | coverage per country, counted two ways: where it is broadcast from, and what it is about |
+| `GET /api/stories/{id}` | one story with its articles and its recorded numbers |
 | `GET /api/network?since=` | network meter snapshot (live counters plus this month's ledger) |
 | `GET /api/settings` · `PUT /api/settings` `{"poll_every_ms": n}` | the global poll interval |
 | `GET /healthz` | `ok` |
@@ -71,8 +74,41 @@ Adding a calendar:
 | `nasdaq_earnings` | Nasdaq earnings calendar | `min_market_cap` skips small companies; impact follows company size |
 | `ics` | any `.ics` URL | start, summary, description, URL |
 
+### Stories
+
+Every 30 seconds newsd groups new articles into stories, reads each story and scores it. No model is
+involved: every number on the Stories page can be traced to the rule file or the count it came from.
+
+| Step | How | Where |
+|---|---|---|
+| **Group** | A headline joins the open story it shares enough words with (stop words dropped, plurals folded). A shared watchlist tag lowers the bar. A story closes after 36 hours without a new article. | `news/story.go`, `story_book.go` |
+| **Category** | Each headline votes with the phrases it carries; the file's order settles ties. | `news/story_rules.json` |
+| **Angle** | Headlines using a bullish word against those using a bearish one. No angle unless at least two headlines and a tenth of them take a side. | `news/story_rules.json` |
+| **Links** | A fixed, hand-written map from watchlist tag to instruments, each with a relation and a sign (`-1` moves against the story). | `news/links.json` |
+| **Places** | Where the outlet publishes from (the source's `country`, or the name GDELT sends) and the countries the headline names. | `news/countries.json`, built by `scripts/build-world.js` |
+| **Attention** | 0 to 100 from the outlets that covered it in the last six hours and the articles in the last hour. Rising, steady or fading compares this hour with the one before. | `news/story_read.go` |
+| **Validity** | 0 to 100: independent outlets (the same wire copy counts once), a primary source in the story, an outlet from our own list. | `news/story_read.go` |
+| **Volume** | One batch of quotes every five minutes for every linked instrument (Yahoo, through `engine/market`): the day's move and volume against the three-month average pace. | `news/story_service.go` |
+| **Reading** | Coverage against volume for the first direct instrument: `early` (coverage rising, volume not yet), `confirmed` (both up), `exhausted` (moved and fading), `quiet`. | `news/story_read.go` |
+| **Prediction markets** | Polymarket questions that share words with the story. The loudest tradable stories are also looked up by name, twice a pass at most. | `news/story_bets.go` |
+| **Record** | Every ten minutes each story's numbers are written to `story_metrics` and kept 30 days, so whether coverage led volume can be measured later. | `migrations/20261118_001_stories.sql` |
+
+A direct instrument trading at twice its pace with no story on the board is listed as a mover:
+volume without a story.
+
+- Angles are word counts. "Stock about to drop" (a release) counts as bearish; sarcasm and negation are not understood.
+- Volume pace is a straight line through the session. Trading is heavier at the open, so it reads high in the first hour.
+- Google News editions (`"bundle": true` sources) carry many outlets per feed. Their country is the edition that showed
+  the article, not the outlet's home, and their links pass through news.google.com.
+- Headlines only group with headlines in the same language.
+- Filings are not grouped: the SEC feeds would add thousands of one-article stories.
+- Articles are never deleted. With the Google News editions on, expect a few megabytes of new rows a day.
+
 ### Known limits
 
+- The four GDELT searches have stored nothing since they were added: GDELT answers "Timespan is too short" or
+  HTTP 429. They now ask for one hour every ten minutes; that is untested, because GDELT was still refusing
+  this address when it was changed.
 - Calendar sources are unofficial public endpoints (except TreasuryDirect) and can change or rate-limit without notice.
 - Earnings are stored as all-day events; "before open" or "after close" is in the detail line.
 - Tags are keyword matches ("pound" also matches weight). Headlines stay in their original language.
@@ -100,8 +136,8 @@ Check a key with `m24d --quote AAPL` or `m24d --quote AAPL260522C00300000`.
   subscription bought for OpenAPI itself (app subscriptions do not carry over): Nasdaq Basic for stocks,
   OPRA Real-Time Non-display for options.
 - Limits: 300 requests per minute in production, 30 in the sandbox. One lookup per callout stays far under.
-- Not built yet: watching prices after entry. Nothing closes a paper trade on its stop, target or time
-  exit, so the scoreboard has no finished trades to score.
+- After entry the exit watcher (`signals/watch.go`) follows each paper trade and closes it on its stop,
+  a target, its time exit or the source's own exit.
 
 ## m24d crypto quotes (Coinbase)
 

@@ -1,0 +1,1404 @@
+{
+ "countries": [
+  {
+   "id": "AE",
+   "name": "United Arab Emirates",
+   "terms": [
+    "united arab emirates",
+    "uae",
+    "dubai",
+    "abu dhabi",
+    "emirati"
+   ]
+  },
+  {
+   "id": "AF",
+   "name": "Afghanistan",
+   "terms": [
+    "afghanistan",
+    "afghan",
+    "kabul",
+    "taliban"
+   ]
+  },
+  {
+   "id": "AL",
+   "name": "Albania",
+   "terms": [
+    "albania"
+   ]
+  },
+  {
+   "id": "AM",
+   "name": "Armenia",
+   "terms": [
+    "armenia"
+   ]
+  },
+  {
+   "id": "AO",
+   "name": "Angola",
+   "terms": [
+    "angola"
+   ]
+  },
+  {
+   "id": "AR",
+   "name": "Argentina",
+   "terms": [
+    "argentina",
+    "argentine",
+    "buenos aires",
+    "milei"
+   ]
+  },
+  {
+   "id": "AT",
+   "name": "Austria",
+   "terms": [
+    "austria"
+   ]
+  },
+  {
+   "id": "AU",
+   "name": "Australia",
+   "terms": [
+    "australia",
+    "australian",
+    "sydney",
+    "canberra"
+   ]
+  },
+  {
+   "id": "AZ",
+   "name": "Azerbaijan",
+   "terms": [
+    "azerbaijan"
+   ]
+  },
+  {
+   "id": "BA",
+   "name": "Bosnia and Herzegovina",
+   "terms": [
+    "bosnia and herzegovina"
+   ]
+  },
+  {
+   "id": "BD",
+   "name": "Bangladesh",
+   "terms": [
+    "bangladesh"
+   ]
+  },
+  {
+   "id": "BE",
+   "name": "Belgium",
+   "terms": [
+    "belgium"
+   ]
+  },
+  {
+   "id": "BF",
+   "name": "Burkina Faso",
+   "terms": [
+    "burkina faso"
+   ]
+  },
+  {
+   "id": "BG",
+   "name": "Bulgaria",
+   "terms": [
+    "bulgaria"
+   ]
+  },
+  {
+   "id": "BI",
+   "name": "Burundi",
+   "terms": [
+    "burundi"
+   ]
+  },
+  {
+   "id": "BJ",
+   "name": "Benin",
+   "terms": [
+    "benin"
+   ]
+  },
+  {
+   "id": "BN",
+   "name": "Brunei",
+   "terms": [
+    "brunei",
+    "brunei darussalam"
+   ]
+  },
+  {
+   "id": "BO",
+   "name": "Bolivia",
+   "terms": [
+    "bolivia"
+   ]
+  },
+  {
+   "id": "BR",
+   "name": "Brazil",
+   "terms": [
+    "brazil",
+    "brazilian",
+    "brasilia"
+   ]
+  },
+  {
+   "id": "BS",
+   "name": "Bahamas",
+   "terms": [
+    "bahamas",
+    "the bahamas"
+   ]
+  },
+  {
+   "id": "BT",
+   "name": "Bhutan",
+   "terms": [
+    "bhutan"
+   ]
+  },
+  {
+   "id": "BW",
+   "name": "Botswana",
+   "terms": [
+    "botswana"
+   ]
+  },
+  {
+   "id": "BY",
+   "name": "Belarus",
+   "terms": [
+    "belarus"
+   ]
+  },
+  {
+   "id": "BZ",
+   "name": "Belize",
+   "terms": [
+    "belize"
+   ]
+  },
+  {
+   "id": "CA",
+   "name": "Canada",
+   "terms": [
+    "canada",
+    "canadian",
+    "ottawa",
+    "toronto"
+   ]
+  },
+  {
+   "id": "CD",
+   "name": "DR Congo",
+   "terms": [
+    "dr congo",
+    "democratic republic of the congo",
+    "drc",
+    "kinshasa",
+    "congolese"
+   ]
+  },
+  {
+   "id": "CF",
+   "name": "Central African Republic",
+   "terms": [
+    "central african republic"
+   ]
+  },
+  {
+   "id": "CG",
+   "name": "Congo",
+   "terms": [
+    "congo",
+    "republic of the congo"
+   ]
+  },
+  {
+   "id": "CH",
+   "name": "Switzerland",
+   "terms": [
+    "switzerland",
+    "swiss",
+    "zurich"
+   ]
+  },
+  {
+   "id": "CI",
+   "name": "Côte d'Ivoire",
+   "terms": [
+    "côte d'ivoire",
+    "ivory coast",
+    "cote divoire"
+   ]
+  },
+  {
+   "id": "CL",
+   "name": "Chile",
+   "terms": [
+    "chile",
+    "chilean"
+   ]
+  },
+  {
+   "id": "CM",
+   "name": "Cameroon",
+   "terms": [
+    "cameroon"
+   ]
+  },
+  {
+   "id": "CN",
+   "name": "China",
+   "terms": [
+    "china",
+    "people's republic of china",
+    "chinese",
+    "beijing",
+    "shanghai"
+   ]
+  },
+  {
+   "id": "CO",
+   "name": "Colombia",
+   "terms": [
+    "colombia",
+    "colombian",
+    "bogota"
+   ]
+  },
+  {
+   "id": "CR",
+   "name": "Costa Rica",
+   "terms": [
+    "costa rica"
+   ]
+  },
+  {
+   "id": "CU",
+   "name": "Cuba",
+   "terms": [
+    "cuba",
+    "cuban",
+    "havana"
+   ]
+  },
+  {
+   "id": "CY",
+   "name": "Cyprus",
+   "terms": [
+    "cyprus"
+   ]
+  },
+  {
+   "id": "CZ",
+   "name": "Czechia",
+   "terms": [
+    "czechia",
+    "czech republic",
+    "czech",
+    "prague"
+   ]
+  },
+  {
+   "id": "DE",
+   "name": "Germany",
+   "terms": [
+    "germany",
+    "german",
+    "berlin",
+    "bundesbank"
+   ]
+  },
+  {
+   "id": "DJ",
+   "name": "Djibouti",
+   "terms": [
+    "djibouti"
+   ]
+  },
+  {
+   "id": "DK",
+   "name": "Denmark",
+   "terms": [
+    "denmark"
+   ]
+  },
+  {
+   "id": "DO",
+   "name": "Dominican Republic",
+   "terms": [
+    "dominican republic"
+   ]
+  },
+  {
+   "id": "DZ",
+   "name": "Algeria",
+   "terms": [
+    "algeria"
+   ]
+  },
+  {
+   "id": "EC",
+   "name": "Ecuador",
+   "terms": [
+    "ecuador"
+   ]
+  },
+  {
+   "id": "EE",
+   "name": "Estonia",
+   "terms": [
+    "estonia"
+   ]
+  },
+  {
+   "id": "EG",
+   "name": "Egypt",
+   "terms": [
+    "egypt",
+    "egyptian",
+    "cairo"
+   ]
+  },
+  {
+   "id": "EH",
+   "name": "Western Sahara",
+   "terms": [
+    "western sahara"
+   ]
+  },
+  {
+   "id": "ER",
+   "name": "Eritrea",
+   "terms": [
+    "eritrea"
+   ]
+  },
+  {
+   "id": "ES",
+   "name": "Spain",
+   "terms": [
+    "spain",
+    "spanish",
+    "madrid"
+   ]
+  },
+  {
+   "id": "ET",
+   "name": "Ethiopia",
+   "terms": [
+    "ethiopia"
+   ]
+  },
+  {
+   "id": "FI",
+   "name": "Finland",
+   "terms": [
+    "finland"
+   ]
+  },
+  {
+   "id": "FJ",
+   "name": "Fiji",
+   "terms": [
+    "fiji"
+   ]
+  },
+  {
+   "id": "FK",
+   "name": "Falkland Islands / Malvinas",
+   "terms": [
+    "falkland islands / malvinas",
+    "falkland islands"
+   ]
+  },
+  {
+   "id": "FR",
+   "name": "France",
+   "terms": [
+    "france",
+    "french",
+    "paris",
+    "macron"
+   ]
+  },
+  {
+   "id": "GA",
+   "name": "Gabon",
+   "terms": [
+    "gabon"
+   ]
+  },
+  {
+   "id": "GB",
+   "name": "United Kingdom",
+   "terms": [
+    "united kingdom",
+    "britain",
+    "british",
+    "uk",
+    "u.k.",
+    "london",
+    "england",
+    "scotland",
+    "wales"
+   ]
+  },
+  {
+   "id": "GE",
+   "name": "Georgia",
+   "terms": [
+    "georgian",
+    "tbilisi"
+   ]
+  },
+  {
+   "id": "GH",
+   "name": "Ghana",
+   "terms": [
+    "ghana"
+   ]
+  },
+  {
+   "id": "GL",
+   "name": "Greenland",
+   "terms": [
+    "greenland"
+   ]
+  },
+  {
+   "id": "GM",
+   "name": "Gambia",
+   "terms": [
+    "gambia",
+    "the gambia"
+   ]
+  },
+  {
+   "id": "GN",
+   "name": "Guinea",
+   "terms": [
+    "guinea"
+   ]
+  },
+  {
+   "id": "GQ",
+   "name": "Equatorial Guinea",
+   "terms": [
+    "equatorial guinea"
+   ]
+  },
+  {
+   "id": "GR",
+   "name": "Greece",
+   "terms": [
+    "greece",
+    "greek",
+    "athens"
+   ]
+  },
+  {
+   "id": "GT",
+   "name": "Guatemala",
+   "terms": [
+    "guatemala"
+   ]
+  },
+  {
+   "id": "GW",
+   "name": "Guinea-Bissau",
+   "terms": [
+    "guinea-bissau"
+   ]
+  },
+  {
+   "id": "GY",
+   "name": "Guyana",
+   "terms": [
+    "guyana"
+   ]
+  },
+  {
+   "id": "HK",
+   "name": "Hong Kong",
+   "terms": [
+    "hong kong"
+   ]
+  },
+  {
+   "id": "HN",
+   "name": "Honduras",
+   "terms": [
+    "honduras"
+   ]
+  },
+  {
+   "id": "HR",
+   "name": "Croatia",
+   "terms": [
+    "croatia"
+   ]
+  },
+  {
+   "id": "HT",
+   "name": "Haiti",
+   "terms": [
+    "haiti"
+   ]
+  },
+  {
+   "id": "HU",
+   "name": "Hungary",
+   "terms": [
+    "hungary"
+   ]
+  },
+  {
+   "id": "ID",
+   "name": "Indonesia",
+   "terms": [
+    "indonesia",
+    "indonesian",
+    "jakarta"
+   ]
+  },
+  {
+   "id": "IE",
+   "name": "Ireland",
+   "terms": [
+    "ireland"
+   ]
+  },
+  {
+   "id": "IL",
+   "name": "Israel",
+   "terms": [
+    "israel",
+    "israeli",
+    "tel aviv",
+    "jerusalem",
+    "netanyahu"
+   ]
+  },
+  {
+   "id": "IN",
+   "name": "India",
+   "terms": [
+    "india",
+    "indian",
+    "new delhi",
+    "mumbai",
+    "modi"
+   ]
+  },
+  {
+   "id": "IQ",
+   "name": "Iraq",
+   "terms": [
+    "iraq",
+    "iraqi",
+    "baghdad"
+   ]
+  },
+  {
+   "id": "IR",
+   "name": "Iran",
+   "terms": [
+    "iran",
+    "iranian",
+    "tehran"
+   ]
+  },
+  {
+   "id": "IS",
+   "name": "Iceland",
+   "terms": [
+    "iceland"
+   ]
+  },
+  {
+   "id": "IT",
+   "name": "Italy",
+   "terms": [
+    "italy",
+    "italian",
+    "rome",
+    "milan"
+   ]
+  },
+  {
+   "id": "JM",
+   "name": "Jamaica",
+   "terms": [
+    "jamaica"
+   ]
+  },
+  {
+   "id": "JO",
+   "name": "Jordan",
+   "terms": [
+    "jordan"
+   ]
+  },
+  {
+   "id": "JP",
+   "name": "Japan",
+   "terms": [
+    "japan",
+    "japanese",
+    "tokyo"
+   ]
+  },
+  {
+   "id": "KE",
+   "name": "Kenya",
+   "terms": [
+    "kenya"
+   ]
+  },
+  {
+   "id": "KG",
+   "name": "Kyrgyzstan",
+   "terms": [
+    "kyrgyzstan"
+   ]
+  },
+  {
+   "id": "KH",
+   "name": "Cambodia",
+   "terms": [
+    "cambodia"
+   ]
+  },
+  {
+   "id": "KP",
+   "name": "North Korea",
+   "terms": [
+    "north korea",
+    "north korean",
+    "pyongyang"
+   ]
+  },
+  {
+   "id": "KR",
+   "name": "South Korea",
+   "terms": [
+    "south korea",
+    "republic of korea",
+    "south korean",
+    "seoul"
+   ]
+  },
+  {
+   "id": "KW",
+   "name": "Kuwait",
+   "terms": [
+    "kuwait"
+   ]
+  },
+  {
+   "id": "KZ",
+   "name": "Kazakhstan",
+   "terms": [
+    "kazakhstan"
+   ]
+  },
+  {
+   "id": "LA",
+   "name": "Laos",
+   "terms": [
+    "laos",
+    "lao pdr"
+   ]
+  },
+  {
+   "id": "LB",
+   "name": "Lebanon",
+   "terms": [
+    "lebanon",
+    "lebanese",
+    "beirut",
+    "hezbollah"
+   ]
+  },
+  {
+   "id": "LK",
+   "name": "Sri Lanka",
+   "terms": [
+    "sri lanka"
+   ]
+  },
+  {
+   "id": "LR",
+   "name": "Liberia",
+   "terms": [
+    "liberia"
+   ]
+  },
+  {
+   "id": "LS",
+   "name": "Lesotho",
+   "terms": [
+    "lesotho"
+   ]
+  },
+  {
+   "id": "LT",
+   "name": "Lithuania",
+   "terms": [
+    "lithuania"
+   ]
+  },
+  {
+   "id": "LU",
+   "name": "Luxembourg",
+   "terms": [
+    "luxembourg"
+   ]
+  },
+  {
+   "id": "LV",
+   "name": "Latvia",
+   "terms": [
+    "latvia"
+   ]
+  },
+  {
+   "id": "LY",
+   "name": "Libya",
+   "terms": [
+    "libya"
+   ]
+  },
+  {
+   "id": "MA",
+   "name": "Morocco",
+   "terms": [
+    "morocco"
+   ]
+  },
+  {
+   "id": "MD",
+   "name": "Moldova",
+   "terms": [
+    "moldova"
+   ]
+  },
+  {
+   "id": "ME",
+   "name": "Montenegro",
+   "terms": [
+    "montenegro"
+   ]
+  },
+  {
+   "id": "MG",
+   "name": "Madagascar",
+   "terms": [
+    "madagascar"
+   ]
+  },
+  {
+   "id": "MK",
+   "name": "North Macedonia",
+   "terms": [
+    "north macedonia"
+   ]
+  },
+  {
+   "id": "ML",
+   "name": "Mali",
+   "terms": [
+    "mali"
+   ]
+  },
+  {
+   "id": "MM",
+   "name": "Myanmar",
+   "terms": [
+    "myanmar",
+    "burma"
+   ]
+  },
+  {
+   "id": "MN",
+   "name": "Mongolia",
+   "terms": [
+    "mongolia"
+   ]
+  },
+  {
+   "id": "MR",
+   "name": "Mauritania",
+   "terms": [
+    "mauritania"
+   ]
+  },
+  {
+   "id": "MW",
+   "name": "Malawi",
+   "terms": [
+    "malawi"
+   ]
+  },
+  {
+   "id": "MX",
+   "name": "Mexico",
+   "terms": [
+    "mexico",
+    "mexican",
+    "mexico city"
+   ]
+  },
+  {
+   "id": "MY",
+   "name": "Malaysia",
+   "terms": [
+    "malaysia",
+    "malaysian",
+    "kuala lumpur"
+   ]
+  },
+  {
+   "id": "MZ",
+   "name": "Mozambique",
+   "terms": [
+    "mozambique"
+   ]
+  },
+  {
+   "id": "NA",
+   "name": "Namibia",
+   "terms": [
+    "namibia"
+   ]
+  },
+  {
+   "id": "NC",
+   "name": "New Caledonia",
+   "terms": [
+    "new caledonia"
+   ]
+  },
+  {
+   "id": "NE",
+   "name": "Niger",
+   "terms": [
+    "niger"
+   ]
+  },
+  {
+   "id": "NG",
+   "name": "Nigeria",
+   "terms": [
+    "nigeria",
+    "nigerian",
+    "lagos"
+   ]
+  },
+  {
+   "id": "NI",
+   "name": "Nicaragua",
+   "terms": [
+    "nicaragua"
+   ]
+  },
+  {
+   "id": "NL",
+   "name": "Netherlands",
+   "terms": [
+    "netherlands",
+    "dutch",
+    "amsterdam"
+   ]
+  },
+  {
+   "id": "NO",
+   "name": "Norway",
+   "terms": [
+    "norway",
+    "norwegian",
+    "oslo"
+   ]
+  },
+  {
+   "id": "NP",
+   "name": "Nepal",
+   "terms": [
+    "nepal"
+   ]
+  },
+  {
+   "id": "NZ",
+   "name": "New Zealand",
+   "terms": [
+    "new zealand"
+   ]
+  },
+  {
+   "id": "OM",
+   "name": "Oman",
+   "terms": [
+    "oman"
+   ]
+  },
+  {
+   "id": "PA",
+   "name": "Panama",
+   "terms": [
+    "panama"
+   ]
+  },
+  {
+   "id": "PE",
+   "name": "Peru",
+   "terms": [
+    "peru",
+    "peruvian"
+   ]
+  },
+  {
+   "id": "PG",
+   "name": "Papua New Guinea",
+   "terms": [
+    "papua new guinea"
+   ]
+  },
+  {
+   "id": "PH",
+   "name": "Philippines",
+   "terms": [
+    "philippines",
+    "philippine",
+    "filipino",
+    "manila"
+   ]
+  },
+  {
+   "id": "PK",
+   "name": "Pakistan",
+   "terms": [
+    "pakistan",
+    "pakistani",
+    "islamabad"
+   ]
+  },
+  {
+   "id": "PL",
+   "name": "Poland",
+   "terms": [
+    "poland",
+    "polish",
+    "warsaw"
+   ]
+  },
+  {
+   "id": "PR",
+   "name": "Puerto Rico",
+   "terms": [
+    "puerto rico"
+   ]
+  },
+  {
+   "id": "PS",
+   "name": "Palestine",
+   "terms": [
+    "palestine",
+    "gaza",
+    "palestinian",
+    "palestinians",
+    "west bank",
+    "hamas"
+   ]
+  },
+  {
+   "id": "PT",
+   "name": "Portugal",
+   "terms": [
+    "portugal"
+   ]
+  },
+  {
+   "id": "PY",
+   "name": "Paraguay",
+   "terms": [
+    "paraguay"
+   ]
+  },
+  {
+   "id": "QA",
+   "name": "Qatar",
+   "terms": [
+    "qatar",
+    "qatari",
+    "doha"
+   ]
+  },
+  {
+   "id": "RO",
+   "name": "Romania",
+   "terms": [
+    "romania"
+   ]
+  },
+  {
+   "id": "RS",
+   "name": "Serbia",
+   "terms": [
+    "serbia",
+    "republic of serbia"
+   ]
+  },
+  {
+   "id": "RU",
+   "name": "Russia",
+   "terms": [
+    "russia",
+    "russian federation",
+    "russian",
+    "moscow",
+    "kremlin",
+    "putin"
+   ]
+  },
+  {
+   "id": "RW",
+   "name": "Rwanda",
+   "terms": [
+    "rwanda"
+   ]
+  },
+  {
+   "id": "SA",
+   "name": "Saudi Arabia",
+   "terms": [
+    "saudi arabia",
+    "saudi",
+    "riyadh"
+   ]
+  },
+  {
+   "id": "SB",
+   "name": "Solomon Islands",
+   "terms": [
+    "solomon islands"
+   ]
+  },
+  {
+   "id": "SD",
+   "name": "Sudan",
+   "terms": [
+    "sudan"
+   ]
+  },
+  {
+   "id": "SE",
+   "name": "Sweden",
+   "terms": [
+    "sweden",
+    "swedish",
+    "stockholm",
+    "riksbank"
+   ]
+  },
+  {
+   "id": "SG",
+   "name": "Singapore",
+   "terms": [
+    "singapore",
+    "singaporean"
+   ]
+  },
+  {
+   "id": "SI",
+   "name": "Slovenia",
+   "terms": [
+    "slovenia"
+   ]
+  },
+  {
+   "id": "SK",
+   "name": "Slovakia",
+   "terms": [
+    "slovakia"
+   ]
+  },
+  {
+   "id": "SL",
+   "name": "Sierra Leone",
+   "terms": [
+    "sierra leone"
+   ]
+  },
+  {
+   "id": "SN",
+   "name": "Senegal",
+   "terms": [
+    "senegal"
+   ]
+  },
+  {
+   "id": "SO",
+   "name": "Somalia",
+   "terms": [
+    "somalia"
+   ]
+  },
+  {
+   "id": "SR",
+   "name": "Suriname",
+   "terms": [
+    "suriname"
+   ]
+  },
+  {
+   "id": "SS",
+   "name": "South Sudan",
+   "terms": [
+    "south sudan"
+   ]
+  },
+  {
+   "id": "SV",
+   "name": "El Salvador",
+   "terms": [
+    "el salvador"
+   ]
+  },
+  {
+   "id": "SY",
+   "name": "Syria",
+   "terms": [
+    "syria",
+    "syrian",
+    "damascus"
+   ]
+  },
+  {
+   "id": "SZ",
+   "name": "eSwatini",
+   "terms": [
+    "eswatini",
+    "kingdom of eswatini"
+   ]
+  },
+  {
+   "id": "TD",
+   "name": "Chad",
+   "terms": [
+    "chad"
+   ]
+  },
+  {
+   "id": "TF",
+   "name": "French Southern and Antarctic Lands",
+   "terms": [
+    "french southern and antarctic lands"
+   ]
+  },
+  {
+   "id": "TG",
+   "name": "Togo",
+   "terms": [
+    "togo"
+   ]
+  },
+  {
+   "id": "TH",
+   "name": "Thailand",
+   "terms": [
+    "thailand",
+    "thai",
+    "bangkok"
+   ]
+  },
+  {
+   "id": "TJ",
+   "name": "Tajikistan",
+   "terms": [
+    "tajikistan"
+   ]
+  },
+  {
+   "id": "TL",
+   "name": "Timor-Leste",
+   "terms": [
+    "timor-leste",
+    "east timor"
+   ]
+  },
+  {
+   "id": "TM",
+   "name": "Turkmenistan",
+   "terms": [
+    "turkmenistan"
+   ]
+  },
+  {
+   "id": "TN",
+   "name": "Tunisia",
+   "terms": [
+    "tunisia"
+   ]
+  },
+  {
+   "id": "TR",
+   "name": "Turkey",
+   "terms": [
+    "turkey",
+    "turkish",
+    "ankara",
+    "istanbul",
+    "erdogan",
+    "turkiye"
+   ]
+  },
+  {
+   "id": "TT",
+   "name": "Trinidad and Tobago",
+   "terms": [
+    "trinidad and tobago"
+   ]
+  },
+  {
+   "id": "TW",
+   "name": "Taiwan",
+   "terms": [
+    "taiwan",
+    "taiwanese",
+    "taipei"
+   ]
+  },
+  {
+   "id": "TZ",
+   "name": "Tanzania",
+   "terms": [
+    "tanzania",
+    "united republic of tanzania"
+   ]
+  },
+  {
+   "id": "UA",
+   "name": "Ukraine",
+   "terms": [
+    "ukraine",
+    "ukrainian",
+    "kyiv",
+    "kiev",
+    "zelensky",
+    "zelenskyy"
+   ]
+  },
+  {
+   "id": "UG",
+   "name": "Uganda",
+   "terms": [
+    "uganda"
+   ]
+  },
+  {
+   "id": "US",
+   "name": "United States",
+   "terms": [
+    "united states",
+    "united states of america",
+    "u.s.",
+    "america",
+    "american",
+    "americans",
+    "washington",
+    "white house",
+    "wall street",
+    "pentagon"
+   ]
+  },
+  {
+   "id": "UY",
+   "name": "Uruguay",
+   "terms": [
+    "uruguay"
+   ]
+  },
+  {
+   "id": "UZ",
+   "name": "Uzbekistan",
+   "terms": [
+    "uzbekistan"
+   ]
+  },
+  {
+   "id": "VE",
+   "name": "Venezuela",
+   "terms": [
+    "venezuela",
+    "venezuelan",
+    "caracas",
+    "maduro"
+   ]
+  },
+  {
+   "id": "VN",
+   "name": "Vietnam",
+   "terms": [
+    "vietnam",
+    "vietnamese",
+    "hanoi"
+   ]
+  },
+  {
+   "id": "VU",
+   "name": "Vanuatu",
+   "terms": [
+    "vanuatu"
+   ]
+  },
+  {
+   "id": "XK",
+   "name": "Kosovo",
+   "terms": [
+    "kosovo"
+   ]
+  },
+  {
+   "id": "YE",
+   "name": "Yemen",
+   "terms": [
+    "yemen",
+    "yemeni",
+    "houthi",
+    "houthis"
+   ]
+  },
+  {
+   "id": "ZA",
+   "name": "South Africa",
+   "terms": [
+    "south africa",
+    "south african",
+    "johannesburg"
+   ]
+  },
+  {
+   "id": "ZM",
+   "name": "Zambia",
+   "terms": [
+    "zambia"
+   ]
+  },
+  {
+   "id": "ZW",
+   "name": "Zimbabwe",
+   "terms": [
+    "zimbabwe"
+   ]
+  }
+ ]
+}

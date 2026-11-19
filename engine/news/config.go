@@ -19,7 +19,7 @@ const (
 	VENUE_POLYMARKET = "polymarket"
 )
 
-//go:embed sources.json watchlist.json calendars.json
+//go:embed sources.json watchlist.json calendars.json story_rules.json links.json countries.json
 var defaults embed.FS
 
 // Source is one entry in sources.json. MinEvery is a politeness floor under the global poll interval.
@@ -29,6 +29,8 @@ type Source struct {
 	Type        string        `json:"type"`
 	Kind        string        `json:"kind"`
 	URL         string        `json:"url"`
+	Country     string        `json:"country,omitempty"` // where a single outlet publishes from: a country id from countries.json
+	Bundle      bool          `json:"bundle,omitempty"` // the feed carries many outlets: each item names its own and lists related coverage
 	MinEveryRaw string        `json:"min_every,omitempty"`
 	MinEvery    time.Duration `json:"-"`
 }

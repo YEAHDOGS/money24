@@ -19,11 +19,14 @@ const (
 	ERROR_SNIPPET     = 160
 	SCHEME_HTTP       = "http"
 	SCHEME_HTTPS      = "https"
+	MAX_BUNDLE        = 8 // related articles read from one bundled item
 )
 
 var (
 	TAG_PATTERN   = regexp.MustCompile(`<[^>]*>`)
 	SPACE_PATTERN = regexp.MustCompile(`[\s\p{Zs}]+`)
+	// One related article in a bundled item: its link, its headline, then its outlet.
+	BUNDLE_ARTICLE = regexp.MustCompile(`<a href="([^"]+)"[^>]*>(.*?)</a>(?:&nbsp;|\s)*<font[^>]*>(.*?)</font>`)
 	TIME_LAYOUTS  = []string{
 		time.RFC1123Z, time.RFC1123, time.RFC3339, time.RFC3339Nano,
 		"Mon, 2 Jan 2006 15:04:05 -0700", "Mon, 2 Jan 2006 15:04:05 MST",
@@ -83,6 +86,7 @@ type feedItem struct {
 	PubDate     string   `xml:"pubDate"`
 	Date        string   `xml:"date"` // dc:date
 	GUID        string   `xml:"guid"`
+	Outlet      string   `xml:"source"` // the publisher, on a feed that carries many (Google News)
 }
 
 type atomLink struct {
@@ -133,6 +137,10 @@ func parseFeed(body []byte, src Source) ([]Event, error) {
 	events := []Event{}
 	for _, it := range append(doc.Channel.Items, doc.Items...) {
 		link := firstNonEmpty(append(it.Links, it.GUID)...)
+		if src.Bundle {
+			events = append(events, bundleEvents(src, it, link)...)
+			continue
+		}
 		if e, ok := newEvent(src, it.Title, link, it.Description, firstNonEmpty(it.PubDate, it.Date)); ok {
 			events = append(events, e)
 		}
@@ -145,6 +153,29 @@ func parseFeed(body []byte, src Source) ([]Event, error) {
 		}
 	}
 	return events, nil
+}
+
+// bundleEvents reads one item of a feed that bundles many outlets: the item itself, published by the
+// outlet it names, and the related coverage listed in its description, one article per outlet.
+// Their summaries are dropped: they are the same list of other outlets' headlines, not the article.
+func bundleEvents(src Source, it feedItem, link string) []Event {
+	published := firstNonEmpty(it.PubDate, it.Date)
+	outlet := clean(it.Outlet, 0)
+	events := []Event{}
+	if e, ok := newEvent(src, strings.TrimSuffix(clean(it.Title, 0), TITLE_DASH+outlet), link, "", published); ok {
+		e.Source = firstNonEmpty(outlet, src.Label)
+		events = append(events, e)
+	}
+	for _, m := range BUNDLE_ARTICLE.FindAllStringSubmatch(it.Description, MAX_BUNDLE) {
+		if m[1] == link {
+			continue
+		}
+		if e, ok := newEvent(src, m[2], html.UnescapeString(m[1]), "", published); ok {
+			e.Source = firstNonEmpty(clean(m[3], 0), src.Label)
+			events = append(events, e)
+		}
+	}
+	return events
 }
 
 func newEvent(src Source, title, link, summary, published string) (Event, bool) {

@@ -1,0 +1,213 @@
+{
+  "_about": "What each watchlist tag can move. A story's angle is carried to each instrument through its sign: 1 moves with the story, -1 moves against it. Relations: direct (the thing itself), peer, sector, commodity, macro. Symbols are Yahoo Finance symbols. This is a fixed map written by hand; a story never invents a link.",
+  "links": {
+    "BTC": [
+      { "symbol": "BTC-USD", "relation": "direct", "sign": 1, "why": "Bitcoin itself" },
+      { "symbol": "IBIT", "relation": "sector", "sign": 1, "why": "Spot bitcoin fund" },
+      { "symbol": "MSTR", "relation": "peer", "sign": 1, "why": "Holds bitcoin on its balance sheet" },
+      { "symbol": "COIN", "relation": "peer", "sign": 1, "why": "Earns on crypto trading volume" }
+    ],
+    "ETH": [{ "symbol": "ETH-USD", "relation": "direct", "sign": 1, "why": "Ether itself" }],
+    "SOL": [{ "symbol": "SOL-USD", "relation": "direct", "sign": 1, "why": "Solana itself" }],
+    "XRP": [{ "symbol": "XRP-USD", "relation": "direct", "sign": 1, "why": "XRP itself" }],
+    "DOGE": [{ "symbol": "DOGE-USD", "relation": "direct", "sign": 1, "why": "Dogecoin itself" }],
+    "CRYPTO": [
+      { "symbol": "BTC-USD", "relation": "sector", "sign": 1, "why": "The largest coin leads the rest" },
+      { "symbol": "ETH-USD", "relation": "sector", "sign": 1, "why": "Second largest coin" },
+      { "symbol": "COIN", "relation": "sector", "sign": 1, "why": "Earns on crypto trading volume" }
+    ],
+    "COIN": [
+      { "symbol": "COIN", "relation": "direct", "sign": 1, "why": "Coinbase itself" },
+      { "symbol": "HOOD", "relation": "peer", "sign": 1, "why": "Retail trading rival" }
+    ],
+    "MSTR": [
+      { "symbol": "MSTR", "relation": "direct", "sign": 1, "why": "The company itself" },
+      { "symbol": "BTC-USD", "relation": "peer", "sign": 1, "why": "Its treasury is bitcoin" }
+    ],
+    "TSLA": [
+      { "symbol": "TSLA", "relation": "direct", "sign": 1, "why": "Tesla itself" },
+      { "symbol": "RIVN", "relation": "peer", "sign": 1, "why": "Electric vehicle rival" }
+    ],
+    "SPCX": [{ "symbol": "TSLA", "relation": "peer", "sign": 1, "why": "Shares its chief executive" }],
+    "AAPL": [
+      { "symbol": "AAPL", "relation": "direct", "sign": 1, "why": "Apple itself" },
+      { "symbol": "QQQ", "relation": "sector", "sign": 1, "why": "A top weight in the Nasdaq 100" }
+    ],
+    "NVDA": [
+      { "symbol": "NVDA", "relation": "direct", "sign": 1, "why": "Nvidia itself" },
+      { "symbol": "AMD", "relation": "peer", "sign": 1, "why": "Chip rival" },
+      { "symbol": "TSM", "relation": "peer", "sign": 1, "why": "Makes Nvidia's chips" },
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" }
+    ],
+    "AMD": [
+      { "symbol": "AMD", "relation": "direct", "sign": 1, "why": "AMD itself" },
+      { "symbol": "NVDA", "relation": "peer", "sign": 1, "why": "Chip rival" },
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" }
+    ],
+    "INTC": [
+      { "symbol": "INTC", "relation": "direct", "sign": 1, "why": "Intel itself" },
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" }
+    ],
+    "TSM": [
+      { "symbol": "TSM", "relation": "direct", "sign": 1, "why": "TSMC itself" },
+      { "symbol": "NVDA", "relation": "peer", "sign": 1, "why": "Its largest customer by growth" },
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" }
+    ],
+    "AVGO": [
+      { "symbol": "AVGO", "relation": "direct", "sign": 1, "why": "Broadcom itself" },
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" }
+    ],
+    "CHIPS": [
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" },
+      { "symbol": "NVDA", "relation": "sector", "sign": 1, "why": "Largest chip company" },
+      { "symbol": "TSM", "relation": "sector", "sign": 1, "why": "Largest chip maker" }
+    ],
+    "AI": [
+      { "symbol": "NVDA", "relation": "sector", "sign": 1, "why": "Sells the chips AI runs on" },
+      { "symbol": "MSFT", "relation": "sector", "sign": 1, "why": "Largest AI cloud seller" },
+      { "symbol": "SMH", "relation": "sector", "sign": 1, "why": "Chip sector fund" }
+    ],
+    "MSFT": [
+      { "symbol": "MSFT", "relation": "direct", "sign": 1, "why": "Microsoft itself" },
+      { "symbol": "QQQ", "relation": "sector", "sign": 1, "why": "A top weight in the Nasdaq 100" }
+    ],
+    "GOOGL": [{ "symbol": "GOOGL", "relation": "direct", "sign": 1, "why": "Alphabet itself" }],
+    "AMZN": [{ "symbol": "AMZN", "relation": "direct", "sign": 1, "why": "Amazon itself" }],
+    "META": [{ "symbol": "META", "relation": "direct", "sign": 1, "why": "Meta itself" }],
+    "NFLX": [{ "symbol": "NFLX", "relation": "direct", "sign": 1, "why": "Netflix itself" }],
+    "DIS": [{ "symbol": "DIS", "relation": "direct", "sign": 1, "why": "Disney itself" }],
+    "PLTR": [{ "symbol": "PLTR", "relation": "direct", "sign": 1, "why": "Palantir itself" }],
+    "UBER": [
+      { "symbol": "UBER", "relation": "direct", "sign": 1, "why": "Uber itself" },
+      { "symbol": "LYFT", "relation": "peer", "sign": 1, "why": "Ride-hailing rival" }
+    ],
+    "TTWO": [
+      { "symbol": "TTWO", "relation": "direct", "sign": 1, "why": "Take-Two owns Rockstar Games and Grand Theft Auto" },
+      { "symbol": "EA", "relation": "peer", "sign": 1, "why": "Game publisher rival" },
+      { "symbol": "SONY", "relation": "peer", "sign": 1, "why": "A big release sells consoles" }
+    ],
+    "MRNA": [
+      { "symbol": "MRNA", "relation": "direct", "sign": 1, "why": "Moderna itself" },
+      { "symbol": "PFE", "relation": "peer", "sign": 1, "why": "Vaccine rival" },
+      { "symbol": "XBI", "relation": "sector", "sign": 1, "why": "Biotech sector fund" }
+    ],
+    "PHARMA": [
+      { "symbol": "XBI", "relation": "sector", "sign": 1, "why": "Biotech sector fund" },
+      { "symbol": "LLY", "relation": "sector", "sign": 1, "why": "Largest drugmaker" },
+      { "symbol": "NVO", "relation": "sector", "sign": 1, "why": "Weight-loss drug leader" },
+      { "symbol": "PFE", "relation": "sector", "sign": 1, "why": "Large drugmaker" }
+    ],
+    "CRWD": [
+      { "symbol": "CRWD", "relation": "direct", "sign": 1, "why": "CrowdStrike itself" },
+      { "symbol": "PANW", "relation": "peer", "sign": 1, "why": "Security software rival" }
+    ],
+    "BA": [
+      { "symbol": "BA", "relation": "direct", "sign": 1, "why": "Boeing itself" },
+      { "symbol": "ITA", "relation": "sector", "sign": 1, "why": "Aerospace and defense fund" }
+    ],
+    "AIRLINES": [
+      { "symbol": "JETS", "relation": "sector", "sign": 1, "why": "Airline sector fund" },
+      { "symbol": "DAL", "relation": "sector", "sign": 1, "why": "Delta Air Lines" },
+      { "symbol": "UAL", "relation": "sector", "sign": 1, "why": "United Airlines" },
+      { "symbol": "AAL", "relation": "sector", "sign": 1, "why": "American Airlines" }
+    ],
+    "BANKS": [
+      { "symbol": "XLF", "relation": "sector", "sign": 1, "why": "Financial sector fund" },
+      { "symbol": "JPM", "relation": "sector", "sign": 1, "why": "Largest US bank" },
+      { "symbol": "KRE", "relation": "sector", "sign": 1, "why": "Regional bank fund" }
+    ],
+    "ENERGY": [
+      { "symbol": "XOM", "relation": "direct", "sign": 1, "why": "Exxon Mobil" },
+      { "symbol": "CVX", "relation": "direct", "sign": 1, "why": "Chevron" },
+      { "symbol": "XLE", "relation": "sector", "sign": 1, "why": "Energy sector fund" }
+    ],
+    "OIL": [
+      { "symbol": "CL=F", "relation": "direct", "sign": 1, "why": "Crude oil futures" },
+      { "symbol": "USO", "relation": "commodity", "sign": 1, "why": "Oil fund" },
+      { "symbol": "XLE", "relation": "sector", "sign": 1, "why": "Oil companies earn more when oil is dear" },
+      { "symbol": "JETS", "relation": "sector", "sign": -1, "why": "Fuel is an airline's biggest cost" }
+    ],
+    "NATGAS": [
+      { "symbol": "NG=F", "relation": "direct", "sign": 1, "why": "Natural gas futures" },
+      { "symbol": "UNG", "relation": "commodity", "sign": 1, "why": "Natural gas fund" }
+    ],
+    "GOLD": [
+      { "symbol": "GC=F", "relation": "direct", "sign": 1, "why": "Gold futures" },
+      { "symbol": "GLD", "relation": "commodity", "sign": 1, "why": "Gold fund" },
+      { "symbol": "GDX", "relation": "sector", "sign": 1, "why": "Gold miners fund" }
+    ],
+    "SILVER": [
+      { "symbol": "SI=F", "relation": "direct", "sign": 1, "why": "Silver futures" },
+      { "symbol": "SLV", "relation": "commodity", "sign": 1, "why": "Silver fund" }
+    ],
+    "COPPER": [
+      { "symbol": "HG=F", "relation": "direct", "sign": 1, "why": "Copper futures" },
+      { "symbol": "FCX", "relation": "sector", "sign": 1, "why": "Largest listed copper miner" }
+    ],
+    "AGRI": [
+      { "symbol": "ZW=F", "relation": "direct", "sign": 1, "why": "Wheat futures" },
+      { "symbol": "ZC=F", "relation": "direct", "sign": 1, "why": "Corn futures" },
+      { "symbol": "DBA", "relation": "commodity", "sign": 1, "why": "Farm commodities fund" }
+    ],
+    "SPX": [
+      { "symbol": "SPY", "relation": "direct", "sign": 1, "why": "S&P 500 fund" },
+      { "symbol": "QQQ", "relation": "sector", "sign": 1, "why": "Nasdaq 100 fund" },
+      { "symbol": "^VIX", "relation": "macro", "sign": -1, "why": "Fear index: rises when stocks fall" }
+    ],
+    "FED": [
+      { "symbol": "TLT", "relation": "macro", "sign": 1, "why": "Long bonds rise when rates are cut" },
+      { "symbol": "SPY", "relation": "macro", "sign": 1, "why": "Stocks like cheaper money" },
+      { "symbol": "UUP", "relation": "macro", "sign": -1, "why": "The dollar weakens when rates fall" }
+    ],
+    "MACRO": [
+      { "symbol": "SPY", "relation": "macro", "sign": 1, "why": "The broad market" },
+      { "symbol": "TLT", "relation": "macro", "sign": 1, "why": "Long bonds" }
+    ],
+    "RATES": [
+      { "symbol": "TLT", "relation": "macro", "sign": -1, "why": "Bond prices fall when yields rise" },
+      { "symbol": "KRE", "relation": "macro", "sign": 1, "why": "Banks earn more on higher yields" }
+    ],
+    "USD": [
+      { "symbol": "UUP", "relation": "direct", "sign": 1, "why": "Dollar index fund" },
+      { "symbol": "GLD", "relation": "macro", "sign": -1, "why": "Gold is priced in dollars" }
+    ],
+    "EUR": [{ "symbol": "FXE", "relation": "direct", "sign": 1, "why": "Euro fund" }],
+    "JPY": [{ "symbol": "FXY", "relation": "direct", "sign": 1, "why": "Yen fund" }],
+    "GBP": [{ "symbol": "FXB", "relation": "direct", "sign": 1, "why": "Pound fund" }],
+    "CNY": [
+      { "symbol": "FXI", "relation": "macro", "sign": 1, "why": "Large Chinese companies fund" },
+      { "symbol": "KWEB", "relation": "macro", "sign": 1, "why": "Chinese internet fund" }
+    ],
+    "CHINA": [
+      { "symbol": "FXI", "relation": "sector", "sign": 1, "why": "Large Chinese companies fund" },
+      { "symbol": "KWEB", "relation": "sector", "sign": 1, "why": "Chinese internet fund" },
+      { "symbol": "BABA", "relation": "sector", "sign": 1, "why": "Alibaba" }
+    ],
+    "POLITICS": [{ "symbol": "SPY", "relation": "macro", "sign": 1, "why": "The broad market" }],
+    "GEO": [
+      { "symbol": "SPY", "relation": "macro", "sign": 1, "why": "Stocks fall on conflict and rise on calm" },
+      { "symbol": "ITA", "relation": "sector", "sign": -1, "why": "Defense companies gain when conflict grows" },
+      { "symbol": "CL=F", "relation": "commodity", "sign": -1, "why": "Oil rises when supply is at risk" },
+      { "symbol": "GLD", "relation": "macro", "sign": -1, "why": "Gold is where money hides" }
+    ],
+    "DEFENSE": [
+      { "symbol": "ITA", "relation": "sector", "sign": 1, "why": "Aerospace and defense fund" },
+      { "symbol": "LMT", "relation": "sector", "sign": 1, "why": "Lockheed Martin" },
+      { "symbol": "RTX", "relation": "sector", "sign": 1, "why": "RTX" }
+    ],
+    "EV": [
+      { "symbol": "TSLA", "relation": "sector", "sign": 1, "why": "Largest US electric car maker" },
+      { "symbol": "RIVN", "relation": "sector", "sign": 1, "why": "Electric truck maker" },
+      { "symbol": "LIT", "relation": "commodity", "sign": 1, "why": "Lithium and battery fund" }
+    ],
+    "RETAIL": [
+      { "symbol": "XRT", "relation": "sector", "sign": 1, "why": "Retail sector fund" },
+      { "symbol": "WMT", "relation": "sector", "sign": 1, "why": "Walmart" },
+      { "symbol": "COST", "relation": "sector", "sign": 1, "why": "Costco" }
+    ],
+    "HOUSING": [
+      { "symbol": "XHB", "relation": "sector", "sign": 1, "why": "Homebuilders fund" },
+      { "symbol": "ITB", "relation": "sector", "sign": 1, "why": "Home construction fund" }
+    ]
+  }
+}

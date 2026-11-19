@@ -173,6 +173,11 @@ type Tick struct {
 	Price     float64 `json:"price"`
 	ChangePct float64 `json:"change_pct"`
 	Currency  string  `json:"currency"`
+	// Volume is the session so far (a coin: the last 24 hours); AvgVolume is the three-month daily average.
+	Volume    float64 `json:"volume,omitempty"`
+	AvgVolume float64 `json:"avg_volume,omitempty"`
+	Type      string  `json:"type,omitempty"`         // EQUITY, ETF, CRYPTOCURRENCY, FUTURE, INDEX, CURRENCY
+	State     string  `json:"market_state,omitempty"` // PRE, REGULAR, POST, CLOSED
 }
 
 // raw is Yahoo's wrapped number: {"raw": 1.5, "fmt": "1.50"}. A missing value arrives as {}.
@@ -547,6 +552,10 @@ func (c *Client) Ticks(ctx context.Context, symbols []string) ([]Tick, error) {
 				Price     float64 `json:"regularMarketPrice"`
 				ChangePct float64 `json:"regularMarketChangePercent"`
 				Currency  string  `json:"currency"`
+				Volume    float64 `json:"regularMarketVolume"`
+				AvgVolume float64 `json:"averageDailyVolume3Month"`
+				Type      string  `json:"quoteType"`
+				State     string  `json:"marketState"`
 			} `json:"result"`
 		} `json:"quoteResponse"`
 	}
@@ -559,7 +568,8 @@ func (c *Client) Ticks(ctx context.Context, symbols []string) ([]Tick, error) {
 		if name == "" {
 			name = q.ShortName
 		}
-		out = append(out, Tick{Symbol: q.Symbol, Name: name, Price: q.Price, ChangePct: q.ChangePct, Currency: q.Currency})
+		out = append(out, Tick{Symbol: q.Symbol, Name: name, Price: q.Price, ChangePct: q.ChangePct, Currency: q.Currency,
+			Volume: q.Volume, AvgVolume: q.AvgVolume, Type: q.Type, State: q.State})
 	}
 	return out, nil
 }

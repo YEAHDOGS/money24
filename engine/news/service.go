@@ -37,6 +37,7 @@ type Service struct {
 	calendars []CalSource
 	schedule  *Schedule
 	clock     clock
+	stories   *storyBook
 }
 
 // Settings is what the UI can read and change.
@@ -64,10 +65,15 @@ func NewService(ctx context.Context, cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	stories, err := newStoryBook(sources)
+	if err != nil {
+		return nil, err
+	}
 	monitor := NewMonitor(sources)
 	for _, c := range calendars {
 		monitor.register(SourceStats{ID: c.ID, Label: c.Label, Kind: c.Category, Group: GROUP_CALENDAR, URL: c.URL, MinEveryMs: c.MinEvery.Milliseconds()})
 	}
+	monitor.register(SourceStats{ID: BET_SEARCH_ID, Label: BET_SEARCH_LABEL, Kind: BET_SEARCH_KIND, Group: GROUP_NEWS, URL: BET_SEARCH_URL})
 	return &Service{
 		store:     store,
 		hub:       NewHub(),
@@ -77,6 +83,7 @@ func NewService(ctx context.Context, cfg Config) (*Service, error) {
 		sources:   sources,
 		calendars: calendars,
 		schedule:  NewSchedule(store.pollEvery(ctx, DEFAULT_POLL)),
+		stories:   stories,
 	}, nil
 }
 
@@ -91,6 +98,7 @@ func (s *Service) Run(ctx context.Context) {
 	go s.cycleLoop(ctx)
 	go s.calendarLoop(ctx)
 	go s.statsLoop(ctx)
+	go s.storyLoop(ctx)
 	s.flushLoop(ctx)
 	s.store.Close()
 }
