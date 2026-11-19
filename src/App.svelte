@@ -12,6 +12,7 @@
   import sticker from "./assets/made-by-dogs-sticker.webp";
   import logo from "./assets/dogs-logo.svg";
   import NoticeBar from "./lib/NoticeBar.svelte";
+  import Waitlist from "./landing/Waitlist.svelte";
   import copy from "./landing/landing.json";
   import sourceList from "./landing/sources.json";
 
@@ -30,7 +31,7 @@
     { id: "sources", label: "Public sources" },
     { id: "paper", label: "Paper first" },
     { id: "wip", label: "Not active yet" },
-    { id: "soon", label: "Soon" },
+    { id: "soon", label: "Join the waitlist" },
   ];
   const REVEAL_THRESHOLD = 0.55;
 
@@ -234,6 +235,7 @@
     <div class="content content-bottom">
       <h2 class="rv word">SOON</h2>
       <p class="rv line">In Development.</p>
+      <Waitlist />
       <a class="badge" href={DOGS_URL} target="_blank" rel="noopener noreferrer">
         <img src={sticker} alt="This product was made by DOGS" width="360" height="119" />
       </a>

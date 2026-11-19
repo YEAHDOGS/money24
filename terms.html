@@ -280,6 +280,10 @@
           <li><strong>To AI providers you choose:</strong> when you ask for an analysis, Money 24 sends that provider the
             play, the link or text you gave it, and the market and news data needed to answer.</li>
           <li><strong>To market data providers:</strong> Money 24 sends the tickers and contracts it looks up.</li>
+          <li><strong>The waitlist:</strong> if you join it, your email address goes to the DOGS API (a Cloudflare
+            Worker) and is stored in a Cloudflare D1 database with the time you joined. It is used to tell you when
+            Money 24 opens, and for nothing else. Submitting the form loads Cloudflare Turnstile, which checks that a
+            person sent it.</li>
           <li><strong>We do not sell your personal data.</strong> If Money 24 adds accounts or cloud features, we will
             describe what they store before you use them.</li>
         </ul>
