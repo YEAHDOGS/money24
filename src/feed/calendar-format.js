@@ -9,6 +9,18 @@ const MONDAY_OFFSET = 6; // days since Monday, for JS weekdays where Sunday is 0
 const DATE_KEY_LENGTH = 'YYYY-MM-DD'.length;
 const CATEGORY_ALL = 'all';
 const CATEGORY_HOLIDAY = 'holiday';
+const GROUP_MIN = 2; // a day needs this many matching events before they fold into one row
+/** Titles the Forex Factory feed gives Federal Reserve events: "FOMC Statement", "Federal Funds Rate",
+ * "Fed Chair Powell Speaks". "Fed" must open the title, so regional surveys ("Philly Fed Manufacturing
+ * Index") and the Treasury's "Federal Budget Balance" stay rows of their own. */
+const FED_TITLES = [/\bFOMC\b/i, /\bFederal Funds\b/i, /\bFederal Reserve\b/i, /^Fed\b/i, /\bBeige Book\b/i, /\bJackson Hole\b/i];
+/** What folds into one row per day; the first rule an event meets wins. `kind` names the group in
+ * strings.json, `name` is the field the folded row previews, `preview` how many of them, and
+ * `byTitle` breaks impact ties by title instead of by time. */
+const GROUP_RULES = [
+  { kind: 'earnings', category: 'earnings', name: 'symbol', preview: 5, byTitle: true },
+  { kind: 'fed', category: 'macro', region: 'USD', titles: FED_TITLES, name: 'title', preview: 2 },
+];
 
 /** Impact as a number, so filters and sorting can compare it. */
 export const IMPACT_RANK = { '': 0, low: 1, medium: 2, high: 3 };
@@ -32,6 +44,12 @@ const RANGE_FORMAT = new Intl.DateTimeFormat(undefined, { month: 'short', day: '
 /** @typedef {{uid:string, source:string, category:string, starts_at:string, all_day:boolean, title:string,
  *   region?:string, symbol?:string, impact?:string, forecast?:string, previous?:string, actual?:string,
  *   detail?:string, url?:string}} CalEvent */
+
+/** Several events of one kind on one day, folded into a single row. `events` keep the day's order,
+ * `names` are the biggest ones (highest impact first), `more` is how many the preview leaves out.
+ * @typedef {{kind:string, category:string, events:CalEvent[], names:string[], more:number, impact:string}} CalGroup */
+/** One agenda row. `event` is the event itself, or a group's earliest member, which places the row.
+ * @typedef {{key:string, event:CalEvent, group?:CalGroup}} CalRow */
 
 /** @param {Date} d local date as YYYY-MM-DD */
 export function dateKey(d) {
@@ -94,6 +112,35 @@ export function groupByDay(events) {
       || a.title.localeCompare(b.title));
   }
   return days;
+}
+
+/** A day's agenda rows: earnings fold into one row and Federal Reserve events into another, once the day
+ * has GROUP_MIN of them. The day's order is kept; a group sits where its earliest member would.
+ * @param {CalEvent[]} events one day from groupByDay @param {string} day its key @returns {CalRow[]} */
+export function dayRows(events, day) {
+  const rules = events.map((e) => GROUP_RULES.find((r) =>
+    r.category === e.category && (!r.region || r.region === e.region) && (!r.titles || r.titles.some((t) => t.test(e.title)))));
+  /** @type {Record<string, CalEvent[]>} */
+  const members = {};
+  events.forEach((e, i) => { if (rules[i]) (members[rules[i].kind] ??= []).push(e); });
+
+  /** @type {CalRow[]} */
+  const rows = [];
+  events.forEach((event, i) => {
+    const rule = rules[i];
+    const group = rule ? members[rule.kind] : [];
+    if (group.length < GROUP_MIN) { rows.push({ key: event.uid, event }); return; }
+    if (group[0] !== event) return; // folded into the row its earliest member opened
+    const ranked = [...group].sort((a, b) =>
+      (IMPACT_RANK[b.impact ?? ''] ?? 0) - (IMPACT_RANK[a.impact ?? ''] ?? 0) || (rule.byTitle ? a.title.localeCompare(b.title) : 0));
+    const names = ranked.slice(0, rule.preview).map((e) => e[rule.name] || e.title);
+    rows.push({
+      key: `${day}-${rule.kind}`,
+      event,
+      group: { kind: rule.kind, category: rule.category, events: group, names, more: group.length - names.length, impact: ranked[0].impact ?? '' },
+    });
+  });
+  return rows;
 }
 
 /** Time left as two units at most: "3d 4h", "2h 14m", "14m 05s", "42s". @param {number} ms */

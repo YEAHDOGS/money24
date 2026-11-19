@@ -1,10 +1,13 @@
-<script>
+<script module>
   /** One scheduled event: time, impact meter, region or ticker, type, title, numbers and a countdown. */
   import strings from './strings.json';
   import { CATEGORY_CLASSES, IMPACT_CLASSES, IMPACT_LEVELS, IMPACT_RANK, countdown, startMs, timeLabel } from './calendar-format.js';
 
-  const SOON_MS = 24 * 60 * 60 * 1000; // countdowns show for the next day only
+  export const SOON_MS = 24 * 60 * 60 * 1000; // countdowns show for the next day only
+  export { impactMeter }; // CalendarGroup draws the same meter for a folded day
+</script>
 
+<script>
   /** @type {{ event: import('./calendar-format.js').CalEvent, now: number, linkTarget: string|undefined }} */
   let { event, now, linkTarget } = $props();
 
@@ -19,6 +22,15 @@
   ].filter(([, v]) => v));
 </script>
 
+{#snippet impactMeter(/** @type {string} */ impact)}
+  {@const rank = IMPACT_RANK[impact] ?? 0}
+  <span class="flex items-end gap-px" role="img" aria-label={strings.calendar.impactNames[impact]}>
+    {#each IMPACT_LEVELS as level (level)}
+      <span class="w-1 rounded-sm {level <= rank ? IMPACT_CLASSES[rank] : 'bg-white/12'} {level === 1 ? 'h-1.5' : level === 2 ? 'h-2.5' : 'h-3.5'}"></span>
+    {/each}
+  </span>
+{/snippet}
+
 <article class="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] gap-x-3 px-4 py-2.5 transition-opacity duration-500 short:py-1.5 lg:px-6 {past ? 'opacity-45' : ''}">
   <time class="pt-0.5 text-right font-mono tabular-nums {event.all_day ? 'text-[0.6rem] font-bold uppercase tracking-wider text-muted' : 'text-xs text-white/90'}" datetime={event.starts_at}>
     {event.all_day ? strings.calendar.allDay : timeLabel(event)}
@@ -26,13 +38,7 @@
 
   <div class="min-w-0">
     <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-      {#if rank}
-        <span class="flex items-end gap-px" role="img" aria-label={strings.calendar.impactNames[event.impact]}>
-          {#each IMPACT_LEVELS as level (level)}
-            <span class="w-1 rounded-sm {level <= rank ? IMPACT_CLASSES[rank] : 'bg-white/12'} {level === 1 ? 'h-1.5' : level === 2 ? 'h-2.5' : 'h-3.5'}"></span>
-          {/each}
-        </span>
-      {/if}
+      {#if rank}{@render impactMeter(event.impact)}{/if}
       {#if event.symbol || event.region}
         <span class="font-mono font-bold tracking-wide text-white/90">{event.symbol || event.region}</span>
       {/if}

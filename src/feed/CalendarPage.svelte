@@ -4,14 +4,16 @@
    * Phones and portrait desktops: one column with a next-up bar and compact filters on top.
    * Phones on their side: agenda | next-up panel.
    */
+  import { SvelteSet } from 'svelte/reactivity';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import strings from './strings.json';
+  import CalendarGroup from './CalendarGroup.svelte';
   import CalendarRow from './CalendarRow.svelte';
   import {
-    CATEGORY_CLASSES, IMPACT_RANK, countdown, dateKey, groupByDay, matches, startMs, weekDays, weekRange, whenLabel,
+    CATEGORY_CLASSES, IMPACT_RANK, countdown, dateKey, dayRows, groupByDay, matches, startMs, weekDays, weekRange, whenLabel,
   } from './calendar-format.js';
 
   const SECOND_MS = 1000;
@@ -45,6 +47,8 @@
   let selectedDay = $state('');
   let clock = $state(Date.now()); // ticks every second, for the countdowns only
   let swipeStart = 0;
+  /** Keys of the group rows that are open. Kept across filters and weeks. @type {SvelteSet<string>} */
+  const expanded = new SvelteSet();
   /** @type {HTMLElement | undefined} */
   let listEl = $state();
 
@@ -62,12 +66,14 @@
     const events = byDay[d.key] ?? [];
     return { ...d, events, high: events.filter((e) => e.impact === 'high').length };
   }));
-  /** Days that get a section: every day with events, plus today. `first` is the day's place in the reveal stagger. */
+  /** Days that get a section: every day with events, plus today. `rows` fold a day's earnings and Fed events,
+   * `first` is the day's place in the reveal stagger, `nowIndex` the row the "now" line sits above. */
   const agenda = $derived.by(() => {
     let first = 0;
     return days.filter((d) => d.events.length || d.key === todayKey).map((d) => {
-      const section = { ...d, first, nowIndex: d.events.findIndex((e) => e.all_day || startMs(e) > now) };
-      first += d.events.length;
+      const rows = dayRows(d.events, d.key);
+      const section = { ...d, rows, first, nowIndex: rows.findIndex((r) => r.event.all_day || startMs(r.event) > now) };
+      first += rows.length;
       return section;
     });
   });
@@ -274,10 +280,15 @@
                 <span class="ml-auto font-mono font-normal tabular-nums text-muted">{d.events.length}</span>
               </h3>
               <ol>
-                {#each d.events as event, i (event.uid)}
+                {#each d.rows as row, i (row.key)}
                   {#if d.key === todayKey && i === d.nowIndex}{@render nowLine()}{/if}
                   <li class="cal-rise border-b border-line" style:--i={Math.min(d.first + i, MAX_STAGGER)}>
-                    <CalendarRow {event} {now} {linkTarget} />
+                    {#if row.group}
+                      <CalendarGroup group={row.group} id={row.key} open={expanded.has(row.key)} {now} {linkTarget}
+                        ontoggle={() => { if (!expanded.delete(row.key)) expanded.add(row.key); }} />
+                    {:else}
+                      <CalendarRow event={row.event} {now} {linkTarget} />
+                    {/if}
                   </li>
                 {/each}
                 {#if d.key === todayKey && d.nowIndex === -1}{@render nowLine()}{/if}

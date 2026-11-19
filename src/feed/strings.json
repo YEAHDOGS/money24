@@ -116,6 +116,11 @@
     "nothingNext": "No timed events ahead in this filter.",
     "in": "in",
     "events": "events",
+    "groups": {
+      "earnings": { "label": "Earnings", "count": "companies" },
+      "fed": { "label": "Fed", "count": "events" }
+    },
+    "more": "more",
     "sources": "Calendar sources"
   },
   "pinned": "Markets",
