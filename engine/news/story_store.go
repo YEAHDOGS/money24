@@ -39,7 +39,7 @@ type storyEvent struct {
 // every article of a story still open then, however old. With afterID it reads only newer rows.
 func (s *Store) eventsForStories(ctx context.Context, cutoff time.Time, afterID int64) ([]storyEvent, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT e.id, e.seen_at, e.published_at, e.feed, e.source, e.kind, e.title, e.url,
-		COALESCE(e.country, ''), e.tags, COALESCE(se.story_id, 0)
+		COALESCE(e.country, ''), e.tags, COALESCE(e.image, ''), COALESCE(se.story_id, 0)
 		FROM events e LEFT JOIN story_events se ON se.event_id = e.id
 		WHERE e.id > ?1 AND e.kind IN `+STORY_KINDS_SQL+`
 			AND (e.seen_at >= ?2 OR se.story_id IN (SELECT id FROM stories WHERE last_seen >= ?2))
@@ -54,7 +54,7 @@ func (s *Store) eventsForStories(ctx context.Context, cutoff time.Time, afterID 
 		var seen int64
 		var published sql.NullInt64
 		var tags string
-		if err := rows.Scan(&e.ID, &seen, &published, &e.Feed, &e.Source, &e.Kind, &e.Title, &e.URL, &e.Country, &tags, &e.StoryID); err != nil {
+		if err := rows.Scan(&e.ID, &seen, &published, &e.Feed, &e.Source, &e.Kind, &e.Title, &e.URL, &e.Country, &tags, &e.Image, &e.StoryID); err != nil {
 			return nil, err
 		}
 		e.SeenAt = time.UnixMilli(seen).UTC()
@@ -174,7 +174,7 @@ func (s *Store) storedStory(ctx context.Context, id int64) (Story, bool) {
 // storyArticles returns a story's articles, newest first.
 func (s *Store) storyArticles(ctx context.Context, id int64) ([]StoredEvent, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT e.id, e.seen_at, e.published_at, e.feed, e.source, e.kind, e.title, e.url,
-		COALESCE(e.lang, ''), COALESCE(e.country, ''), e.tags
+		COALESCE(e.lang, ''), COALESCE(e.country, ''), e.tags, COALESCE(e.image, '')
 		FROM story_events se JOIN events e ON e.id = se.event_id WHERE se.story_id = ? ORDER BY e.id DESC LIMIT ?`, id, MAX_STORY_EVENTS)
 	if err != nil {
 		return nil, err
@@ -186,7 +186,7 @@ func (s *Store) storyArticles(ctx context.Context, id int64) ([]StoredEvent, err
 		var seen int64
 		var published sql.NullInt64
 		var tags string
-		if err := rows.Scan(&e.ID, &seen, &published, &e.Feed, &e.Source, &e.Kind, &e.Title, &e.URL, &e.Lang, &e.Country, &tags); err != nil {
+		if err := rows.Scan(&e.ID, &seen, &published, &e.Feed, &e.Source, &e.Kind, &e.Title, &e.URL, &e.Lang, &e.Country, &tags, &e.Image); err != nil {
 			return nil, err
 		}
 		e.SeenAt = time.UnixMilli(seen).UTC()

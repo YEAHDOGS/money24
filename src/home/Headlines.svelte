@@ -6,6 +6,7 @@
    */
   import strings from './strings.json';
   import storyStrings from '../feed/stories.json';
+  import StoryArt from '../lib/StoryArt.svelte';
   import { age } from '../feed/post-format.js';
   import { CATEGORY_ALL, MODE_STORIES, categoryLabel } from './news-model.js';
   import { angleStyle, categoryStyle } from './news-style.js';
@@ -56,7 +57,7 @@
       {@const angle = angleStyle(h.angle)}
       <li>
         <a href={h.href} target={h.external ? linkTarget : undefined} rel={h.external ? 'noopener noreferrer' : undefined}
-          class="spring grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-2.5 px-3 py-2.5 hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-neon-red lg:px-4 short:py-2 tv:grid-cols-[3.5rem_minmax(0,1fr)] tv:py-4">
+          class="spring grid grid-cols-[2.25rem_minmax(0,1fr)_auto] gap-x-2.5 px-3 py-2.5 hover:bg-white/3 focus-visible:bg-white/5 focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-neon-red lg:px-4 short:py-2 tv:grid-cols-[3.5rem_minmax(0,1fr)_auto] tv:py-4">
           <time class="pt-0.5 text-right font-mono text-xs text-muted tabular-nums tv:text-base" datetime={h.at}>{age(h.at, now)}</time>
           <span class="min-w-0">
             <span class="line-clamp-2 text-sm leading-snug font-medium text-white tv:text-lg">{h.title}</span>
@@ -68,6 +69,7 @@
               {#each h.tickers as ticker (ticker.symbol)}<span class="shrink-0 font-mono font-semibold tracking-wider text-white/70">{ticker.symbol}</span>{/each}
             </span>
           </span>
+          <StoryArt image={h.image} seed={h.seed} category={h.category} class="aspect-4/3 w-14 rounded-sm tv:w-24" />
         </a>
       </li>
     {:else}

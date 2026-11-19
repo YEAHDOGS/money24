@@ -9,6 +9,7 @@
   import Minus from '@lucide/svelte/icons/minus';
   import Check from '@lucide/svelte/icons/check';
   import strings from './stories.json';
+  import StoryArt from '../lib/StoryArt.svelte';
   import { ANGLE_CLASSES, READING_CLASSES, marketHref, pace, placeName, shortDollars, signedPct } from './story-format.js';
   import { age } from './post-format.js';
 
@@ -36,6 +37,14 @@
 </script>
 
 <div class="text-sm">
+  <!-- PICTURE: the outlet's own photo and whose it is, or the story's generated art -->
+  <figure class="relative">
+    <StoryArt image={story.image} seed={story.id} category={story.category} overlay="scrim" class="aspect-21/9 w-full" />
+    {#if story.image && story.image_by}
+      <figcaption class="absolute right-2 bottom-1.5 text-[0.62rem] font-semibold tracking-wide text-white/75">{strings.photoBy} {story.image_by}</figcaption>
+    {/if}
+  </figure>
+
   <!-- COVERAGE AGAINST VOLUME -->
   <section class="px-4 py-3 lg:px-6">
     <h3 class={LABEL}>{strings.reading}</h3>

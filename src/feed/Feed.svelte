@@ -166,7 +166,7 @@
           role="tab"
           aria-selected={tab === t.id}
           aria-controls="panel-{t.id}"
-          class="spring flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none short:py-1.5 max-[359px]:flex-col max-[359px]:gap-0.5 max-[359px]:text-[0.6rem] max-[359px]:tracking-widest {tab === t.id ? 'text-white' : 'text-muted hover:text-white/80'}"
+          class="spring flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none short:py-1.5 max-sm:flex-col max-sm:gap-0.5 max-sm:text-[0.6rem] max-sm:tracking-widest {tab === t.id ? 'text-white' : 'text-muted hover:text-white/80'}"
         >
           <Icon class="size-4 shrink-0 transition-transform duration-150 {tab === t.id ? 'scale-110 text-neon-red' : ''}" aria-hidden="true" />
           <span class="truncate">{t.label}</span>

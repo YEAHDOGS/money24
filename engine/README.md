@@ -100,6 +100,10 @@ volume without a story.
 - Volume pace is a straight line through the session. Trading is heavier at the open, so it reads high in the first hour.
 - Google News editions (`"bundle": true` sources) carry many outlets per feed. Their country is the edition that showed
   the article, not the outlet's home, and their links pass through news.google.com.
+- Pictures are links to the outlets' own images, read from the feed (`media:content`, `media:thumbnail` or an
+  image enclosure). newsd stores the link, never the image, and the page loads it from the outlet with no
+  referrer. A story shows the first picture any of its articles came with; Google News items carry none, so
+  about a quarter of tradable stories have a photo and the rest wear generated art.
 - Headlines only group with headlines in the same language.
 - Filings are not grouped: the SEC feeds would add thousands of one-article stories.
 - Articles are never deleted. With the Google News editions on, expect a few megabytes of new rows a day.

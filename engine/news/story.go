@@ -150,6 +150,9 @@ type Story struct {
 	Markets   []Bet     `json:"markets"`
 	Reading   Reading   `json:"reading"`
 	Spark     []float64 `json:"spark"`
+	// Image is the first picture any of the story's articles came with, and ImageBy the outlet it belongs to.
+	Image   string `json:"image,omitempty"`
+	ImageBy string `json:"image_by,omitempty"`
 }
 
 // member is one article inside a group.

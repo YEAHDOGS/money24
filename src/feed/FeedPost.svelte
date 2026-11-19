@@ -1,6 +1,7 @@
 <script>
   /** One post: age, source label, category badge, title link, and watchlist tags. */
   import strings from './strings.json';
+  import StoryArt from '../lib/StoryArt.svelte';
   import { KIND_CLASSES, FALLBACK_KIND, age } from './post-format.js';
 
   /** @type {{ post: import('./feed-client.svelte.js').Post, now: number, linkTarget: string|undefined, onTag: (tag: string) => void, activeTag: string }} */
@@ -11,7 +12,7 @@
   const tooltip = $derived(`Published ${post.published_at ? new Date(post.published_at).toLocaleString() : 'unknown'} · seen ${new Date(post.seen_at).toLocaleString()}`);
 </script>
 
-<article class="grid grid-cols-[3.25rem_minmax(0,1fr)] gap-x-3 px-4 py-3 max-sm:grid-cols-[2rem_minmax(0,1fr)] max-sm:gap-x-2.5 max-sm:px-3 short:py-2 lg:px-6">
+<article class="grid grid-cols-[3.25rem_minmax(0,1fr)_auto] gap-x-3 px-4 py-3 max-sm:grid-cols-[2rem_minmax(0,1fr)_auto] max-sm:gap-x-2.5 max-sm:px-3 short:py-2 lg:px-6">
   <time
     class="pt-0.5 text-right font-mono text-xs tabular-nums text-muted"
     datetime={when}
@@ -51,4 +52,9 @@
       </ul>
     {/if}
   </div>
+
+  <!-- The outlet's own photo, when its feed sent one. A post never gains or loses it once shown. -->
+  {#if post.image}
+    <StoryArt image={post.image} seed={post.id} class="aspect-4/3 w-20 rounded-sm max-sm:w-16 lg:w-24" />
+  {/if}
 </article>

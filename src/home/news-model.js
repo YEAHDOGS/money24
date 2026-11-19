@@ -15,8 +15,9 @@ const TICKERS_MAX = 4; // tickers shown on a slide or a row
 /**
  * @typedef {{ id: string, title: string, category: string, at: string, href: string, external: boolean,
  *   source: string, tickers: Ticker[], angle: string, outlets: number, attention: number | null,
- *   trend: string }} Headline
+ *   trend: string, image: string, seed: number }} Headline
  * angle, trend: keys of stories.json "angles" and "trends", empty on plain headlines.
+ * image: a link to the outlet's photo, empty when it sent none. seed: the number its generated art is picked by.
  */
 /** @typedef {{ id: string, count: number }} Category */
 /** @typedef {{ mode: string, headlines: Headline[], categories: Category[] }} News */
@@ -36,6 +37,8 @@ function fromStory(/** @type {any} */ s) {
   const tags = (s.tags ?? []).map((/** @type {string} */ symbol) => ({ symbol, linked: false, movePct: null }));
   return {
     id: `story-${s.id}`,
+    image: s.image ?? '',
+    seed: s.id ?? 0,
     title: s.title,
     category: s.category ?? '',
     at: s.last_seen ?? s.first_seen ?? '',
@@ -54,6 +57,8 @@ function fromStory(/** @type {any} */ s) {
 function fromEvent(/** @type {any} */ p) {
   return {
     id: `post-${p.id}`,
+    image: p.image ?? '',
+    seed: p.id ?? 0,
     title: p.title,
     category: p.kind ?? '',
     at: p.published_at ?? p.seen_at ?? '',

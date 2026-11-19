@@ -19,7 +19,7 @@ const STORE_TRADABLE = 'm24.news.tradable';
  *   validity:{score:number, independent:number, primary:boolean, known:number},
  *   from:Place[], about:Place[], links:StoryLink[],
  *   markets:{id:string, question:string, url:string, yes:number, volume:number}[],
- *   reading:{label:string, symbol:string}, spark:number[]}} Story */
+ *   reading:{label:string, symbol:string}, spark:number[], image?:string, image_by?:string}} Story */
 /** @typedef {{updated_at:string, quotes_at:string|null, categories:{id:string, stories:number}[], stories:Story[], movers:{symbol:string, move_pct:number, rel_volume:number}[]}} Board */
 /** @typedef {{id:string, stories:number, articles:number, attention:number, top:{id:number, title:string, category:string, angle:string, attention:number}[]}} MapPlace */
 /** @typedef {{story:Story, events:import('./feed-client.svelte.js').Post[], history:any[]}} StoryDetail */

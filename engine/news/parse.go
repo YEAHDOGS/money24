@@ -20,6 +20,7 @@ const (
 	SCHEME_HTTP       = "http"
 	SCHEME_HTTPS      = "https"
 	MAX_BUNDLE        = 8 // related articles read from one bundled item
+	MEDIA_IMAGE       = "image"
 )
 
 var (
@@ -47,6 +48,7 @@ type Event struct {
 	Lang        string     `json:"lang,omitempty"`
 	Country     string     `json:"country,omitempty"`
 	Tags        []string   `json:"tags"`
+	Image       string     `json:"image,omitempty"` // a link to the outlet's own picture for the article
 }
 
 // Market is one prediction market and its current odds.
@@ -87,6 +89,37 @@ type feedItem struct {
 	Date        string   `xml:"date"` // dc:date
 	GUID        string   `xml:"guid"`
 	Outlet      string   `xml:"source"` // the publisher, on a feed that carries many (Google News)
+	// The article's picture, in whichever of the three usual places the feed puts it.
+	Thumbnails []feedMedia `xml:"http://search.yahoo.com/mrss/ thumbnail"`
+	Media      []feedMedia `xml:"http://search.yahoo.com/mrss/ content"`
+	Enclosures []feedMedia `xml:"enclosure"`
+}
+
+// feedMedia is one media:thumbnail, media:content or enclosure of a feed item.
+type feedMedia struct {
+	URL    string `xml:"url,attr"`
+	Type   string `xml:"type,attr"`
+	Medium string `xml:"medium,attr"`
+	Width  int    `xml:"width,attr"`
+}
+
+// picture is the widest image a feed item carries, as an https link, or "" when it carries none.
+// An item's media can also be video or audio; those are passed over.
+func (it feedItem) picture() string {
+	best, width := "", -1
+	for _, group := range [][]feedMedia{it.Media, it.Thumbnails, it.Enclosures} {
+		for _, m := range group {
+			kind := firstNonEmpty(m.Medium, m.Type, MEDIA_IMAGE)
+			if !strings.HasPrefix(kind, MEDIA_IMAGE) || !strings.HasPrefix(m.URL, SCHEME_HTTPS+"://") || m.Width <= width {
+				continue
+			}
+			best, width = m.URL, m.Width
+		}
+		if best != "" {
+			return best
+		}
+	}
+	return ""
 }
 
 type atomLink struct {
@@ -142,6 +175,7 @@ func parseFeed(body []byte, src Source) ([]Event, error) {
 			continue
 		}
 		if e, ok := newEvent(src, it.Title, link, it.Description, firstNonEmpty(it.PubDate, it.Date)); ok {
+			e.Image = it.picture()
 			events = append(events, e)
 		}
 	}

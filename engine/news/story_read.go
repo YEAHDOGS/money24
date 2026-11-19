@@ -250,6 +250,9 @@ func (r *storyReader) read(c *cluster, now time.Time, quotes map[string]market.T
 		for _, id := range m.about {
 			about[id]++
 		}
+		if s.Image == "" && m.Image != "" {
+			s.Image, s.ImageBy = m.Image, m.Source
+		}
 	}
 	s.Outlets, s.From, s.About = len(outlets), topPlaces(from), topPlaces(about)
 

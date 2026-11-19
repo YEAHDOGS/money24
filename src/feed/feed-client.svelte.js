@@ -32,7 +32,7 @@ function byPublished(/** @type {Post} */ a, /** @type {Post} */ b) {
 }
 
 /** @typedef {{id:number, seen_at:string, published_at:string|null, feed:string, source:string, kind:string,
- *   title:string, url:string, summary?:string, lang?:string, country?:string, tags:string[],
+ *   title:string, url:string, summary?:string, lang?:string, country?:string, tags:string[], image?:string,
  *   fresh?:boolean, order?:number}} Post */
 
 export class FeedClient {

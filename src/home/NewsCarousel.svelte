@@ -9,6 +9,7 @@
    */
   import strings from './strings.json';
   import storyStrings from '../feed/stories.json';
+  import StoryArt from '../lib/StoryArt.svelte';
   import { fill } from '../plays/play-format.js';
   import { age } from '../feed/post-format.js';
   import { BACK, Carousel, FORWARD, SIDE_AFTER, SIDE_BEFORE, SIDE_HERE, STEP_ATTR, STEP_BACK, STEP_FORWARD, gestures } from './carousel.svelte.js';
@@ -53,7 +54,9 @@
       {@const category = categoryStyle(mode, slide.category)}
       {@const angle = angleStyle(slide.angle)}
       <article aria-roledescription="slide" aria-label={fill(strings.carousel.slide, { n: i + 1, of: slides.length })}
-        class="absolute inset-0 flex flex-col gap-1.5 px-3 py-3 transition-[opacity,translate,visibility] duration-300 ease-out motion-reduce:transition-none lg:px-4 short:py-2 {SIDES[carousel.side(i)]}">
+        class="absolute inset-0 isolate flex flex-col gap-1.5 px-3 py-3 transition-[opacity,translate,visibility] duration-300 ease-out motion-reduce:transition-none lg:px-4 short:py-2 {SIDES[carousel.side(i)]}">
+        <!-- The story's picture fills the slide; the veil keeps the words on its left readable. -->
+        <StoryArt image={slide.image} seed={slide.seed} category={slide.category} overlay="veil" eager={i === 0} class="absolute! inset-0 -z-10" />
         <p class="flex min-w-0 items-center gap-2">
           <span class="{LABEL} shrink-0 max-[359px]:hidden">{title}</span>
           <span class="{CHIP} truncate {category.text} {category.border}">{categoryLabel(mode, slide.category)}</span>

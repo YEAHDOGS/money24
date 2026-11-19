@@ -126,8 +126,8 @@ func (s *Store) insertEvents(ctx context.Context, events []Event) ([]StoredEvent
 	}
 	defer tx.Rollback()
 	stmt, err := tx.PrepareContext(ctx, `INSERT INTO events
-		(seen_at, published_at, feed, source, kind, title, url, summary, lang, country, tags)
-		VALUES (?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?)
+		(seen_at, published_at, feed, source, kind, title, url, summary, lang, country, tags, image)
+		VALUES (?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''))
 		ON CONFLICT (url) DO NOTHING RETURNING id`)
 	if err != nil {
 		return nil, err
@@ -140,9 +140,15 @@ func (s *Store) insertEvents(ctx context.Context, events []Event) ([]StoredEvent
 		tags, _ := json.Marshal(e.Tags)
 		var id int64
 		err := stmt.QueryRowContext(ctx, seen.UnixMilli(), millis(e.PublishedAt), e.Feed, e.Source, e.Kind,
-			e.Title, e.URL, e.Summary, e.Lang, e.Country, string(tags)).Scan(&id)
+			e.Title, e.URL, e.Summary, e.Lang, e.Country, string(tags), e.Image).Scan(&id)
 		if errors.Is(err, sql.ErrNoRows) {
-			continue // already stored
+			// Already stored. An article saved before pictures were kept gets its picture now.
+			if e.Image != "" {
+				if _, err := tx.ExecContext(ctx, `UPDATE events SET image = ? WHERE url = ? AND image IS NULL`, e.Image, e.URL); err != nil {
+					return nil, err
+				}
+			}
+			continue
 		}
 		if err != nil {
 			return nil, err
@@ -207,7 +213,7 @@ func (s *Store) events(ctx context.Context, q EventQuery) ([]StoredEvent, error)
 		q.Limit = MAX_RECENT_LIMIT
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT id, seen_at, published_at, feed, source, kind, title, url,
-		COALESCE(summary, ''), COALESCE(lang, ''), COALESCE(country, ''), tags
+		COALESCE(summary, ''), COALESCE(lang, ''), COALESCE(country, ''), tags, COALESCE(image, '')
 		FROM events
 		WHERE (?1 = 0 OR id < ?1) AND id > ?2 AND (?3 = '' OR kind = ?3)
 			AND (?4 = '' OR EXISTS (SELECT 1 FROM json_each(events.tags) WHERE value = ?4))
@@ -224,7 +230,7 @@ func (s *Store) events(ctx context.Context, q EventQuery) ([]StoredEvent, error)
 		var published sql.NullInt64
 		var tags string
 		if err := rows.Scan(&e.ID, &seen, &published, &e.Feed, &e.Source, &e.Kind, &e.Title, &e.URL,
-			&e.Summary, &e.Lang, &e.Country, &tags); err != nil {
+			&e.Summary, &e.Lang, &e.Country, &tags, &e.Image); err != nil {
 			return nil, err
 		}
 		e.SeenAt = time.UnixMilli(seen).UTC()
