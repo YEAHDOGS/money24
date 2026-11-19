@@ -1,9 +1,35 @@
 # Money 24 by DOGS
 
-An AI that trades crypto, options, stocks, futures, prediction markets and
-forex, around the clock.
+An AI that trades crypto, options, stocks, futures, prediction markets, and
+forex, around the clock according to the news, signals, trackers, and AI analysis. The goal is entirely hands off.
 
-**Status: in development. Paper trading phase.**
+**Status: very in development. we are not even closeto achieving this. The risks are enormous. And if this succeeds, the entire world's economy is donezo. Because the common people will have what the rich have had for centuries, the same money machines. Be afraid.**
+
+**Realistically, I reckon my AI subscriptions should be getting at least a dollar out the market a day for me the way that thing swings. That's the goal. Connect your AI subscriptions to money24, hands off trading with brokerage API conenctions, loops and services and daemons.**
+
+## Trading Philosophies
+
+I have only ever lost money from the markets. But I see AI trading as my best shot at fixing that. The way this is gonna float is to tread lightly. Pins, needles, stop losses, gradual development. Paper trading, backtesting on collected data, and experimentation.
+
+This repo is currently in heavy development, and I Brandon Dcruz am not liable for anything you do with it at this point in development. There's further terms at the bottom.
+
+You can see some of the rules that have kept my day trading portfolio afloat here. I'm trying to set money24 up around 'Plays'. Essentially, a set entry, and set exits and stop losses, at set times for set prices. Like a targeted hit, all outcomes planned for in advance. Driven by your AI subscription, and local DOGS services (newsd: fetches articles from public sources, m24d: connects to your brokerage API and executes the trades, +more).
+
+Picture this: On Friday November 13th the FAA ordered a full ground stop for all commercial airline flights, for 4 hours. They then had a press conference and instead of saying anything about the people who were impacted by this, they said they needed 50 billion dollars immediately.
+
+That night I angrily tweeted. That morning, Saturday markets closed, I asked Google Gemini, 'give me the stocks most likely to be impacted by the only full FAA grounding since 9/11'. Immediately, it came back, LHX (L3 Harris, the contractor company that caused the outage), DAL (Delta Airlines), AAL (American Airlines), UAL (United Airlines), and more. I asked for Put option contracts with hightened trading volumes. Wham!
+
+![Woah!](public/woof.jpg)
+
+Like chess, like clockwork, money from the sky. Short window, and many things can go wrong. But money24 is aimed at trying to capture this, entirely hands off. And this is me prompting Gemini manually, we need to automate this. Across all the 6 markets of the 7 seas on God's green earth.
+
+I won't lie. This is the riskiest form of trading there is. Even here, I paper traded these gains, but did not fund myself. But I think this is doable. I've watched claude fable cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
+
+Once this is complete we can assess an overall risk of money24 as a product. I need help though. If you're reading this, email brando@dogs.red immediately, and help me build man's holy grail. The hybrid car that drives itself. Open source.
+
+I am currently collecting market data for backtesting, paper trading, polishing the UI, and orchestrating the new world order.
+
+Heavy development. Do not disturb. Don't cut yourself on the glass sharp blades.
 
 ## What's in here
 
@@ -120,3 +146,45 @@ Tests: `cd engine && go test ./signals/`.
 ## Notes
 
 Research and design live in [notes/](notes/README.md) and [docs/](docs/).
+
+
+
+
+# MONEY24 TERMS OF SERVICE, RISK DISCLOSURE, AND WAIVER OF LIABILITY
+
+**Effective Date:** [11/1/2026]  
+**Operator:** [DOGS] ("Company," "we," "us," or "our")  
+**Platform:** Money24 ("Service," "Software," or "Platform")
+
+**PLEASE READ THIS AGREEMENT CAREFULLY. BY CHECKING THE ACCEPTANCE BOX, CLICKING "I AGREE," CREATING AN ACCOUNT, OR ACCESSING OR USING MONEY24, YOU ("USER" OR "YOU") AGREE TO BE LEGALLY BOUND BY ALL TERMS HEREIN. IF YOU DO NOT AGREE, DO NOT USE THE SERVICE.**
+
+---
+
+### 1. NO INVESTMENT ADVICE; SOFTWARE TOOL ONLY
+1.1 **Not a Registered Adviser or Broker.** Company is a software technology provider, not a registered investment adviser, broker-dealer, commodity trading advisor, financial planner, or fiduciary under the U.S. Investment Advisers Act of 1940, the Securities Exchange Act of 1934, the Commodity Exchange Act, or any state securities laws.  
+1.2 **Impersonal Software Output Only.** Money24 provides automated algorithmic software tools, market data visualizations, and user-configured execution scripts. **NOTHING ON OR GENERATED BY MONEY24 CONSTITUTES FINANCIAL, INVESTMENT, TRADING, TAX, OR LEGAL ADVICE, NOR A RECOMMENDATION OR SOLICITATION TO BUY, SELL, OR HOLD ANY SECURITY, OPTION, CRYPTOCURRENCY, OR FINANCIAL INSTRUMENT.**  
+1.3 **Sole User Responsibility.** All algorithmic outputs, signals, backtests, and automated executions are impersonal and generated without regard to your individual financial situation, risk tolerance, or investment objectives. You retain sole and exclusive control over your brokerage accounts, API keys, parameter configurations, and capital allocation.
+
+### 2. SUBSTANTIAL RISK OF LOSS ACKNOWLEDGMENT
+You expressly acknowledge, understand, and accept the following risks:
+* **Total Loss of Capital:** Trading equities, options, futures, digital assets, and leveraged instruments carries an extreme degree of risk. You may lose some or all of your invested capital, and in certain strategies (such as short sales or uncovered options), losses may exceed your initial deposit.
+* **Algorithmic & Technical Failure:** Automated trading software is subject to software bugs, logic errors, latency, slippage, API disconnections, third-party brokerage outages, corrupted market data feeds, and catastrophic market gaps ("flash crashes") where stop-loss orders fail to execute at expected prices.
+* **Past Performance:** Historical backtests, simulated results, and prior algorithmic performance do not guarantee or predict future results. Hypothetical performance has inherent limitations and does not reflect actual liquidity constraints or emotional/operational execution risks.
+
+### 3. DISCLAIMER OF WARRANTIES ("AS IS")
+THE SERVICE IS PROVIDED ON AN **"AS IS"** AND **"AS AVAILABLE"** BASIS WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, COMPANY EXPRESSLY DISCLAIMS ALL WARRANTIES, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, ACCURACY OF DATA, UPTIME, OR PROFITABILITY.
+
+### 4. COMPLETE WAIVER OF FINANCIAL RESPONSIBILITY & LIMITATION OF LIABILITY
+4.1 **No Financial Responsibility for Trading Losses.** TO THE FULLEST EXTENT PERMITTED BY LAW, COMPANY AND ITS FOUNDERS, OFFICERS, DIRECTORS, DEVELOPERS, AFFILIATES, AND AGENTS SHALL HAVE **ZERO FINANCIAL RESPONSIBILITY OR LIABILITY** FOR ANY TRADING LOSSES, LOST PROFITS, MARGIN CALLS, ACCOUNT LIQUIDATIONS, MISSED TRADES, ERRONEOUS EXECUTIONS, OR DIMINUTION OF VALUE ARISING OUT OF OR RELATING TO YOUR USE OF MONEY24.  
+4.2 **Exclusion of Consequential Damages.** IN NO EVENT SHALL COMPANY BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.  
+4.3 **Maximum Liability Cap.** IN ALL CIRCUMSTANCES, COMPANY'S TOTAL AGGREGATE LIABILITY ARISING OUT OF OR RELATING TO THIS AGREEMENT OR THE SERVICE SHALL NOT EXCEED THE GREATER OF: (A) THE TOTAL FEES PAID BY YOU TO COMPANY FOR THE SERVICE IN THE THREE (3) MONTHS PRECEDING THE CLAIM, OR (B) ONE HUNDRED U.S. DOLLARS ($100.00).
+
+### 5. INDEMNIFICATION
+You agree to defend, indemnify, and hold harmless Company and its founders, officers, employees, and affiliates from and against any and all claims, damages, losses, liabilities, regulatory inquiries, costs, and reasonable attorneys' fees arising out of or related to: (a) your trading activities or automated executions; (b) your violation of this Agreement or any applicable law or exchange rule; or (c) any dispute between you and a third-party broker or exchange.
+
+### 6. BINDING ARBITRATION AND CLASS ACTION WAIVER
+6.1 **Mandatory Individual Arbitration.** Any dispute, claim, or controversy arising out of or relating to this Agreement or Money24 shall be resolved exclusively through final and binding individual arbitration administered by the American Arbitration Association (AAA) under its Commercial Arbitration Rules, rather than in court.  
+6.2 **Class Action & Jury Trial Waiver.** YOU AND COMPANY WAIVE ANY RIGHT TO A JURY TRIAL OR TO PARTICIPATE IN A CLASS ACTION, COLLECTIVE ACTION, OR REPRESENTATIVE PROCEEDING. All claims must be brought solely in your individual capacity.
+
+### 7. GOVERNING LAW AND SEVERABILITY
+This Agreement shall be governed by and construed in accordance with the laws of the State of Texas, without regard to conflict-of-law principles, with exclusive venue for any permitted court proceedings in Dallas County, Texas. If any provision of this Agreement is held unenforceable, the remaining provisions shall remain in full force and effect.
