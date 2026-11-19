@@ -125,7 +125,43 @@ body {
   }
 }
 
+/* World map (src/feed/WorldMap.svelte): a country brightens under the pointer, the loudest places pulse,
+   and an open story's arcs draw themselves. Opacity and transform only, so nothing on the map moves. */
+.map-land {
+  cursor: pointer;
+  transition: fill-opacity 300ms ease, stroke 150ms ease;
+}
+.map-land:hover {
+  stroke: var(--color-neon-red);
+}
+.map-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-pulse 2.4s ease-out calc(var(--i, 0) * 420ms) infinite;
+}
+@keyframes map-pulse {
+  from {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.map-arc {
+  stroke-dasharray: 4 5;
+  animation: map-flow 900ms linear infinite;
+}
+@keyframes map-flow {
+  to {
+    stroke-dashoffset: -9;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .map-pulse,
+  .map-arc,
   .cal-rise,
   .now-line,
   .post-fresh::before,

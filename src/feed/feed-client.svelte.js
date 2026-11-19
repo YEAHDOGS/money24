@@ -4,6 +4,7 @@
 // With no engine (the public site with no news service set, or ?demo) it shows a recorded feed,
 // calendar and network meter instead (src/lib/demo.js).
 import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
+import { StoryBoard } from './stories-client.svelte.js';
 
 const DEFAULT_API = 'http://127.0.0.1:8024';
 const API_BASE = import.meta.env.VITE_NEWS_API || DEFAULT_API;
@@ -61,6 +62,8 @@ export class FeedClient {
   holding = false;
   /** When the demo feed was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
+  /** The stories board and world map: the same articles, grouped and scored by the engine. */
+  stories = new StoryBoard();
 
   #es = null;
   #lastId = 0;
@@ -86,6 +89,7 @@ export class FeedClient {
       this.#lastId = posts[0]?.id ?? 0; // newest arrival: the stream resumes after it
       // The backlog reads best by publish time; live posts then enter at the top as they arrive.
       this.items = [...posts].sort(byPublished);
+      this.stories.connect(API_BASE);
       this.#connect();
     } catch {
       this.status = STATUS.offline;
@@ -103,6 +107,7 @@ export class FeedClient {
       const snap = await loadDemo(DEMO_SNAPSHOT);
       this.items = [...snap.events].sort(byPublished);
       this.calendar = snap.calendar ?? [];
+      this.stories.fromDemo(snap);
       this.calendarLoaded = true;
       this.settings = snap.settings ?? null;
       for (const reading of snap.stats ?? []) this.#applyStats(reading);
@@ -128,6 +133,7 @@ export class FeedClient {
     es.onopen = () => {
       this.status = STATUS.live;
       this.#loadCalendar(); // on every (re)connect, so a sleeping laptop wakes up current
+      this.stories.refresh();
     };
     es.onerror = () => {
       if (es.readyState !== EventSource.CLOSED) {
@@ -144,6 +150,7 @@ export class FeedClient {
       clearTimeout(this.#calendarTimer);
       this.#calendarTimer = setTimeout(() => this.#loadCalendar(), CALENDAR_DEBOUNCE_MS);
     });
+    es.addEventListener('stories', () => this.stories.refresh());
     es.addEventListener('settings', (m) => { this.settings = JSON.parse(m.data); });
     es.addEventListener('plan', (m) => {
       const p = JSON.parse(m.data);

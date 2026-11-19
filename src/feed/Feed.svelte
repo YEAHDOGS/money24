@@ -8,12 +8,17 @@
   import AppHeader from '../lib/AppHeader.svelte';
   import AppFooter from '../lib/AppFooter.svelte';
   import Newspaper from '@lucide/svelte/icons/newspaper';
+  import Layers from '@lucide/svelte/icons/layers';
+  import Globe from '@lucide/svelte/icons/globe';
   import CalendarDays from '@lucide/svelte/icons/calendar-days';
   import Activity from '@lucide/svelte/icons/activity';
   import strings from './strings.json';
+  import storyStrings from './stories.json';
   import pricing from './pricing.json';
   import { FeedClient } from './feed-client.svelte.js';
   import { formatInterval, monthlyCost, projectMonth } from './net-math.js';
+  import StoriesPage from './StoriesPage.svelte';
+  import MapPage from './MapPage.svelte';
   import NewsPage from './NewsPage.svelte';
   import CalendarPage from './CalendarPage.svelte';
   import NetworkPage from './NetworkPage.svelte';
@@ -22,11 +27,15 @@
   const DEFAULT_EVERY_MS = 60000;
   const MS_PER_SECOND = 1000;
   const PERCENT = 100;
+  const TAB_STORIES = 'stories';
+  const TAB_MAP = 'map';
   const TAB_NEWS = 'news';
   const TAB_CALENDAR = 'calendar';
   const TAB_NETWORK = 'network';
   /** The tab bar, left to right. Add a page here and render it in the panel loop below. */
   const TABS = [
+    { id: TAB_STORIES, label: storyStrings.tabStories, icon: Layers },
+    { id: TAB_MAP, label: storyStrings.tabMap, icon: Globe },
     { id: TAB_NEWS, label: strings.tabNews, icon: Newspaper },
     { id: TAB_CALENDAR, label: strings.tabCalendar, icon: CalendarDays },
     { id: TAB_NETWORK, label: strings.tabNetwork, icon: Activity },
@@ -38,21 +47,40 @@
   // In the desktop app, links navigate and the shell hands them to the system browser.
   const LINK_TARGET = IS_TAURI ? undefined : '_blank';
 
-  /** The tab named in the address bar (#calendar), else the last one used, else the first. */
+  const STORY_PARAM = 'story';
+
+  /**
+   * The tab named in the address bar (#calendar), else the headlines when a story was opened from
+   * the Markets page, else the last one used, else the first.
+   */
   function currentTab() {
-    const wanted = [location.hash.slice(1), localStorage.getItem(STORE_TAB)];
+    const pinned = new URLSearchParams(location.search).has(STORY_PARAM) ? TAB_NEWS : '';
+    const wanted = [location.hash.slice(1), pinned, localStorage.getItem(STORE_TAB)];
     return wanted.find((id) => TABS.some((t) => t.id === id)) ?? TABS[0].id;
   }
 
   const client = new FeedClient();
   let now = $state(Date.now());
   let tab = $state(currentTab());
+  /** The story open on the Stories page; the map opens one by setting it. */
+  let storyId = $state(0);
   let providerId = $state(localStorage.getItem(STORE_PROVIDER) ?? pricing.providers[0].id);
   let worstCase = $state(localStorage.getItem(STORE_WORST) !== 'false');
 
   $effect(() => localStorage.setItem(STORE_TAB, tab));
   $effect(() => localStorage.setItem(STORE_PROVIDER, providerId));
   $effect(() => localStorage.setItem(STORE_WORST, String(worstCase)));
+  // Stories reload only while one of their two pages is on screen.
+  $effect(() => {
+    client.stories.watching = tab === TAB_STORIES || tab === TAB_MAP;
+    if (client.stories.watching) client.stories.load();
+  });
+
+  /** Opens a story picked on the map. @param {number} id */
+  function openStory(id) {
+    storyId = id;
+    location.hash = TAB_STORIES;
+  }
 
   onMount(() => {
     client.start();
@@ -110,7 +138,11 @@
         aria-labelledby="tab-{t.id}"
         class="absolute inset-0 transition-[opacity,visibility] duration-200 ease-out {tab === t.id ? 'visible opacity-100' : 'invisible opacity-0'}"
       >
-        {#if t.id === TAB_NEWS}
+        {#if t.id === TAB_STORIES}
+          <StoriesPage {client} {now} linkTarget={LINK_TARGET} bind:storyId />
+        {:else if t.id === TAB_MAP}
+          <MapPage {client} active={tab === TAB_MAP} onOpenStory={openStory} />
+        {:else if t.id === TAB_NEWS}
           <NewsPage {client} {now} linkTarget={LINK_TARGET} {slider} />
         {:else if t.id === TAB_CALENDAR}
           <CalendarPage {client} {now} linkTarget={LINK_TARGET} />

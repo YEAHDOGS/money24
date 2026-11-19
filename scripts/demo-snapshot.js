@@ -5,15 +5,18 @@
 //                          providers (names only, never keys), the stake dial at every size, and
 //                          each play's curve: since its entry, and backtested from BACKTEST_FROM
 //   trading.json           the paper journal and the source catalog
-//   news.json              recent headlines, the calendar, the poll setting and the network meter
+//   news.json, stories/    recent headlines, the calendar, the poll setting and the network meter; the
+//                          stories board (tradable and all), the world map, and one file per story with
+//                          its articles and its recorded numbers
 //   markets/               a handful of symbols: quote, news, related tickers, a chart per range
+//   home.json              the Home page's quote ribbon and the paper account's starting capital
 //
 //   npm start            (in another terminal: the services, with the plays you want to show)
-//   node scripts/demo-snapshot.js [runner URL] [news URL]
+//   node scripts/demo-snapshot.js [runner URL] [news URL] [--only=news,markets]
 //
 // Left out on purpose: source trust records and stored posts (other people's posts and a score
 // on a named account do not belong on a public page), source notes, keys and the webhook secret.
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,15 +24,26 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DEMO_DIR = join(ROOT, 'public', 'demo');
 const PREVIEW_DIR = join(DEMO_DIR, 'preview');
 const MARKETS_DIR = join(DEMO_DIR, 'markets');
+const STORIES_DIR = join(DEMO_DIR, 'stories');
 const DEFAULT_RUNNER = 'http://127.0.0.1:8025';
 const DEFAULT_NEWS = 'http://127.0.0.1:8024';
 const PLAYS_FILE = 'plays.json';
 const TRADING_FILE = 'trading.json';
 const NEWS_FILE = 'news.json';
 const MARKETS_INDEX = 'index.json';
+const HOME_FILE = 'home.json';
+// The Home ribbon's set symbols: one list, shared with the page (src/home/home-client.svelte.js).
+const RIBBON_FILE = join(ROOT, 'src', 'home', 'ribbon.json');
+const RIBBON_MAX = 30; // the most symbols the runner quotes in one request
+const PLAY_OPEN = 'armed'; // a play running on paper
 const PREVIEW_BATCH = 8;
 const JOURNAL_LIMIT = 300;
 const NEWS_LIMIT = 400;
+// The stories page's own limit (BOARD_LIMIT in src/feed/stories-client.svelte.js), and how much of a story is kept.
+const STORIES_LIMIT = 120;
+const STORY_ARTICLES = 30;
+const STORY_BATCH = 8;
+const ONLY_FLAG = '--only=';
 // The network page draws rates from the gap between meter readings, so a few are recorded in a row.
 const METER_LISTEN_MS = 16000;
 const METER_READINGS_MAX = 8;
@@ -45,8 +59,12 @@ const OWNER_NOTE = /owner/i; // a catalog source described as the owner's own st
 const SSE_EVENT = /^event: (.*)$/m;
 const SSE_DATA = /^data: (.*)$/m;
 
-const runner = (process.argv[2] ?? DEFAULT_RUNNER).replace(/\/+$/, '');
-const news = (process.argv[3] ?? DEFAULT_NEWS).replace(/\/+$/, '');
+const args = process.argv.slice(2);
+const urls = args.filter((a) => !a.startsWith('--'));
+/** The parts to record, by name; empty records all of them. */
+const only = (args.find((a) => a.startsWith(ONLY_FLAG)) ?? ONLY_FLAG).slice(ONLY_FLAG.length).split(',').filter(Boolean);
+const runner = (urls[0] ?? DEFAULT_RUNNER).replace(/\/+$/, '');
+const news = (urls[1] ?? DEFAULT_NEWS).replace(/\/+$/, '');
 
 async function get(/** @type {string} */ base, /** @type {string} */ path) {
   const res = await fetch(base + path);
@@ -141,12 +159,26 @@ async function meter() {
   return { stats, cycles };
 }
 
+/** One file per story on either board: its articles (the newest few) and its recorded numbers. */
+async function recordStories(/** @type {any[]} */ stories) {
+  emptyDir(STORIES_DIR);
+  const ids = [...new Set(stories.map((s) => s.id))];
+  for (let i = 0; i < ids.length; i += STORY_BATCH) {
+    const batch = ids.slice(i, i + STORY_BATCH);
+    const details = await Promise.all(batch.map((id) => get(news, `/api/stories/${id}`)));
+    details.forEach((d, k) => write(STORIES_DIR, `${batch[k]}.json`, { ...d, events: d.events.slice(0, STORY_ARTICLES) }));
+  }
+  return ids.length;
+}
+
 async function recordNews(/** @type {string} */ takenAt) {
-  const [events, calendar, settings, { stats, cycles }] = await Promise.all([
-    get(news, `/api/events?limit=${NEWS_LIMIT}`), get(news, '/api/calendar'), get(news, '/api/settings'), meter(),
+  const [events, calendar, settings, stories, storiesAll, world, { stats, cycles }] = await Promise.all([
+    get(news, `/api/events?limit=${NEWS_LIMIT}`), get(news, '/api/calendar'), get(news, '/api/settings'),
+    get(news, `/api/stories?limit=${STORIES_LIMIT}&tradable=1`), get(news, `/api/stories?limit=${STORIES_LIMIT}`), get(news, '/api/stories/map'), meter(),
   ]);
-  write(DEMO_DIR, NEWS_FILE, { taken_at: takenAt, events, calendar, settings, stats, cycles });
-  return `${events.length} headlines, ${calendar.length} calendar events, ${stats.length} meter readings`;
+  const files = await recordStories([...stories.stories, ...storiesAll.stories]);
+  write(DEMO_DIR, NEWS_FILE, { taken_at: takenAt, events, calendar, settings, stats, cycles, stories, stories_all: storiesAll, world });
+  return `${events.length} headlines, ${calendar.length} calendar events, ${stats.length} meter readings, ${stories.stories.length} tradable stories, ${files} story files`;
 }
 
 /** A chart with its candles trimmed to four decimals. */
@@ -177,11 +209,23 @@ async function recordMarkets(/** @type {string} */ takenAt) {
   return `${symbols.length} symbols`;
 }
 
+/** The Home page's ribbon: quotes for its set symbols and the symbols of open plays, and the paper account's starting capital. */
+async function recordHome(/** @type {string} */ takenAt) {
+  const { symbols } = JSON.parse(readFileSync(RIBBON_FILE, 'utf8'));
+  const [items, catalog] = await Promise.all([get(runner, '/api/plays'), get(runner, '/api/sources')]);
+  const open = items.filter((/** @type {any} */ x) => x.play.status === PLAY_OPEN).map((/** @type {any} */ x) => x.play.contract?.symbol).filter(Boolean);
+  const wanted = [...new Set([...symbols, ...open])].slice(0, RIBBON_MAX);
+  const quotes = await get(runner, `/api/market/quotes?${new URLSearchParams({ symbols: wanted.join(',') })}`);
+  write(DEMO_DIR, HOME_FILE, { taken_at: takenAt, paper_capital_usd: catalog.go_live?.paper_capital_usd, quotes });
+  return `${quotes.length} ribbon quotes`;
+}
+
 const takenAt = new Date().toISOString();
 mkdirSync(DEMO_DIR, { recursive: true });
-const parts = [['plays', recordPlays], ['trading', recordTrading], ['news', recordNews], ['markets', recordMarkets]];
+const parts = [['plays', recordPlays], ['trading', recordTrading], ['news', recordNews], ['markets', recordMarkets], ['home', recordHome]];
 let failed = false;
 for (const [name, record] of parts) {
+  if (only.length && !only.includes(name)) continue;
   try {
     console.log(`${name.padEnd(8)} ${await record(takenAt)}`);
   } catch (err) {
