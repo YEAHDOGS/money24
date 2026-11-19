@@ -12,6 +12,7 @@
   import NoticeBar from './NoticeBar.svelte';
   import Tour from './tour/Tour.svelte';
   import { demoHref } from './demo.js';
+  import House from '@lucide/svelte/icons/house';
   import Zap from '@lucide/svelte/icons/zap';
   import Wallet from '@lucide/svelte/icons/wallet';
   import ChartCandlestick from '@lucide/svelte/icons/chart-candlestick';
@@ -19,7 +20,7 @@
 
   /**
    * @type {{
-   *   page: 'plays' | 'desk' | 'markets' | 'news' | 'wallet' | 'terms',
+   *   page: 'home' | 'plays' | 'desk' | 'markets' | 'news' | 'wallet' | 'terms',
    *   tools?: import('svelte').Snippet,
    *   status?: string,
    *   service?: 'runner' | 'news',
@@ -29,7 +30,7 @@
   let { page, tools, status = '', service = 'runner' } = $props();
 
   const HOME = './';
-  const ICONS = { plays: Zap, markets: ChartCandlestick, news: Newspaper, wallet: Wallet };
+  const ICONS = { home: House, plays: Zap, markets: ChartCandlestick, news: Newspaper, wallet: Wallet };
   /** A tab is the current one on its own page and on the pages filed under it (the journal, under Plays). */
   const owns = (/** @type {any} */ p) => p.id === page || (p.also ?? []).includes(page);
   const STORE_STATUS = 'm24.status.';

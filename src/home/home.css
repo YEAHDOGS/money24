@@ -1,0 +1,57 @@
+/* Home page (src/home/): what Tailwind can't express. The quote ribbon's run, the equity line
+   drawing itself in, and the banner's swipe surface. Colors come from src/styles/theme.css. */
+
+/* THE RIBBON: the same quotes several times in a row, moved left by one copy's width and started
+   again, so the loop has no seam. The width, the time one loop takes and where it starts are set
+   by Ribbon.svelte. Hovering it, or tabbing into it, holds it still. */
+.ribbon-run {
+  animation: ribbon-run linear infinite;
+  will-change: transform;
+}
+@keyframes ribbon-run {
+  to {
+    transform: translateX(var(--ribbon-shift, -50%));
+  }
+}
+.ribbon-view:hover .ribbon-run,
+.ribbon-view:focus-within .ribbon-run {
+  animation-play-state: paused;
+}
+/* Held still, the ribbon is a row to swipe, drag and wheel through. It never shows a scrollbar. */
+.ribbon-view {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.ribbon-view::-webkit-scrollbar {
+  display: none;
+}
+
+/* THE EQUITY LINE draws itself from left to right when the range changes; the fill under it fades in. */
+.equity-line {
+  stroke-dasharray: 1;
+  animation: equity-draw 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes equity-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.equity-area {
+  animation: equity-fade 700ms ease-out both;
+}
+@keyframes equity-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ribbon-run,
+  .equity-line,
+  .equity-area {
+    animation: none;
+  }
+}

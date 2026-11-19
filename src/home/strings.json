@@ -1,0 +1,81 @@
+{
+  "title": "Money 24 Home",
+  "paper": "Paper",
+  "paperNote": "Paper trading. No real money is held or moved.",
+  "offline": "The runner isn't running. Start the desktop app, or run m24d.",
+  "offlineLink": "Runner settings",
+  "loading": "Reading the runner…",
+  "positions": {
+    "title": "Open positions",
+    "all": "All plays",
+    "empty": "Nothing is running on paper right now.",
+    "emptyLink": "Find a play",
+    "cost": "Cost",
+    "open": "Open P&L",
+    "openOf": "{n} of {of} priced",
+    "cols": {
+      "contract": "Contract",
+      "entry": "Entry",
+      "size": "Size",
+      "cost": "Cost",
+      "stop": "Stop",
+      "next": "Next exit",
+      "result": "Open P&L"
+    },
+    "timeExit": "Time exit",
+    "banked": "banked",
+    "model": "Model",
+    "modelNote": "Worked out from the stock's candles, not from traded prices.",
+    "noMark": "No price yet",
+    "openPlay": "Open {title} on Plays"
+  },
+  "wallet": {
+    "title": "Paper account",
+    "equity": "Paper equity",
+    "rangesLabel": "History range",
+    "ranges": { "1w": "1W", "1m": "1M", "6m": "6M", "1y": "1Y", "all": "All" },
+    "rangeNames": { "1w": "the last week", "1m": "the last month", "6m": "the last six months", "1y": "the last year", "all": "all time" },
+    "change": "Change",
+    "drawdown": "Max drawdown",
+    "trades": "Closed trades",
+    "note": "Starting paper capital {capital} plus closed paper trades. Not real money.",
+    "flat": "No closed paper trades in this range.",
+    "unknown": "The paper account can't be read while the runner is offline.",
+    "chartLabel": "Paper equity over {range}: {start} to {end}.",
+    "now": "Now",
+    "wallet": "Wallet"
+  },
+  "ribbon": {
+    "label": "Market quotes",
+    "pause": "Pause the ticker",
+    "play": "Run the ticker",
+    "back": "Earlier quotes",
+    "forward": "More quotes",
+    "empty": "No quotes yet.",
+    "open": "Open {name} on Markets"
+  },
+  "carousel": {
+    "label": "Top stories",
+    "labelEvents": "Latest headlines",
+    "previous": "Previous story",
+    "next": "Next story",
+    "pause": "Stop changing stories",
+    "play": "Change stories by itself",
+    "slide": "{n} of {of}",
+    "go": "Story {n}",
+    "outlet": "outlet",
+    "outlets": "outlets",
+    "attention": "Attention",
+    "empty": "No stories yet."
+  },
+  "news": {
+    "title": "Headlines",
+    "categories": "News categories",
+    "all": "All",
+    "more": "News page",
+    "moreRow": "More on the News page",
+    "empty": "No headlines in this category.",
+    "emptyLive": "Waiting for the first headlines…",
+    "offline": "The news service isn't running. Start the desktop app, or run newsd."
+  }
+}

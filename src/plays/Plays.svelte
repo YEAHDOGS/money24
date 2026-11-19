@@ -40,6 +40,7 @@
     { id: TAB_INBOX, icon: Inbox },
     { id: TAB_RULES, icon: Scale },
   ];
+  const PLAY_PARAM = 'play'; // plays.html?play=<id> opens on that play (Home's open positions link here)
   const FILTER_ALL = 'all';
   const FILTERS = [FILTER_ALL, 'armed', 'draft', 'closed'];
   /** @type {Intl.DateTimeFormatOptions} */
@@ -50,9 +51,10 @@
   let client = $state(untrack(() => new PlaysClient(runnerUrl, runnerSecret)));
   let now = $state(Date.now());
   let mode = $state(MODE_WIDE);
-  let tab = $state(TAB_PLAYS);
+  const linkedId = new URLSearchParams(location.search).get(PLAY_PARAM) ?? '';
+  let tab = $state(linkedId ? TAB_PLAY : TAB_PLAYS);
   let filter = $state(FILTER_ALL);
-  let selectedId = $state('');
+  let selectedId = $state(linkedId);
 
   function saveRunner(/** @type {string} */ url, /** @type {string} */ secret) {
     try {

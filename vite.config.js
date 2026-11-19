@@ -13,9 +13,11 @@ const APP_JS_TARGET = ['chrome99', 'edge99', 'firefox97', 'safari16.4', 'ios16.4
 // The optional Tauri shell lives in src/tauri; its Rust build output must not trigger dev reloads.
 const NATIVE_SHELL_GLOB = '**/src/tauri/**'
 // Pages: the landing page, the live news feed and the trading desk (both are desktop app windows), the markets
-// page (quotes and charts), the plays board (the launch screen), and the Terms of Use (plain HTML, no JS).
+// page (quotes and charts), the plays board, the wallet, Home (the launch screen: open positions, the paper
+// account, quotes and news), and the Terms of Use (plain HTML, no JS).
 const PAGES = {
   main: 'index.html',
+  home: 'home.html',
   feed: 'feed.html',
   trading: 'trading.html',
   markets: 'markets.html',

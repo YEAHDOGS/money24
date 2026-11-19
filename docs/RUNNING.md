@@ -38,11 +38,12 @@ cd money24
 
 The first run installs the packages and builds the two Go services, which takes a minute or two
 and needs the internet. After that it starts in seconds. When it is ready it prints the addresses
-and opens the plays board in your browser:
+and opens Home in your browser:
 
 | Page | Address |
 |---|---|
-| **Plays (start here)** | http://localhost:5173/plays.html |
+| **Home (start here)** | http://localhost:5173/home.html |
+| Plays | http://localhost:5173/plays.html |
 | Trading desk | http://localhost:5173/trading.html |
 | Markets (quotes and charts) | http://localhost:5173/markets.html |
 | News and calendar | http://localhost:5173/feed.html |

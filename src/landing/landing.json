@@ -2,7 +2,7 @@
   "cta": {
     "demo": "Open the demo",
     "tour": "Take the tour",
-    "demoHref": "plays.html",
+    "demoHref": "home.html",
     "tourHref": "plays.html?tour"
   },
   "loop": {

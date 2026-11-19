@@ -5,6 +5,12 @@
   "label": "Money 24 apps",
   "pages": [
     {
+      "id": "home",
+      "href": "home.html",
+      "label": "Home",
+      "section": "HOME"
+    },
+    {
       "id": "plays",
       "href": "plays.html",
       "label": "Plays",
