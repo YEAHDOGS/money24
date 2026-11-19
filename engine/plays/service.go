@@ -48,6 +48,8 @@ type Service struct {
 	NewsURL string
 	// MayWrite guards every change: the local desk, or the webhook secret.
 	MayWrite func(*http.Request) bool
+	// finder is the finder's last pass, served so nothing it decides is hidden.
+	finder finderLog
 }
 
 // Item is a play with its report, as the UI reads it.
@@ -486,6 +488,9 @@ func (s *Service) Routes() map[string]http.Handler {
 				return
 			}
 			writeJSON(w, http.StatusOK, out)
+		}),
+		"GET /api/plays/finder": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, s.FinderStatus())
 		}),
 		"GET /api/plays/ai": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, Providers())

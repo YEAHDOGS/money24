@@ -46,7 +46,9 @@
     "rulesBroken": "rules broken",
     "ruleFailing": "rule failing",
     "rulesFailing": "rules failing",
-    "active": "Active"
+    "active": "Active",
+    "found": "Found",
+    "foundNote": "Opened by Money 24 from a news story, with nobody at the keyboard"
   },
   "detail": {
     "paperNow": "Paper trade now",
@@ -299,6 +301,19 @@
     "calamity": "Calamity plan",
     "autoPaper": "Paste a link → paper trade instantly",
     "paperIgnores": "Paper trades go through blocking rules and record what they broke; live never would",
+    "finder": {
+      "title": "The finder",
+      "on": "Open paper plays from the news with nobody at the keyboard",
+      "moveMustAgree": "Skip a story when the stock is moving against its angle",
+      "minAttention": "Min attention",
+      "minValidity": "Min validity",
+      "minSided": "Headlines on its side",
+      "maxPerDay": "Max plays a day",
+      "minDays": "Expiry at least (days)",
+      "otmPct": "Strike past price (%)",
+      "maxDayLoss": "Pause after losing ($)",
+      "note": "Every five minutes of the stock session the finder reads the stories board. A loud, well-sourced story that leans one way on a stock gets an option play: calls when bullish, puts when bearish. A found play is paper traded only when it passes every blocking rule; otherwise it waits as a draft."
+    },
     "save": "Save rulebook",
     "saved": "Saved",
     "reset": "Reset to DOGS defaults",

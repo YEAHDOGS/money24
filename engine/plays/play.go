@@ -120,6 +120,9 @@ type Play struct {
 	Theme     string    `json:"theme,omitempty"` // plays on one theme are one bet (FAA outage: AAL, DAL, UAL)
 	// Category is what kind of play this is, set by hand ("News play"), so plays can be grouped and compared.
 	Category string `json:"category,omitempty"`
+	// FoundBy is "finder" when the engine opened the play itself, from the newsd story StoryID.
+	FoundBy string `json:"found_by,omitempty"`
+	StoryID int64  `json:"story_id,omitempty"`
 
 	Contract  Contract   `json:"contract"`
 	Qty       float64    `json:"qty"`

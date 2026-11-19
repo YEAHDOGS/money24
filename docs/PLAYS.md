@@ -109,9 +109,22 @@ Rules for the AI layer:
    weighed in the odds until a person marks it verified.
 5. **Bring your own key.** Keys live in `.env` today (OS keychain planned), go only to their own
    provider, and never reach the browser or DOGS.
-6. **Where AI goes next** (not built): a *finder* that scans newsd, the catalyst calendar, unusual
-   volume and open-interest changes, and proposes plays into the same inbox (the "middle agent" in
-   notes/catalyst-and-filings.md) — scored like any source, paper first, auto-disabled if it loses.
+6. **The finder** (built Nov 18, 2026, `engine/plays/finder.go`; no model in it): every five minutes
+   of the stock session m24d reads newsd's stories board (`engine/README.md`, Stories). A story earns a
+   play when its coverage-against-volume reading is `early` or `confirmed`, its attention and validity
+   clear the rulebook's bars, at least three headlines take the angle's side, and the stock is not
+   moving against that angle. The finder then picks the option itself (calls when bullish, puts when
+   bearish; the first expiry at least a week out; the two-sided strike nearest 2% past the price),
+   drafts the full bracket from the template, files the story as news evidence with its outlet count,
+   and paper trades it **only if no blocking rule fails**. A blocked play waits as a draft. One play a
+   pass, six a day, never two on one symbol or one story. Found plays carry `found_by: "finder"` and
+   the story's id, and show a Found chip on the board. The finder pauses for the day once the paper
+   plays closed that day have lost $150. Settings are on the Rules tab; its last pass, with what it
+   decided about each loud story and why, is at `GET /api/plays/finder` (not on a page yet).
+7. **Where AI goes next** (not built): a model reading each loud story once to replace the word-count
+   angle, and a scan of the catalyst calendar for scheduled events (a launch date, an earnings day)
+   so a play can be opened before the coverage starts (the "middle agent" in
+   notes/catalyst-and-filings.md). Both stay paper first and are scored like any source.
 
 Claude calls use `claude-opus-5-5` with structured output (`output_config.format`), effort
 `medium`, and server-side refusal fallback (`fallbacks: "default"`). Every provider's model can be

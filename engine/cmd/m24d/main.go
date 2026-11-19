@@ -287,6 +287,8 @@ func main() {
 	for pattern, h := range playService.Routes() {
 		opts.Mount[pattern] = h
 	}
+	// The finder opens paper plays on its own from the stories newsd groups; the rulebook can turn it off.
+	go playService.RunFinder(ctx)
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

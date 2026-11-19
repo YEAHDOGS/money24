@@ -123,6 +123,8 @@ type Rules struct {
 	Template                    Template `json:"template"`
 	AutoPaper                   bool     `json:"auto_paper"`           // a pasted link is planned and paper traded at once
 	PaperIgnoresBlocks          bool     `json:"paper_ignores_blocks"` // paper trades go through blocks, marked; live never would
+	// Finder is how the engine opens plays on its own from the news. Nil in an older rulebook: the defaults apply.
+	Finder *FinderRules `json:"finder,omitempty"`
 }
 
 // DOGSRules is the default rulebook.
@@ -173,6 +175,7 @@ func DOGSRules() Rules {
 		},
 		AutoPaper:          true,
 		PaperIgnoresBlocks: true,
+		Finder:             DefaultFinder(),
 	}
 }
 
@@ -205,6 +208,9 @@ func (r Rules) merged() Rules {
 	}
 	if r.Version == 0 {
 		r.Version = RULES_VERSION
+	}
+	if r.Finder == nil {
+		r.Finder = d.Finder
 	}
 	return r
 }

@@ -10,6 +10,7 @@ import (
 
 const (
 	OPTIONS_PATH   = "/v7/finance/options/%s?date=%d"
+	CHAIN_PATH     = "/v7/finance/options/%s?straddle=false"
 	RIGHT_CALL     = "C"
 	RIGHT_PUT      = "P"
 	STRIKE_EPSILON = 0.001
@@ -98,4 +99,73 @@ func (c *Client) Option(ctx context.Context, symbol, expiry, right string, strik
 			AvgVolume: r.Quote.AvgVolume, NextEarnings: earnings, MarketTime: r.Quote.MarketTime}, nil
 	}
 	return OptionQuote{}, ErrNotFound
+}
+
+// OptionRow is one strike of a chain.
+type OptionRow struct {
+	Contract     string  `json:"contract"`
+	Strike       float64 `json:"strike"`
+	Bid          float64 `json:"bid"`
+	Ask          float64 `json:"ask"`
+	Volume       int     `json:"volume"`
+	OpenInterest int     `json:"open_interest"`
+}
+
+// Chain is every strike a symbol lists on one expiry, and every expiry it lists at all.
+type Chain struct {
+	Spot     float64     `json:"spot"`
+	Expiry   int64       `json:"expiry"`   // Unix seconds, as Yahoo keys its chains
+	Expiries []int64     `json:"expiries"` // soonest first
+	Calls    []OptionRow `json:"calls"`
+	Puts     []OptionRow `json:"puts"`
+}
+
+// Chain reads one expiry of a symbol's option chain. With expiry 0 it reads the nearest one,
+// which is how the list of expiries is first learned.
+func (c *Client) Chain(ctx context.Context, symbol string, expiry int64) (Chain, error) {
+	if !SYMBOL.MatchString(symbol) {
+		return Chain{}, ErrBadInput
+	}
+	type row struct {
+		Contract     string  `json:"contractSymbol"`
+		Strike       float64 `json:"strike"`
+		Bid          float64 `json:"bid"`
+		Ask          float64 `json:"ask"`
+		Volume       int     `json:"volume"`
+		OpenInterest int     `json:"openInterest"`
+	}
+	var res struct {
+		OptionChain struct {
+			Result []struct {
+				Expiries []int64 `json:"expirationDates"`
+				Quote    struct {
+					Price float64 `json:"regularMarketPrice"`
+				} `json:"quote"`
+				Options []struct {
+					Expiry int64 `json:"expirationDate"`
+					Calls  []row `json:"calls"`
+					Puts   []row `json:"puts"`
+				} `json:"options"`
+			} `json:"result"`
+		} `json:"optionChain"`
+	}
+	path := fmt.Sprintf(CHAIN_PATH, url.PathEscape(symbol))
+	if expiry > 0 {
+		path = fmt.Sprintf(OPTIONS_PATH, url.PathEscape(symbol), expiry)
+	}
+	if err := c.get(ctx, path, true, &res); err != nil {
+		return Chain{}, err
+	}
+	if len(res.OptionChain.Result) == 0 || len(res.OptionChain.Result[0].Options) == 0 {
+		return Chain{}, ErrNotFound
+	}
+	r := res.OptionChain.Result[0]
+	out := Chain{Spot: r.Quote.Price, Expiry: r.Options[0].Expiry, Expiries: r.Expiries, Calls: []OptionRow{}, Puts: []OptionRow{}}
+	for _, o := range r.Options[0].Calls {
+		out.Calls = append(out.Calls, OptionRow(o))
+	}
+	for _, o := range r.Options[0].Puts {
+		out.Puts = append(out.Puts, OptionRow(o))
+	}
+	return out, nil
 }

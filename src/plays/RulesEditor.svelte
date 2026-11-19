@@ -25,6 +25,13 @@
     ['no_quote_minutes', 'noQuote', '1'], ['gap_pct', 'gap', '0.5'],
   ];
 
+  /** The finder's numbers: rulebook key, label in strings.json, input step. */
+  const FINDER_NUMBERS = [
+    ['min_attention', 'minAttention', '5'], ['min_validity', 'minValidity', '5'], ['min_sided', 'minSided', '1'],
+    ['max_per_day', 'maxPerDay', '1'], ['min_days', 'minDays', '1'], ['otm_pct', 'otmPct', '0.5'],
+    ['max_day_loss_usd', 'maxDayLoss', '10'],
+  ];
+
   /** @type {any} */
   let draft = $state(null);
   let busy = $state(false);
@@ -53,6 +60,7 @@
     for (const rule of r.rules) for (const k of Object.keys(rule.params)) rule.params[k] = num(rule.params[k]);
     for (const k of WEIGHTS) r.weights[k] = num(r.weights[k]);
     for (const [k] of TEMPLATE_NUMBERS) r.template[k] = num(r.template[k]);
+    if (r.finder) for (const [k] of FINDER_NUMBERS) r.finder[k] = num(r.finder[k]);
     r.template.ladder = r.template.ladder.map((/** @type {any} */ x) => ({ pct_of_position: num(x.pct_of_position), gain_pct: num(x.gain_pct) }));
     return r;
   }
@@ -96,6 +104,21 @@
         <label class="flex items-start gap-2 text-sm text-white"><input type="checkbox" bind:checked={draft.paper_ignores_blocks} class="mt-1 accent-neon-red" />{strings.rulesEditor.paperIgnores}</label>
         <label class="{FIELD} max-w-48">{strings.rulesEditor.bankroll}<input bind:value={draft.bankroll_usd} type="number" min="0" step="50" class={INPUT} /></label>
       </section>
+
+      <!-- THE FINDER: plays the engine opens on its own from the news. An older runner sends no finder. -->
+      {#if draft.finder}
+        <section class="grid gap-2">
+          <h3 class={LABEL}>{strings.rulesEditor.finder.title}</h3>
+          <label class="flex items-start gap-2 text-sm text-white"><input type="checkbox" bind:checked={draft.finder.on} class="mt-1 accent-neon-red" />{strings.rulesEditor.finder.on}</label>
+          <label class="flex items-start gap-2 text-sm text-white"><input type="checkbox" bind:checked={draft.finder.move_must_agree} disabled={!draft.finder.on} class="mt-1 accent-neon-red" />{strings.rulesEditor.finder.moveMustAgree}</label>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {#each FINDER_NUMBERS as [key, label, step] (key)}
+              <label class={FIELD}>{strings.rulesEditor.finder[label]}<input bind:value={draft.finder[key]} type="number" min="0" {step} disabled={!draft.finder.on} class={INPUT} /></label>
+            {/each}
+          </div>
+          <p class="text-xs leading-snug text-muted">{strings.rulesEditor.finder.note}</p>
+        </section>
+      {/if}
 
       <section>
         <h3 class={LABEL}>{strings.detail.checks}</h3>
