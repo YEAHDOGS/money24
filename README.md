@@ -23,13 +23,23 @@ That night I angrily tweeted. That morning, Saturday while markets were closed, 
 
 Like chess, like clockwork, money from the sky. Short window, and many things can go wrong. But money24 is aimed at trying to capture this, entirely hands off. And this is me prompting Gemini manually, we need to automate this. Across all the 6 markets of the 7 seas on God's green earth.
 
-I won't lie. This is the riskiest form of trading there is. Even here, I paper traded these gains, but did not fund myself. But I think this is doable. I've watched claude fable cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
+I won't lie. This is the riskiest form of trading there is. Even here, I paper traded these gains, but did not fund myself. I think this is doable. I've watched claude fable cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
 
 Once this is complete we can assess an overall risk of money24 as a product. I need help though. If you're reading this, email brando@dogs.red immediately, and help me build man's holy grail. The hybrid car that drives itself. Open source.
 
 I am currently collecting market data for backtesting, paper trading, polishing the UI, and orchestrating the new world order.
 
 Heavy development. Do not disturb. Don't cut yourself on the glass sharp blades.
+
+## Trading Rules
+
+In my 3 years of experience as a trader, I find there's rules to this game that must be followed to be successful. This is a game of discipline, and actually, eliminating human emotion from the game should have very positive impacts here.
+
+Every situation is different. And I want money24 to be customizable, so rules can be set for every situation. My general rules are below
+
+- Stop losses are good. Few situations require time, patience, and trust without a stop loss.
+- Exits are best planned in advance. Ladder exits work best when done right (sell orders, multiple profit targets for every trade planned in advance).
+- Follow the whales. The big grift in trading is convincing inexperienced newcomers into betting, not deciding. Metrics including order volumes, moving averages, and more turn trading into less of a casino and more of a weatherman's game. Almost everything is predictable in this game if you act quick enough, and know where to look. Never trade alone, always make plays that other people are making too.
 
 ## What's in here
 
