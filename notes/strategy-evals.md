@@ -260,3 +260,25 @@ So "no customers" reduces to prop capital, which requires an own strategy that h
 **Failure modes present:** fee-funded rewards, subscription bleed after failure, intro-price anchoring, upsell layering, discretionary denial levers, an unseen post-challenge contract, inflated review signals.
 
 **Status:** evaluated and filed (repo notes + Wordsmith money24 + money-makers README). Nothing bought, nothing signed up. Full research: workspace research_notes/pivex-funded-account-legitimacy-reviews-20261121-1903/report.md.
+
+---
+
+## Alternatives landscape: hands-off agentic AI trading + average returns (2026-11-21, his ask)
+
+**Headline: no hands-off AI trading product has a verified record of beating the S&P 500 long-term. The strongest evidence in the space is negative. Every return below is graded: A = market-verifiable/audited, B = platform-published live, C = backtest/hypothetical, D = marketing claim or no data.**
+
+**AI ETFs (A):** Morningstar (Jul 2026): 16 AI-powered ETFs launched since 2017 have underperformed VTI by ~5%/yr over their lifetimes; half have closed. AIEQ (0.75%, since Oct 2017): +9.37%/yr since inception vs SPY +14.39%/yr over the same span. AIED (ex-QRAFT AMOM, 0.75%): +15.7%/yr since May 2019 — the one AI ETF at benchmark pace, but ~$18M AUM and the strategy was just amended. QRFT returned +16.78%/yr and was STILL liquidated (Jul 2026); NVQ + AIDB liquidated Feb 2024.
+
+**Live LLM experiments (A/B):** Nof1 Alpha Arena Season 1 (Oct–Nov 2025, six LLMs, $10K each, Hyperliquid perps): Qwen +20.3%, DeepSeek +6.9%, Claude −29.9%, Grok −45.1%, Gemini −57.7%, GPT-5 −63.4% — mean −28.2%, 4 of 6 negative. Season 1.5: 31 of 38 accounts lost money; no public Season 2 as of Nov 2026. Autopilot/Rallies AI portfolios (B, real client money): ChatGPT portfolio +87.2% since Apr 1, 2026, but 0 of 17 AI portfolios positive in the latest 3 months (−44.46% to −4.67%).
+
+**Consumer platforms (mostly D):** Composer, Trade Ideas (Holly ~25%/yr is simulated — C), TrendSpider, Tickeron (+61% to +285% claims — D), 3Commas, Cryptohopper, Stoic, Pionex — none publish platform-wide live results. The exception is Bitsgap (B): H1 2026 closed grid bots were 35.14% profitable, average +2.34%, median +0.51%; DCA spot bots averaged −0.10%. Robinhood Agentic Trading (live beta May 2026, 150K+ accounts) publishes no performance — it is plumbing, not a strategy.
+
+**Open source (C or nothing):** TradingAgents' headline numbers are Q1 2024 paper backtests (AAPL +26.62%) with 9 look-ahead corrections in its 2026 changelog. virattt/ai-hedge-fund explicitly does not trade. FinRobot is research-only. No framework has a live track record.
+
+**Failure context:** SEBI's study: 91.1% of retail derivatives traders lost money. The CFTC warns that AI-bot return claims are a fraud hallmark.
+
+**Honest range:** verified long-run AI management ≈ benchmark minus ~5pp/yr; live LLM agents are negative on average; a typical closed crypto bot nets a median of ~0–1.8% per run; the 25–285% figures are backtests or marketing. Strongest verified records: AIED (A), AIEQ (A for evidence quality, underperforms), Rallies' ChatGPT portfolio (B, +87% in 7.5 months, unproven).
+
+**Read for Money 24:** the entire commercial field has marketing where a track record should be. Money 24's design — paper gate (100 trades / 30 days / max DD 20%) before any live money, and a public scoreboard as the sellable asset — is aimed at exactly the gap none of these products fill. The README's own bar ("at least a dollar out the market a day") is more honest than the industry's published claims.
+
+**Status:** research delivered + filed 3 ways. Nothing bought, signed up, or traded. Full research: workspace research_notes/hands-off-agentic-ai-trading-alternative-20261121-1947/report.md.
