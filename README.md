@@ -7,7 +7,7 @@ forex, around the clock according to the news, signals, trackers, and AI analysi
 
 **Realistically, I reckon my AI subscriptions should be getting at least a dollar out the market a day for me the way that thing swings. That's the goal. Connect your AI subscriptions to money24, hands off trading with brokerage API conenctions, loops and services and daemons.**
 
-## Trading Philosophies
+## What's the deal?
 
 I have only ever lost money from the markets. But I see AI trading as my best shot at fixing that. The way this is gonna float is to tread lightly. Pins, needles, stop losses, gradual development. Trading, backtesting on collected data, and experimentation.
 
@@ -31,7 +31,7 @@ I am currently collecting market data for backtesting, trading, polishing the UI
 
 Heavy development. Do not disturb. Don't cut yourself on the glass sharp blades.
 
-## Trading Rules
+## Trading Philosophies
 
 In my 3 years of experience as a trader, I find there's rules to this game that must be followed to be successful. This is a game of discipline, and actually, eliminating human emotion from the game should have very positive impacts here.
 
@@ -39,7 +39,15 @@ Every situation is different. And I want money24 to be customizable, so rules ca
 
 - Stop losses are good. Few situations require time, patience, and trust without a stop loss.
 - Exits are best planned in advance. Ladder exits work best when done right (sell orders, multiple profit targets for every trade planned in advance).
-- Follow the whales. The big grift in trading is convincing inexperienced newcomers into betting, not deciding. Metrics including order volumes, moving averages, and more turn trading into less of a casino and more of a weatherman's game. Almost everything is predictable in this game if you act quick enough, and know where to look. Never trade alone, always make plays that other people are making too.
+- Follow the whales. The big grift in trading is convincing inexperienced newcomers into betting, not deciding. Metrics including order volumes, moving averages, and more turn trading into less of a casino and more of a weatherman's game. Almost everything is predictable in this game if you act quick enough, and know where to look. Never trade alone, always make plays that other people are making too. It is just about impossible to see something that nobody else is betting on too. If there are no trades matching yours, it is probably a weak trade, where we're missing information or something.
+
+Just like tides and waves in the ocean, the markets each follow certain sentiments and proven understandings. For example, a US presidential election usually has a large impact on the US stock market for the next coming month or two, in my experience usually negative, like a canonball splashing in the water. Earnings reports or Fed Reserve FOMC meetings tend to cause similar splashes usually right at the time of the event, though this is very difficult to predict as the stock market is not 1:1 with financial data (even if a company reports great earnings for the quarter, their stock may still sink, and the news will just report opinionated ideas over why nothing specific nothing tangible or quantitative to follow. The real truth is behind closed doors). Fridays are usually a sell day (wall street needs to buy coke and strippers for the weekend). US holidays offer certain sentiments too (hiring freezes around Christmas/New Year's, employee bonuses for Thanksgiving, things like that). These are my general understandings and musings of the American stock market. The goal of this project is to trade across international markets and commodities too, as much as possible 24/7 entirely hands-off agentic ai trading. This is how it works, and trying to trade against these unwritten laws is like trying to swim upstream; it usually won't work out.
+
+That said, I pasted the above paragraph into Gemini, and the ai laughed at me, and said I'm a fool. The ai is probably correct. This is how it corrected me:
+
+"Financial markets are driven by liquidity, positioning, and expectations rather than simple 1:1 fundamentals. Scheduled catalysts—such as FOMC rate decisions, CPI prints, and corporate earnings—trigger sharp volatility spikes and repricing based on forward guidance rather than past numbers. While seasonal liquidity patterns exist (such as thin holiday order books, quarter-end rebalancing, and tax-loss harvesting), simple calendar myths are unreliable. money24 operates across global markets and commodities 24/7 by adapting to real-time order flow, volatility regimes, and risk limits rather than trading on rigid assumptions."
+
+Man fuck this world. Vocabulary doesn't pay my fucking bills. And I've seen what I've seen. I don't care. Truthfully I'm guessing the reason a project like this hasn't come to life successfully yet is because AIs are trained to spit out that shit there. I think there's a serious risk this way of trading exposes to the world, total global financial collapse, and I'm guessing AIs and LLMs are hardcoded to make the money machine an uphill battle. Whatever. Gemini has added more rules to [notes/gemini-unwritten-rules.md]. We will be orchestrating everything together, because all the markets impact each other in different ways too. This is exactly why agentic ai trading is a golden strategy! Because what used to take 2 decades of hard work, loss, and study, now is more accessible than ever. That's why today is the perfect day to get money24 off the runway.
 
 ## What's in here
 
