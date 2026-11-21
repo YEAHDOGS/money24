@@ -39,11 +39,12 @@ type Journal struct {
 	recent []Entry
 	nextID int64
 	subs   map[chan Entry]struct{}
+	ledger *ledger // the cash account, fed every line ever written, not only the recent ones
 }
 
 // OpenJournal opens path for appending and reads back its tail, so a restart keeps history and ids.
 func OpenJournal(path string) (*Journal, error) {
-	j := &Journal{nextID: 1, subs: map[chan Entry]struct{}{}}
+	j := &Journal{nextID: 1, subs: map[chan Entry]struct{}{}, ledger: newLedger()}
 	if f, err := os.Open(path); err == nil {
 		sc := bufio.NewScanner(f)
 		sc.Buffer(make([]byte, 0, JOURNAL_LINE_MAX), JOURNAL_LINE_MAX)
@@ -56,6 +57,7 @@ func OpenJournal(path string) (*Journal, error) {
 				e.ID = j.nextID
 			}
 			j.nextID = max(j.nextID, e.ID+1)
+			j.ledger.apply(e)
 			j.keep(e)
 		}
 		f.Close()
@@ -85,6 +87,7 @@ func (j *Journal) Append(e Entry) (Entry, error) {
 	if err := j.enc.Encode(e); err != nil {
 		return e, err
 	}
+	j.ledger.apply(e)
 	j.keep(e)
 	for ch := range j.subs {
 		select {

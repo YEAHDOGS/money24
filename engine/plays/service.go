@@ -48,8 +48,12 @@ type Service struct {
 	NewsURL string
 	// MayWrite guards every change: the local desk, or the webhook secret.
 	MayWrite func(*http.Request) bool
+	// Funds is the cash account the crypto desk sizes against. Nil: the rulebook bankroll stands in.
+	Funds func(now time.Time) Funds
 	// finder is the finder's last pass, served so nothing it decides is hidden.
 	finder finderLog
+	// crypto is the crypto desk's last pass and the hourly candles it read.
+	crypto cryptoDesk
 }
 
 // Item is a play with its report, as the UI reads it.
@@ -124,6 +128,12 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 	sig := signals.Signal{SourceID: SOURCE_ID, PostID: p.ID, Kind: signals.KIND_ENTRY, Symbol: p.Contract.Symbol,
 		Right: p.Contract.Right, Strike: p.Contract.Strike, Expiry: p.Contract.Expiry, Price: p.Entry,
 		Confidence: 1, SeenAt: now, Raw: p.Title, Manual: true}
+	// A coin is priced as a coin: without this the exit watcher would look its pair up as a stock.
+	// Its prices keep more digits than cents, so a coin under a dollar still has a threshold.
+	tick := func(v float64) float64 { return math.Round(v*CENT) / CENT }
+	if p.Contract.Market == MARKET_CRYPTO {
+		sig.Market, tick = signals.MARKET_CRYPTO, coinPrice
+	}
 	plan := signals.Plan{Signal: sig, Qty: p.Qty, Entry: p.Entry, Stop: p.Stop,
 		CostUSD: math.Round(p.Entry*p.Qty*p.Multiplier()*CENT) / CENT, ExitBy: p.Failsafes.ExitBy, StopsAfter: p.stopsAfter(rules)}
 	for _, r := range p.Ladder {
@@ -137,7 +147,7 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 	}
 	if f := p.Failsafes; f.SidewaysMinutes > 0 {
 		plan.TimeStopAt = now.Add(time.Duration(f.SidewaysMinutes) * time.Minute)
-		plan.TimeStopAbove = math.Round(p.Entry*(1+f.SidewaysMinGainPct/PERCENT)*CENT) / CENT
+		plan.TimeStopAbove = tick(p.Entry * (1 + f.SidewaysMinGainPct/PERCENT))
 	}
 	id, err := s.Paper(sig, plan)
 	if err != nil {
@@ -273,6 +283,8 @@ func writeErr(w http.ResponseWriter, status int, err error) {
 //	PUT    /api/plays/rules           save the rulebook
 //	POST   /api/plays/rules/reset     back to the DOGS defaults
 //	GET    /api/plays/ai              which AI providers are connected (never the keys)
+//	GET    /api/plays/finder          the stock finder's last pass
+//	GET    /api/plays/crypto          the crypto desk's last pass: what it decided about every coin
 func (s *Service) Routes() map[string]http.Handler {
 	guard := func(h http.HandlerFunc) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -347,6 +359,9 @@ func (s *Service) Routes() map[string]http.Handler {
 			m := s.Resolver.Snapshot(ctx, p.Contract, time.Now())
 			p, err := s.Store.Update(p.ID, func(q *Play) {
 				q.Market = &m
+				if q.Contract.Market == MARKET_CRYPTO {
+					return // a coin play's evidence is the breakout it was opened on, not the daily read below
+				}
 				kept := q.Evidence[:0]
 				for _, e := range q.Evidence {
 					if !e.Auto {
@@ -491,6 +506,9 @@ func (s *Service) Routes() map[string]http.Handler {
 		}),
 		"GET /api/plays/finder": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, s.FinderStatus())
+		}),
+		"GET /api/plays/crypto": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, s.CryptoStatus())
 		}),
 		"GET /api/plays/ai": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, Providers())

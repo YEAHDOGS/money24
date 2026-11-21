@@ -107,3 +107,21 @@ func TestWinOddsFollowsTheStake(t *testing.T) {
 		t.Errorf("success rate %.1f%% at %g units is not below %.1f%% at 11", big.Odds.WinPct, limit*4, small.Odds.WinPct)
 	}
 }
+
+func TestDraftExitSkipsHolidaysAndHalfDays(t *testing.T) {
+	m := Market{Bid: 1, Ask: 1.1, Spot: 80, IV: 0.4, At: time.Now()}
+	cases := []struct {
+		expiry string
+		want   string // the exit in New York time
+	}{
+		{"2026-11-27", "2026-11-25 15:00"}, // exit day Thanksgiving: back to Wednesday
+		{"2026-11-30", "2026-11-27 12:30"}, // exit day the Friday half day: before its 1 PM close
+		{"2026-11-23", "2026-11-20 15:00"}, // exit day a Sunday: back to Friday
+	}
+	for _, c := range cases {
+		p := Draft(Contract{Symbol: "DAL", Market: MARKET_OPTION, Right: RIGHT_PUT, Strike: 80, Expiry: c.expiry}, m, DOGSRules().Template, time.Date(2026, 11, 2, 12, 0, 0, 0, MARKET_TZ))
+		if got := p.Failsafes.ExitBy.In(MARKET_TZ).Format("2006-01-02 15:04"); got != c.want {
+			t.Errorf("expiry %s: exit %s, want %s", c.expiry, got, c.want)
+		}
+	}
+}

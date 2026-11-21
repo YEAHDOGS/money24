@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/market"
 )
 
@@ -27,23 +28,21 @@ const (
 	FINDER_CATEGORY = "Found from news"
 	FINDER_SOURCE   = "Money 24 stories"
 	// What a pass was doing, and what it decided about a story.
-	FINDER_LOOKING    = "looking"
-	FINDER_OFF        = "off"
-	FINDER_CLOSED     = "closed"
-	FINDER_FULL       = "full"
-	FINDER_PAUSED     = "paused"
-	FINDER_ERROR      = "error"
-	FINDER_OPENED     = "opened"
-	FINDER_DRAFTED    = "drafted"
-	FINDER_SKIPPED    = "skipped"
-	ANGLE_BULLISH     = "bullish"
-	ANGLE_BEARISH     = "bearish"
-	RELATION_DIRECT   = "direct"
-	SESSION_OPEN_MIN  = 9*60 + 30
-	SESSION_CLOSE_MIN = 16 * 60
-	DAY_SECONDS       = 24 * 60 * 60
-	MOVE_NOISE_PCT    = 0.5   // a move smaller than this says nothing about direction
-	NOT_A_STOCK       = "=-^" // futures, coins and indexes carry one of these in their symbol: no listed options here
+	FINDER_LOOKING  = "looking"
+	FINDER_OFF      = "off"
+	FINDER_CLOSED   = "closed"
+	FINDER_FULL     = "full"
+	FINDER_PAUSED   = "paused"
+	FINDER_ERROR    = "error"
+	FINDER_OPENED   = "opened"
+	FINDER_DRAFTED  = "drafted"
+	FINDER_SKIPPED  = "skipped"
+	ANGLE_BULLISH   = "bullish"
+	ANGLE_BEARISH   = "bearish"
+	RELATION_DIRECT = "direct"
+	DAY_SECONDS     = 24 * 60 * 60
+	MOVE_NOISE_PCT  = 0.5   // a move smaller than this says nothing about direction
+	NOT_A_STOCK     = "=-^" // futures, coins and indexes carry one of these in their symbol: no listed options here
 )
 
 // FinderRules is the finder's part of the rulebook.
@@ -101,15 +100,16 @@ type foundStory struct {
 	} `json:"reading"`
 }
 
-// sessionOpen says whether the US stock session is open with the finder's waits on both ends. Holidays are
-// not known here: on one, quotes are stale and the fresh-data rule blocks the play.
+// sessionOpen says whether the US stock session is open with the finder's waits on both ends. The
+// trading calendar knows the holidays and the 1 PM half days, so the finder never looks on either.
 func (f FinderRules) sessionOpen(now time.Time) bool {
-	local := now.In(MARKET_TZ)
-	if local.Weekday() == time.Saturday || local.Weekday() == time.Sunday {
+	day := calendar.On(now)
+	if day.Session == calendar.SESSION_CLOSED {
 		return false
 	}
-	minute := local.Hour()*60 + local.Minute()
-	return minute >= SESSION_OPEN_MIN+f.OpenWaitMin && minute < SESSION_CLOSE_MIN-f.CloseWaitMin
+	from := day.Opens.Add(time.Duration(f.OpenWaitMin) * time.Minute)
+	until := day.Closes.Add(-time.Duration(f.CloseWaitMin) * time.Minute)
+	return !now.Before(from) && now.Before(until)
 }
 
 // wants says whether a story is worth a play, and on which instrument and side. When it is not,

@@ -1,0 +1,235 @@
+{
+  "_about": "Every word the trading calendar shows: holiday names, tag names and notes, each market's note for a kind of day, and the playbook lines. Placeholders: {holiday} is today's holiday, {next_holiday} the one the market is about to close for, {next_open} the next stock session open in New York time. Seasonal notes describe tendencies in past data, never forecasts.",
+  "normal_label": "Normal session",
+  "holidays": {
+    "new_year": "New Year's Day",
+    "mlk": "Martin Luther King Jr. Day",
+    "washington": "Washington's Birthday",
+    "good_friday": "Good Friday",
+    "memorial": "Memorial Day",
+    "juneteenth": "Juneteenth",
+    "independence": "Independence Day",
+    "labor": "Labor Day",
+    "thanksgiving": "Thanksgiving",
+    "christmas": "Christmas"
+  },
+  "tags": {
+    "holiday": {
+      "name": "Market holiday",
+      "label": "{holiday}: stocks closed",
+      "note": "{holiday}: US stocks and options are shut all day. They open again {next_open}."
+    },
+    "weekend": {
+      "name": "Weekend",
+      "label": "Weekend: crypto only",
+      "note": "US stocks and options are shut until {next_open}. Coins trade on thinner books; futures and forex reopen Sunday evening."
+    },
+    "half_day": {
+      "name": "Half day",
+      "label": "Half day: closes 1 PM",
+      "note": "Stocks close at 1 PM New York, index options at 1:15. Volume is thin."
+    },
+    "triple_witching": {
+      "name": "Triple witching",
+      "label": "Triple witching",
+      "note": "Stock options, index options and index futures all expire today. Heavy volume, most of it at the open and the close."
+    },
+    "monthly_expiry": {
+      "name": "Monthly options expiry",
+      "label": "Monthly options expiry",
+      "note": "Monthly stock and index options expire today: the third Friday, or the Thursday before when that Friday is a holiday."
+    },
+    "pre_holiday": {
+      "name": "Last session before a holiday",
+      "label": "Last session before {next_holiday}",
+      "note": "The market is shut next for {next_holiday}. Whatever is held at the close is held through the closed day."
+    },
+    "year_end": {
+      "name": "Last session of the year",
+      "label": "Last session of the year",
+      "note": "Funds close their books for the year: rebalancing and window dressing move prices into the close."
+    },
+    "quarter_end": {
+      "name": "Quarter end",
+      "label": "Quarter end",
+      "note": "The last session of the quarter: funds rebalance and dress their books, so late moves can be flows, not news."
+    },
+    "month_end": {
+      "name": "Month end",
+      "label": "Month end",
+      "note": "The last session of the month: pension and fund rebalancing shows up late in the day."
+    },
+    "quarter_start": {
+      "name": "First session of the quarter",
+      "label": "First session of the quarter",
+      "note": "New quarter, new books: fresh money is put to work and last quarter's window dressing comes off."
+    },
+    "month_start": {
+      "name": "First session of the month",
+      "label": "First session of the month",
+      "note": "Monthly contributions arrive: the first session often runs on flows rather than news."
+    },
+    "vix_expiry": {
+      "name": "VIX expiration",
+      "label": "VIX expiration",
+      "note": "VIX futures and options settle this morning. Volatility readings are noisy around the open."
+    },
+    "first_day_back": {
+      "name": "First session back",
+      "label": "First session back",
+      "note": "The first session after a weekend or a holiday: news from the closed days is priced at the open."
+    },
+    "friday": {
+      "name": "Friday",
+      "label": "Friday: weeklies expire",
+      "note": "Weekly options expire at the close, and Fridays lean toward selling: few want to carry risk through two closed days. A tendency, not a rule. A stock or option sold today is Monday's money in a cash account."
+    },
+    "santa_rally": {
+      "name": "Santa Claus rally window",
+      "note": "A tendency, not a forecast: the last five sessions of the year and the first two of the next have risen more often than not. Small sample, thin volume."
+    },
+    "thanksgiving_week": {
+      "name": "Thanksgiving week",
+      "note": "Thursday is closed and Friday is a half day. Volume is light all week, so a move on a thin tape means less."
+    },
+    "earnings_season": {
+      "name": "Earnings season",
+      "note": "Roughly the four weeks when most large companies report. Stocks gap on results and option prices deflate once a report is out. These dates are approximate: each company's own date is on the news calendar."
+    },
+    "post_midterm": {
+      "name": "Post-midterm window",
+      "note": "A tendency, not a forecast: November to June after a US midterm election has been a favorable stretch for the S&P 500 historically. Context for risk posture, not a signal and not a trade (notes/strategy-evals.md)."
+    },
+    "january_effect": {
+      "name": "January effect",
+      "note": "A tendency, not a forecast: small stocks sold for tax losses in December have often bounced in January. Weaker in recent decades."
+    },
+    "september": {
+      "name": "September",
+      "note": "A tendency, not a forecast: historically the weakest month for US stocks on average. Plenty of Septembers rise."
+    },
+    "sell_in_may": {
+      "name": "Sell in May half",
+      "note": "A tendency, not a forecast: May through October has been the weaker half of the year historically, and the effect has faded in recent decades. Weaker is not the same as down."
+    },
+    "summer_doldrums": {
+      "name": "Summer doldrums",
+      "note": "A tendency, not a forecast: August volume is usually the lightest of the year. Thin markets drift, then jump."
+    },
+    "tax_loss_selling": {
+      "name": "Tax-loss selling",
+      "note": "A tendency, not a forecast: the year's losers often see extra selling in November and December as holders book losses for taxes."
+    },
+    "cycle_post_election": {
+      "name": "Post-election year",
+      "note": "Year one of the four-year US presidential cycle. Historically mixed, on a small sample. A tendency, not a forecast."
+    },
+    "cycle_midterm": {
+      "name": "Midterm year",
+      "note": "Year two of the four-year US presidential cycle. Historically the choppiest of the four, on a small sample. A tendency, not a forecast."
+    },
+    "cycle_pre_election": {
+      "name": "Pre-election year",
+      "note": "Year three of the four-year US presidential cycle. Historically the strongest of the four, on a small sample. A tendency, not a forecast."
+    },
+    "cycle_election": {
+      "name": "Election year",
+      "note": "Year four of the four-year US presidential cycle. Markets have tended to trade nervously into November. A tendency, not a forecast."
+    }
+  },
+  "markets": {
+    "stocks": {
+      "open": "Regular session 9:30 AM to 4 PM New York.",
+      "half": "Opens 9:30 AM, closes early at 1 PM New York.",
+      "weekend": "Closed for the weekend. Opens {next_open} New York.",
+      "holiday": "Closed for {holiday}. Opens {next_open} New York."
+    },
+    "options": {
+      "open": "Trade with the stock session, 9:30 AM to 4 PM New York.",
+      "half": "Close early with stocks at 1 PM New York; index options at 1:15.",
+      "weekend": "Closed with stocks. Time value still drains over the weekend.",
+      "holiday": "Closed with stocks for {holiday}. Time value still drains while they are shut."
+    },
+    "futures": {
+      "open": "CME futures trade nearly round the clock, with a one-hour break at 5 PM New York.",
+      "friday": "CME futures close at 5 PM New York for the weekend.",
+      "saturday": "Closed. CME futures reopen Sunday at 6 PM New York.",
+      "sunday": "Closed until 6 PM New York, then open into Monday.",
+      "holiday": "Holiday hours: shortened or paused. Check the exchange before trusting a quote."
+    },
+    "forex": {
+      "open": "Around the clock. Busiest when London and New York overlap, 8 AM to noon New York.",
+      "friday": "Closes at 5 PM New York for the weekend.",
+      "saturday": "Closed until Sunday 5 PM New York.",
+      "sunday": "Closed until 5 PM New York, then open into Monday.",
+      "holiday": "Trades on a US holiday schedule: thin, with wide spreads. Check your broker's hours."
+    },
+    "crypto": {
+      "always": "Never closes.",
+      "thin": "Never closes, but books are thinner while banks and CME are shut. Moves run further on less money."
+    },
+    "prediction": {
+      "always": "Kalshi and Polymarket never close. Each contract settles on its own event's clock."
+    }
+  },
+  "playbook": {
+    "holiday": [
+      "Stocks and options are shut for {holiday}: only coins trade. Half size, books are thin.",
+      "Nothing settles today: the last session's sales become cash at the next open."
+    ],
+    "weekend": [
+      "Stocks and options are shut: only coins trade. Half size, books are thin.",
+      "Use the quiet to read the week ahead: earnings, Fed, expiries.",
+      "Friday's stock and option sales are not cash yet: they settle at Monday's open."
+    ],
+    "half_day": [
+      "Closes at 1 PM. Volume is thin: smaller size, exits by noon.",
+      "A thin tape gaps through a stop more easily: size for the gap, not for the stop."
+    ],
+    "triple_witching": [
+      "Three kinds of contract expire together: the volume is real, but it says nothing about direction.",
+      "No new option plays that expire today. Anything expiring is out before the last hour."
+    ],
+    "monthly_expiry": [
+      "Positions pin and unpin around big strikes. No new option plays that expire today.",
+      "A play expiring today leaves on its time exit, never at the bell."
+    ],
+    "pre_holiday": [
+      "A cash account carries nothing through a closed day it would not hold for three.",
+      "Options lose the closed days' time value while nobody can trade them: check every exit before the bell."
+    ],
+    "year_end": [
+      "Funds dress their books into the close: a late move can be flows, not news."
+    ],
+    "quarter_end": [
+      "Funds rebalance into the close: a late move can be flows, not news."
+    ],
+    "month_end": [
+      "Month-end flows move prices late in the day with no headline behind them."
+    ],
+    "quarter_start": [
+      "New money on the first session: let volume confirm a move before following it."
+    ],
+    "month_start": [
+      "New money on the first session: let volume confirm a move before following it."
+    ],
+    "vix_expiry": [
+      "VIX contracts settle at the open: do not read the first hour's volatility as news."
+    ],
+    "first_day_back": [
+      "The open prices in everything that happened while the market was shut. Wait out the first 15 minutes.",
+      "A gap is not a signal. Volume after the first half hour is."
+    ],
+    "friday": [
+      "Nothing is carried into the weekend on hope: it has its stop and its time exit, or it is closed.",
+      "What is sold today is Monday's money: it settles at the next open."
+    ],
+    "normal": [
+      "A normal session. The rulebook as written.",
+      "Every play has its stop, its ladder and its time exit before it has a dollar in it."
+    ],
+    "events": [
+      "Scheduled events (Fed, CPI, jobs, earnings) are on the news service's calendar: newsd /api/calendar."
+    ]
+  }
+}

@@ -14,11 +14,18 @@ import (
 )
 
 const (
-	TICKER_URL         = "https://api.exchange.coinbase.com/products/%s-%s/ticker"
+	API_BASE           = "https://api.exchange.coinbase.com"
+	TICKER_PATH        = "/products/%s-%s/ticker"
 	QUOTE_CURRENCY     = "USD"
-	USER_AGENT         = "money24-m24d/1.0" // the API refuses requests without one
+	PAIR_SUFFIX        = "-" + QUOTE_CURRENCY // BTC-USD names the same market as BTC
+	USER_AGENT         = "money24-m24d/1.0"   // the API refuses requests without one
 	HEADER_USER_AGENT  = "User-Agent"
 	MAX_RESPONSE_BYTES = 1 << 16
+	// TAKER_FEE_PCT is the fee assumed on each side of a coin trade, as a percent of the trade.
+	// It is Coinbase Advanced's long-standing entry-tier taker rate. It is an assumption, not a
+	// reading of the account: set it to what the venue you would really trade on charges. Desk
+	// prices carry it (buys cost this much more, sells pay this much less), so results do not flatter.
+	TAKER_FEE_PCT = 0.6
 )
 
 var (
@@ -26,6 +33,8 @@ var (
 	ErrBadSymbol = errors.New("coinbase: symbol must be 1 to 10 letters or digits")
 	// Symbols come from parsed posts and go into a URL path, so anything else is refused.
 	SYMBOL = regexp.MustCompile(`^[A-Z0-9]{1,10}$`)
+	// apiBase is API_BASE everywhere but in this package's tests, which point it at a local server.
+	apiBase = API_BASE
 )
 
 // Ticker is the current market for one coin against the US dollar.
@@ -36,13 +45,23 @@ type Ticker struct {
 	Volume float64 `json:"volume,string"` // coins traded in the last 24 hours
 }
 
-// Fetch returns the ticker for symbol (BTC, eth, PEPE) priced in US dollars.
-func Fetch(ctx context.Context, client *http.Client, symbol string) (Ticker, error) {
-	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+// Base is the coin's own ticker: "btc-usd" and "BTC" both give BTC. Anything that is not a plain
+// ticker is refused, because it goes into a URL path.
+func Base(symbol string) (string, error) {
+	symbol = strings.TrimSuffix(strings.ToUpper(strings.TrimSpace(symbol)), PAIR_SUFFIX)
 	if !SYMBOL.MatchString(symbol) {
-		return Ticker{}, ErrBadSymbol
+		return "", ErrBadSymbol
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TICKER_URL, symbol, QUOTE_CURRENCY), nil)
+	return symbol, nil
+}
+
+// Fetch returns the ticker for symbol (BTC, eth, PEPE, BTC-USD) priced in US dollars.
+func Fetch(ctx context.Context, client *http.Client, symbol string) (Ticker, error) {
+	symbol, err := Base(symbol)
+	if err != nil {
+		return Ticker{}, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiBase+fmt.Sprintf(TICKER_PATH, symbol, QUOTE_CURRENCY), nil)
 	if err != nil {
 		return Ticker{}, err
 	}

@@ -48,6 +48,9 @@ func parts(p Play) []float64 {
 // Resize scales a play to qty units, keeping the ladder's and runner's shares of the position and
 // at least one unit in every piece. Prices, stop and failsafes stay; every dollar figure follows.
 func Resize(p Play, qty float64) Play {
+	if p.Contract.Market == MARKET_CRYPTO {
+		return resizeCoins(p, qty)
+	}
 	pieces := parts(p)
 	if len(pieces) == 0 {
 		p.Qty = math.Max(1, math.Floor(qty))
@@ -96,6 +99,10 @@ func sizing(p Play, r Rules) Sizing {
 	}
 	unit := p.Entry * p.Multiplier()
 	s := Sizing{UnitCostUSD: math.Round(unit*CENT) / CENT, MinUnits: math.Max(1, float64(len(parts(p)))), Units: p.Qty}
+	if desk := r.Crypto; p.Contract.Market == MARKET_CRYPTO && desk != nil && unit > 0 {
+		// Coins are bought in fractions: the smallest stake is the desk's minimum trade, not one coin a rung.
+		s.MinUnits = math.Ceil(desk.MinTradeUSD/unit*CRYPTO_QTY_SCALE) / CRYPTO_QTY_SCALE
+	}
 	s.MinDepositUSD = math.Round(s.MinUnits*unit*CENT) / CENT
 	s.StakeUSD = math.Round(p.Qty*unit*CENT) / CENT
 

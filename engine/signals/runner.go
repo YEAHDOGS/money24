@@ -1,6 +1,7 @@
 package signals
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"strings"
@@ -88,9 +89,13 @@ type Runner struct {
 	held  map[int64]*position // planned entries the watcher has not closed, by journal id
 }
 
-// NewRunner replays the journal so a restart keeps its dedupe set and open positions.
+// NewRunner replays the journal so a restart keeps its dedupe set and open positions, and gives
+// the journal's cash account the catalog's starting capital.
 func NewRunner(c *Catalog, j *Journal, quote QuoteFunc) *Runner {
 	r := &Runner{catalog: c, journal: j, quote: quote, seen: map[string]bool{}, open: map[string]bool{}, held: map[int64]*position{}}
+	j.mu.Lock()
+	j.ledger.capital = c.GoLive.PaperCapitalUSD
+	j.mu.Unlock()
 	for _, e := range j.Recent(0, JOURNAL_RECENT) {
 		r.remember(e.Signal)
 		r.track(e)
@@ -174,7 +179,7 @@ func (r *Runner) Handle(sig Signal, now time.Time) (Entry, bool, error) {
 		}
 	}
 	if planSig.Kind == KIND_ENTRY {
-		plan, err := r.plan(planSig, settings, asOf, &e)
+		plan, err := r.plan(planSig, settings, asOf, now, &e)
 		if err != nil {
 			e.Rejected = err.Error()
 		} else {
@@ -188,7 +193,17 @@ func (r *Runner) Handle(sig Signal, now time.Time) (Entry, bool, error) {
 }
 
 // plan checks liquidity when a quote exists, then builds the bracket at the ask (what a buy pays).
-func (r *Runner) plan(sig Signal, s Settings, asOf time.Time, e *Entry) (Plan, error) {
+// The cash account caps the size: an entry spends settled cash only, and is refused when that
+// cannot buy one unit.
+func (r *Runner) plan(sig Signal, s Settings, asOf, now time.Time, e *Entry) (Plan, error) {
+	power, limited := r.cash(now)
+	if limited && power < MIN_ORDER_USD {
+		return Plan{}, fmt.Errorf(CASH_SHORT, ErrNoCash, power, MIN_ORDER_USD)
+	}
+	short := limited && power < s.MaxUSDPerTrade
+	if short {
+		s.MaxUSDPerTrade = power
+	}
 	price := 0.0
 	q, ok := Quote{}, false
 	if r.quote != nil {
@@ -209,14 +224,39 @@ func (r *Runner) plan(sig Signal, s Settings, asOf time.Time, e *Entry) (Plan, e
 		}
 		price = q.Ask
 	}
-	return Build(sig, s, price, asOf)
+	paid := cmp.Or(price, sig.Price)
+	p, err := Build(sig, s, price, asOf)
+	if err == nil && limited && p.outlay() > power+CASH_TOLERANCE_USD {
+		// The entry rounds to a tick, which can carry the cost past the cash: size again at the rounded price.
+		short, s.MaxUSDPerTrade = true, power*paid/p.Entry
+		p, err = Build(sig, s, price, asOf)
+	}
+	switch {
+	case errors.Is(err, ErrBudgetTooSmall) && short:
+		unit := paid
+		if sig.Right != "" {
+			unit *= OPTION_MULTIPLIER
+		}
+		return Plan{}, fmt.Errorf(CASH_SHORT, ErrNoCash, power, unit)
+	case err != nil:
+		return Plan{}, err
+	case limited && p.outlay() > power+CASH_TOLERANCE_USD:
+		return Plan{}, fmt.Errorf(CASH_SHORT, ErrNoCash, power, p.outlay())
+	case short:
+		e.Note = strings.TrimPrefix(e.Note+"; "+fmt.Sprintf(NOTE_CASH_SIZED, power), "; ")
+	}
+	return p, nil
 }
 
 // Adopt journals a bracket planned somewhere else (a play) as an entry, so the exit watcher
 // prices and closes it like any other. It returns the journal id the watcher's lines will carry.
+// A bracket that costs more than the settled cash is refused, and nothing is journaled.
 func (r *Runner) Adopt(sig Signal, plan Plan, now time.Time) (int64, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if power, limited := r.cash(now); limited && plan.outlay() > power+CASH_TOLERANCE_USD {
+		return 0, fmt.Errorf(CASH_SHORT, ErrNoCash, power, plan.outlay())
+	}
 	r.remember(sig)
 	e := Entry{At: now.UTC(), Action: string(KIND_ENTRY), Signal: sig, Plan: &plan}
 	r.track(e)

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/signals"
 )
@@ -145,6 +146,9 @@ func (r Resolver) robinhoodOption(ctx context.Context, id string) (Contract, err
 // volatility, the next earnings date, and the 20/50-day averages and RSI from daily candles.
 // What fails is noted on the snapshot instead of failing the play.
 func (r Resolver) Snapshot(ctx context.Context, c Contract, now time.Time) Market {
+	if c.Market == MARKET_CRYPTO {
+		return r.coinSnapshot(ctx, c.Symbol, now)
+	}
 	m := Market{Source: SOURCE_YAHOO, At: now.UTC()}
 	notes := []string{}
 	if c.Market == MARKET_OPTION {
@@ -192,6 +196,9 @@ func (r Resolver) Snapshot(ctx context.Context, c Contract, now time.Time) Marke
 }
 
 const PRICE_TICK = 0.01
+
+// HALF_DAY_EXIT_LEAD is how long before a half day's 1 PM close a play's time exit falls.
+const HALF_DAY_EXIT_LEAD = 30 * time.Minute
 
 // autoEvidence turns the snapshot into evidence lines, so the play shows who else is in it.
 func autoEvidence(m Market, bullish bool) []Evidence {
@@ -278,11 +285,16 @@ func Draft(c Contract, m Market, t Template, now time.Time) Play {
 		NoQuoteMinutes: t.NoQuoteMinutes, GapPct: t.GapPct, Calamity: t.Calamity}
 	if expiry, ok := expiryClose(c.Expiry); ok {
 		day := expiry.AddDate(0, 0, -t.ExitDaysBeforeExpiry)
-		// Back off the weekend: an exit day on Saturday or Sunday moves to Friday.
-		for day.Weekday() == time.Saturday || day.Weekday() == time.Sunday {
+		// Back off a closed day: an exit on a weekend or a holiday moves to the trading day before it.
+		for calendar.On(day).Session == calendar.SESSION_CLOSED {
 			day = day.AddDate(0, 0, -1)
 		}
-		p.Failsafes.ExitBy = time.Date(day.Year(), day.Month(), day.Day(), t.ExitHour, 0, 0, 0, MARKET_TZ).UTC()
+		exit := time.Date(day.Year(), day.Month(), day.Day(), t.ExitHour, 0, 0, 0, MARKET_TZ)
+		// A half day closes at 1 PM: the exit comes before the close, not after it.
+		if closes := calendar.On(day).Closes; !exit.Before(closes) {
+			exit = closes.Add(-HALF_DAY_EXIT_LEAD)
+		}
+		p.Failsafes.ExitBy = exit.UTC()
 	} else if t.HoldDays > 0 {
 		p.Failsafes.ExitBy = now.AddDate(0, 0, t.HoldDays).UTC()
 	}

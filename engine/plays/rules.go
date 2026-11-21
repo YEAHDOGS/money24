@@ -62,12 +62,15 @@ const (
 	CHECK_OFF  = "off"
 	CHECK_INFO = "info"
 
-	RULES_VERSION  = 1
-	OPEN_HOUR      = 9
-	OPEN_MINUTE    = 30
-	CLOSE_HOUR     = 16
-	MINUTES_PER_HR = 60
-	HOURS_PER_DAY  = 24
+	RULES_VERSION = 1
+	// What a play's volume and moves are said to belong to in a check's wording.
+	UNDERLYING_STOCK = "stock"
+	UNDERLYING_COIN  = "coin"
+	OPEN_HOUR        = 9
+	OPEN_MINUTE      = 30
+	CLOSE_HOUR       = 16
+	MINUTES_PER_HR   = 60
+	HOURS_PER_DAY    = 24
 )
 
 // Rule is one check and its settings.
@@ -125,6 +128,8 @@ type Rules struct {
 	PaperIgnoresBlocks          bool     `json:"paper_ignores_blocks"` // paper trades go through blocks, marked; live never would
 	// Finder is how the engine opens plays on its own from the news. Nil in an older rulebook: the defaults apply.
 	Finder *FinderRules `json:"finder,omitempty"`
+	// Crypto is how the crypto desk opens coin plays on its own, around the clock. Nil in an older rulebook: the defaults apply.
+	Crypto *CryptoRules `json:"crypto,omitempty"`
 }
 
 // DOGSRules is the default rulebook.
@@ -176,6 +181,7 @@ func DOGSRules() Rules {
 		AutoPaper:          true,
 		PaperIgnoresBlocks: true,
 		Finder:             DefaultFinder(),
+		Crypto:             DefaultCrypto(),
 	}
 }
 
@@ -211,6 +217,9 @@ func (r Rules) merged() Rules {
 	}
 	if r.Finder == nil {
 		r.Finder = d.Finder
+	}
+	if r.Crypto == nil {
+		r.Crypto = d.Crypto
 	}
 	return r
 }
@@ -254,6 +263,11 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 		m = *p.Market
 	}
 	option := p.Contract.Market == MARKET_OPTION
+	// A coin play is read like a share play, but it has no session and its volume is its own.
+	coin, traded := p.Contract.Market == MARKET_CRYPTO, UNDERLYING_STOCK
+	if coin {
+		traded = UNDERLYING_COIN
+	}
 	mid := (m.Bid + m.Ask) / 2
 	expiry, hasExpiry := expiryClose(p.Contract.Expiry)
 	nyNow := b.Now.In(MARKET_TZ)
@@ -319,7 +333,7 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 				proof = append(proof, fmt.Sprintf("%d open interest", m.OpenInterest))
 			}
 			if m.AvgVolume > 0 && m.DayVolume >= m.AvgVolume {
-				proof = append(proof, fmt.Sprintf("stock volume %.1fx average", m.DayVolume/m.AvgVolume))
+				proof = append(proof, fmt.Sprintf("%s volume %.1fx average", traded, m.DayVolume/m.AvgVolume))
 			}
 			for _, e := range p.Evidence {
 				counts := e.Kind == EV_VOLUME || e.Kind == EV_INTEREST || e.Kind == EV_CHAIN || e.Kind == EV_SIGNAL ||
@@ -344,6 +358,14 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 				break
 			}
 			rel := m.DayVolume / m.AvgVolume
+			if coin && rel < v[P_MIN_REL_VOLUME] {
+				fail("Coin volume over the last 24 hours %.2fx its average; needs %.2fx.", rel, v[P_MIN_REL_VOLUME])
+				break
+			}
+			if coin {
+				pass("Coin volume over the last 24 hours %.2fx its average.", rel)
+				break
+			}
 			if rel < v[P_MIN_REL_VOLUME] {
 				fail("Stock volume %.2fx its average; needs %.2fx.", rel, v[P_MIN_REL_VOLUME])
 				break
@@ -366,6 +388,10 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 			}
 			if option && float64(m.OpenInterest) < v[P_MIN_OPEN_INTEREST] {
 				fail("Open interest %d; needs %.0f.", m.OpenInterest, v[P_MIN_OPEN_INTEREST])
+				break
+			}
+			if coin {
+				pass("Spread %.2f%% on a live order book.", spread)
 				break
 			}
 			pass("Spread %.0f%%, open interest %d.", spread, m.OpenInterest)
@@ -424,6 +450,10 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 			fail("Earnings %s, before expiry: implied volatility collapses after the report.", m.NextEarnings.In(MARKET_TZ).Format("Mon Jan 2"))
 
 		case RULE_OPEN:
+			if coin {
+				pass("Coins trade around the clock: there is no opening or closing rush to wait out.")
+				break
+			}
 			if nyNow.Weekday() == time.Saturday || nyNow.Weekday() == time.Sunday {
 				pass("Market closed: a fill uses the last quote.")
 				break
@@ -451,7 +481,7 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 				with = -move
 			}
 			if with > v[P_MAX_GAP] {
-				fail("The stock already moved %.1f%% the play's way today; max %.0f%%. The move may be spent.", with, v[P_MAX_GAP])
+				fail("The %s already moved %.1f%% the play's way today; max %.0f%%. The move may be spent.", traded, with, v[P_MAX_GAP])
 				break
 			}
 			pass("Moved %+.1f%% today.", move)
@@ -539,6 +569,10 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 				break
 			}
 			over := (p.Entry/mid - 1) * PERCENT
+			if coin && over <= v[P_MAX_OVER_MID] {
+				pass("Entry %s after the fee vs mid %s.", coinLabel(p.Entry), coinLabel(mid))
+				break
+			}
 			if over > v[P_MAX_OVER_MID] {
 				fail("Entry %.2f is %.0f%% over the mid %.2f; max %.0f%%. Use a limit near the mid.", p.Entry, over, mid, v[P_MAX_OVER_MID])
 				break
@@ -572,6 +606,10 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 			stops := p.stops(r)
 			if len(stops) < 2 {
 				fail("The stop stays at %.2f after exits fill: add stop-losses 2 and 3, or exits to climb to.", p.Stop)
+				break
+			}
+			if coin {
+				pass("Stop %s: it moves up as each exit fills.", coinLabel(stops...))
 				break
 			}
 			pass("Stop %s: it moves up as each exit fills.", stopsLabel(stops))

@@ -19,6 +19,7 @@ const (
 	STATUS_CLOSED = "closed" // the runner closed it, or it was dropped
 	MARKET_OPTION = "option"
 	MARKET_STOCK  = "stock"
+	MARKET_CRYPTO = "crypto" // a coin against the US dollar, named as its pair: BTC-USD
 	RIGHT_CALL    = "C"
 	RIGHT_PUT     = "P"
 	EXPIRY_LAYOUT = "2006-01-02"
@@ -42,7 +43,7 @@ const (
 // Contract is what the play buys. Right is empty for shares.
 type Contract struct {
 	Symbol string  `json:"symbol"`
-	Market string  `json:"market"` // option or stock
+	Market string  `json:"market"` // option, stock or crypto
 	Right  string  `json:"right,omitempty"`
 	Strike float64 `json:"strike,omitempty"`
 	Expiry string  `json:"expiry,omitempty"` // YYYY-MM-DD
@@ -120,25 +121,26 @@ type Play struct {
 	Theme     string    `json:"theme,omitempty"` // plays on one theme are one bet (FAA outage: AAL, DAL, UAL)
 	// Category is what kind of play this is, set by hand ("News play"), so plays can be grouped and compared.
 	Category string `json:"category,omitempty"`
-	// FoundBy is "finder" when the engine opened the play itself, from the newsd story StoryID.
+	// FoundBy is "finder" when the engine opened the play itself, from the newsd story StoryID, and
+	// "crypto-desk" when the crypto desk opened it from a coin's hourly candles.
 	FoundBy string `json:"found_by,omitempty"`
 	StoryID int64  `json:"story_id,omitempty"`
 
-	Contract  Contract   `json:"contract"`
-	Qty       float64    `json:"qty"`
-	Entry     float64    `json:"entry"` // limit price per contract or share
-	Stop      float64    `json:"stop"` // stop-loss 1: in force until the first exit fills
+	Contract Contract `json:"contract"`
+	Qty      float64  `json:"qty"`
+	Entry    float64  `json:"entry"` // limit price per contract or share
+	Stop     float64  `json:"stop"`  // stop-loss 1: in force until the first exit fills
 	// StopsAfter are stop-loss 2 and 3: where the stop moves once exit 1 and then exit 2 have filled.
 	// Empty leaves it to the stop ladder rule (the entry, then exit 1's price) or, with the rule off, unmoved.
-	StopsAfter []float64 `json:"stops_after,omitempty"`
-	Ladder    []Rung     `json:"ladder"`
-	Runner    Runner     `json:"runner"`
-	Failsafes Failsafes  `json:"failsafes"`
-	Evidence  []Evidence `json:"evidence"`
-	Market    *Market    `json:"market,omitempty"`
-	Links     []string   `json:"links,omitempty"`
-	Analyses  []Analysis `json:"analyses,omitempty"`
-	Analyzing string     `json:"analyzing,omitempty"` // the provider reading it right now
+	StopsAfter []float64  `json:"stops_after,omitempty"`
+	Ladder     []Rung     `json:"ladder"`
+	Runner     Runner     `json:"runner"`
+	Failsafes  Failsafes  `json:"failsafes"`
+	Evidence   []Evidence `json:"evidence"`
+	Market     *Market    `json:"market,omitempty"`
+	Links      []string   `json:"links,omitempty"`
+	Analyses   []Analysis `json:"analyses,omitempty"`
+	Analyzing  string     `json:"analyzing,omitempty"` // the provider reading it right now
 
 	JournalID  int64     `json:"journal_id,omitempty"` // the plan's journal id once armed
 	ArmedAt    time.Time `json:"armed_at,omitzero"`
@@ -173,7 +175,7 @@ type Result struct {
 	Reason string    `json:"reason"`
 }
 
-// Multiplier is 100 for options, 1 for shares.
+// Multiplier is 100 for options, 1 for shares and coins.
 func (p Play) Multiplier() float64 {
 	if p.Contract.Market == MARKET_OPTION {
 		return OPTION_MULT
