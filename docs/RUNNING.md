@@ -119,7 +119,91 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-## 7. Updating
+## 7. Run it around the clock
+
+`start` is for sitting at the machine: one program that stops takes the others down with it. To
+leave Money 24 running day and night, use the supervisor instead. Close `start` first: both use
+the same two ports.
+
+```sh
+npm run forever
+```
+
+It builds the two services and the pages, starts the services and watches them. Open
+**http://127.0.0.1:8025/** : the runner serves the pages itself, so that one address is the whole app.
+
+| | `npm start` | `npm run forever` |
+|---|---|---|
+| Pages | Vite dev server on 5173 | Served by `m24d` on 8025, with the news forwarded under `/news/` |
+| A service stops | Everything stops | That service alone is restarted: after 1 second, then 2, 4, up to 60 |
+| A service hangs | Nothing happens | It is asked every minute; three silences in a row and it is restarted |
+| Output | The terminal | `.run/logs/`: one file per service plus `forever.log`, every line timestamped (UTC) |
+| Sleep | The machine sleeps as usual | Windows does not idle-sleep while the runner is up |
+| A build fails | It does not start | It says so and runs the last good build |
+
+Each log file holds 5 MB; then it becomes `<name>.log.1` (one older file is kept) and a new one starts.
+
+| Command | What it does |
+|---|---|
+| `npm run forever` | Build, run and watch. Ctrl+C stops everything |
+| `npm run forever -- --no-build` | The same with what was built last time: starts in seconds |
+| `npm run forever -- --status` | Whether it is running, each service's uptime, restarts and last health check |
+| `npm run forever -- --stop` | Stops the supervisor and both services, and checks nothing is left listening |
+| `npm run forever -- --install` | Starts it at logon from now on, with no window, and starts it now |
+| `npm run forever -- --uninstall` | No longer starts it at logon. What is running keeps running until `--stop` |
+
+`--install` registers a Windows scheduled task named `Money24` (set to run on battery and with no
+time limit); `--install --dry-run` prints it without changing anything. On Linux and macOS it prints
+the systemd unit or launchd agent to add by hand.
+
+After `git pull`, stop it and start it again so it rebuilds: `npm run forever -- --stop`, then
+`npm run forever` (or log off and on, when it is installed).
+
+### Keeping a laptop awake
+
+| What can stop it | What to do |
+|---|---|
+| Idle sleep | Nothing: the runner asks Windows to stay awake while it runs. The screen may still turn off |
+| Closing the lid | Control Panel → Power Options → **Choose what closing the lid does** → **Do nothing** when plugged in. The supervisor does not change this for you |
+| Pressing sleep, or a flat battery | Nothing can run then. Keep it plugged in. When it wakes, a service with dead connections is restarted within three minutes |
+| A restart (Windows Update) | The logon task starts it again once **you log in**; until then nothing runs. After a restart, check with `npm run forever -- --status`, or open http://127.0.0.1:8025/ |
+
+On macOS start it with `caffeinate -i npm run forever`; on Linux desktops with
+`systemd-inhibit --what=sleep npm run forever`. A server does not sleep.
+
+### With the desktop app
+
+The desktop app starts its own `newsd` and `m24d` on the same two ports. With the supervisor
+running those two cannot start: the app's log shows them exiting with "address already in use",
+and the window shows the supervisor's services instead, because its pages ask the same local
+addresses. So the app becomes a monitor window. Quitting it stops nothing. The other way round,
+`npm run forever` refuses to start while the desktop app is open: quit the app first.
+
+### Watching it from your phone
+
+A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+to `http://127.0.0.1:8025` puts the same pages on a hostname of yours.
+
+1. **Put Cloudflare Access on the hostname first** (Zero Trust → Access → Applications, a policy
+   that allows only your email with a one-time PIN). Without it, anyone who has the address can
+   read your journal, plays and rules.
+2. Point the tunnel's public hostname at `http://127.0.0.1:8025`.
+3. Put the hostname in `.env` and restart the supervisor:
+
+   ```sh
+   M24D_PUBLIC_HOST=m24.example.com
+   ```
+
+The runner only answers to the names it knows. The supervisor turns that setting into the full
+list (`M24D_HOSTS=127.0.0.1:8025,localhost:8025,m24.example.com`); if you set `M24D_HOSTS`
+yourself, list all three, because it replaces the local defaults.
+
+Through the tunnel the pages **only read**: positions, the account, plays, markets and news.
+Anything that changes something (pasting a link, trading a play, editing rules) is refused
+there by design, and stays on this machine at http://127.0.0.1:8025/. News settings are not
+changed from these pages at all; use `npm start` or the desktop app for that.
+
+## 8. Updating
 
 ```sh
 git pull
@@ -128,7 +212,7 @@ npm install
 
 Then start it again. The Go services are rebuilt on every start.
 
-## 8. When something goes wrong
+## 9. When something goes wrong
 
 | What you see | What to do |
 |---|---|
@@ -140,3 +224,5 @@ Then start it again. The Go services are rebuilt on every start.
 | News page is empty | Give it a minute after the first start. For SEC and BLS sources, set `USER_AGENT` in `.env` |
 | Markets page shows no data | Yahoo Finance is not answering. It is an unofficial source and sometimes throttles; try again later |
 | `start.sh: Permission denied` | Run `chmod +x start.sh` once |
+| `Money 24 is already running around the clock` | The supervisor is up. `npm run forever -- --status` shows it; `-- --stop` stops it |
+| A service keeps restarting | Its last lines are in `.run/logs/<name>.log`, and each restart with its exit code is in `.run/logs/forever.log` |

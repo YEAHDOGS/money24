@@ -3,8 +3,9 @@
 // every plan and rejection to a journal. The same binary runs headless on a Linux or Windows
 // server, or as the desktop app's sidecar behind the trading UI (trading.html).
 //
-//	m24d [--data DIR] [--addr 127.0.0.1:8025] [--origins a,b] [--hosts h] [--sources FILE] [--exit-with-stdin]
+//	m24d [--data DIR] [--addr 127.0.0.1:8025] [--origins a,b] [--hosts h] [--sources FILE] [--web DIR] [--keep-awake] [--exit-with-stdin]
 //	m24d [--data DIR] --replay
+//	m24d [--data DIR] --crypto-backtest DAYS
 //
 // --origins and --hosts also read M24D_ORIGINS and M24D_HOSTS.
 //
@@ -16,6 +17,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -30,6 +32,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/market"
@@ -63,6 +66,9 @@ const (
 	PLAYS_SUBDIR     = "plays"
 	ENV_NEWSD        = "M24D_NEWSD" // newsd base URL, for headlines on a play
 	DEFAULT_NEWSD    = "http://127.0.0.1:8024"
+	ENV_WEB          = "M24D_WEB" // folder of built pages to serve, same as --web
+	ROUTE_ACCOUNT    = "GET /api/account"
+	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -126,6 +132,27 @@ func printReplay(path string) error {
 	return nil
 }
 
+// settlement is when a sale's cash can be spent again: at once for coins, at the next trading
+// day's open for stocks and options, which is what keeps a cash account out of trouble.
+func settlement(sig signals.Signal, sold time.Time) time.Time {
+	if sig.Market == signals.MARKET_CRYPTO || sig.Address != "" {
+		return sold
+	}
+	return calendar.NextSettlement(sold)
+}
+
+// replayCrypto runs the crypto desk's rule over past candles with the rulebook in the data folder
+// and the catalog's starting capital, and prints what it would have done.
+func replayCrypto(playsDir string, days int, capitalUSD float64) error {
+	store, err := plays.OpenStore(playsDir)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), BACKTEST_TIMEOUT)
+	defer cancel()
+	return plays.BacktestCrypto(ctx, &http.Client{Timeout: QUOTE_TIMEOUT}, store.Rules(), days, capitalUSD, os.Stdout)
+}
+
 func main() {
 	addr := flag.String("addr", DEFAULT_ADDR, "listen address; use 0.0.0.0:8025 on a server behind a reverse proxy")
 	dataDir := flag.String("data", "", "folder for the journal and secret (default: user config dir/Money24/trading)")
@@ -136,6 +163,9 @@ func main() {
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app)")
 	quote := flag.String("quote", "", "print the Webull quote for a ticker or option symbol (AAPL, AAPL260522C00300000) and exit")
 	coin := flag.String("coin", "", "print the quote for a listed coin (BTC, PEPE) or an on-chain token address and exit")
+	web := flag.String("web", os.Getenv(ENV_WEB), "folder of built pages to serve at / with the news under /news/, so one address shows everything")
+	awake := flag.Bool("keep-awake", false, "stop this machine from idle-sleeping while the runner runs (Windows)")
+	cryptoBacktest := flag.Int("crypto-backtest", 0, "replay the crypto desk's rule over this many days of hourly candles, print the result and exit")
 	flag.Parse()
 
 	if dexscreener.ADDRESS.MatchString(*coin) {
@@ -203,6 +233,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if *cryptoBacktest > 0 {
+		if err := replayCrypto(filepath.Join(*dataDir, PLAYS_SUBDIR), *cryptoBacktest, catalog.GoLive.PaperCapitalUSD); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *awake {
+		release, err := keepAwake()
+		if err != nil {
+			log.Fatalf("keep awake: %v", err)
+		}
+		defer release()
+	}
 	journal, err := signals.OpenJournal(filepath.Join(*dataDir, JOURNAL_FILE))
 	if err != nil {
 		log.Fatal(err)
@@ -227,6 +270,7 @@ func main() {
 		log.Printf("live quotes: Webull (%s)", cmp.Or(os.Getenv(ENV_WEBULL_ENV), webull.ENV_SANDBOX))
 	}
 	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes, prices))
+	runner.SetSettlement(settlement)
 	queue := make(chan signals.Signal, QUEUE_SIZE)
 	done := make(chan struct{})
 	go func() {
@@ -276,6 +320,23 @@ func main() {
 	}
 	opts.Mount = tracker.Routes(http.DefaultClient, mayLoad)
 	opts.Mount[market.ROUTE_PREFIX] = market.Handler(prices)
+	opts.Mount[calendar.ROUTE] = calendar.Handler()
+	opts.Mount[ROUTE_ACCOUNT] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(runner.Account(time.Now()))
+	})
+	newsURL := cmp.Or(os.Getenv(ENV_NEWSD), DEFAULT_NEWSD)
+	if *web != "" {
+		routes, err := webRoutes(*web, newsURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for pattern, h := range routes {
+			opts.Mount[pattern] = h
+		}
+		opts.Origins = append(opts.Origins, webOrigins(*addr)...)
+		log.Printf("pages served from %s", *web)
+	}
 	playStore, err := plays.OpenStore(filepath.Join(*dataDir, PLAYS_SUBDIR))
 	if err != nil {
 		log.Fatal(err)
@@ -283,12 +344,18 @@ func main() {
 	playService := &plays.Service{Store: playStore, HTTP: http.DefaultClient, MayWrite: mayLoad,
 		Resolver: plays.Resolver{HTTP: http.DefaultClient, Market: prices},
 		Paper:    func(sig signals.Signal, plan signals.Plan) (int64, error) { return runner.Adopt(sig, plan, time.Now()) },
-		Lines:    journal.Lines, NewsURL: cmp.Or(os.Getenv(ENV_NEWSD), DEFAULT_NEWSD)}
+		Lines:    journal.Lines, NewsURL: newsURL,
+		Funds: func(now time.Time) plays.Funds {
+			account := runner.Account(now)
+			return plays.Funds{EquityUSD: account.EquityUSD, BuyingPowerUSD: account.BuyingPowerUSD}
+		}}
 	for pattern, h := range playService.Routes() {
 		opts.Mount[pattern] = h
 	}
 	// The finder opens plays on its own from the stories newsd groups; the rulebook can turn it off.
 	go playService.RunFinder(ctx)
+	// The crypto desk does the same for coins from their own candles, around the clock.
+	go playService.RunCrypto(ctx)
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

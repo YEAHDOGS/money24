@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/market"
@@ -24,7 +26,7 @@ const (
 	// Assumed venue fee on each side of an on-chain trade. A round number on the high side of what
 	// pump.fun and the Solana pools charge, so results do not flatter.
 	POOL_FEE_PCT     = 1.0
-	COIN_PAIR_SUFFIX = "-USD"
+	COIN_PAIR_SUFFIX = coinbase.PAIR_SUFFIX
 )
 
 // webullClient builds the quote client from the environment, or returns nil when no key is set.
@@ -66,12 +68,19 @@ func liveQuotes(client *webull.Client, prices *market.Client) signals.QuoteFunc 
 			return signals.Quote{Bid: pair.PriceUSD, Ask: pair.PriceUSD, Volume: int(pair.Volume.Day), LiquidityUSD: pair.Liquidity.USD, FeePct: POOL_FEE_PCT}, true
 		}
 		if sig.Market == signals.MARKET_CRYPTO {
-			coin, err := coinbase.Fetch(ctx, http.DefaultClient, sig.Symbol)
+			// A play names the pair (BTC-USD); a callout names the coin (BTC). The fee rides in the quote,
+			// so every buy and sell of a coin is priced after it.
+			coin, err := coinbase.Fetch(ctx, http.DefaultClient, strings.TrimSuffix(sig.Symbol, COIN_PAIR_SUFFIX))
 			if err != nil {
 				log.Printf("quote %s: %v", sig.Symbol, err)
 				return signals.Quote{}, false
 			}
-			return signals.Quote{Bid: coin.Bid, Ask: coin.Ask, Volume: int(coin.Volume)}, true
+			return signals.Quote{Bid: coin.Bid, Ask: coin.Ask, Volume: int(coin.Volume), FeePct: coinbase.TAKER_FEE_PCT}, true
+		}
+		// Stocks and options trade only in the session. Outside it the last quote is yesterday's, and
+		// selling a weekend position at Friday's price would score a trade that could not happen.
+		if !calendar.StocksOpen(time.Now()) {
+			return signals.Quote{}, false
 		}
 		if client == nil {
 			return yahooQuote(ctx, prices, sig)
@@ -108,7 +117,7 @@ func printQuote(client *webull.Client, symbol string) error {
 func priceHistory(client *market.Client) signals.HistoryFunc {
 	return func(ctx context.Context, sig signals.Signal, from, to time.Time) ([]signals.PriceBar, error) {
 		symbol := sig.Symbol
-		if sig.Market == signals.MARKET_CRYPTO {
+		if sig.Market == signals.MARKET_CRYPTO && !strings.HasSuffix(symbol, COIN_PAIR_SUFFIX) {
 			symbol += COIN_PAIR_SUFFIX
 		}
 		chart, err := client.History(ctx, symbol, from, to)

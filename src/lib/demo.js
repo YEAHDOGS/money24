@@ -7,6 +7,8 @@ export const DEMO_PARAM = 'demo';
 export const DEMO_STATUS = 'demo';
 const DEMO_BASE = `${import.meta.env.BASE_URL}demo/`;
 const LOCAL_HOST = /(^|\.)localhost$|^127\.|^\[::1\]$/;
+// Set to '1' in the build the runner serves itself (scripts/forever.js): those pages are always live.
+const SELF_HOSTED = import.meta.env.VITE_SELF_HOSTED === '1';
 
 /** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
 export function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
@@ -20,10 +22,12 @@ export function stored(/** @type {string} */ key, /** @type {string} */ fallback
 /**
  * Whether the page opens on the demo without asking a runner: ?demo, or a public website where the
  * visitor never set a runner up (asking 127.0.0.1 from there only triggers a local-network prompt).
+ * A page the runner serves itself is never a demo unless asked: its runner is the address it came from.
  */
 export function demoFirst() {
   const url = new URL(location.href);
   if (url.searchParams.has(DEMO_PARAM)) return true;
+  if (SELF_HOSTED) return false;
   return url.protocol.startsWith('http') && !LOCAL_HOST.test(url.hostname) && stored(STORE_RUNNER, '') === '';
 }
 
