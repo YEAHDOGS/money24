@@ -19,7 +19,7 @@ const (
 
 // WebhookPost is what callers send: callout text, an x.com status link, or both.
 // {"text": "BTO $SPY 600C 11/21 @ 1.20"}  ·  {"url": "https://x.com/someone/status/123"}
-// Manual marks a post the user shared by hand to paper-trade it right now.
+// Manual marks a post the user shared by hand to trade it right now.
 type WebhookPost struct {
 	SourceID string `json:"source_id"`
 	PostID   string `json:"post_id"`

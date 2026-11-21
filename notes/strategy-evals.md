@@ -44,8 +44,8 @@ bought, not endorsed.
 
 **Why it's filed anyway:** it's a specimen of the signal layer Money 24
 needs — a primary signal indicator plus a **validation overlay that gates
-it**, structurally the same idea as the paper desk's ENTRY gate (currently
-placeholder heuristics; see [paper-desk.md](paper-desk.md)). If it's ever
+it**, structurally the same idea as the desk's ENTRY gate (currently
+placeholder heuristics; see [desk.md](desk.md)). If it's ever
 tested, the honest route is the standing one: reconstruct the likely rule
 (MA-family arrows), run it on the standalone backtester with real bid/ask
 and slippage, entry rule kept pure, and a **repaint check first** — record
@@ -82,7 +82,7 @@ REVIEWS — the problem, stated precisely: the homepage displays four glowing Tr
 
 NAMESAKE WARNING: a DIFFERENT product also called "TradeCatalyst" — a deposit-taking forex/crypto app ("1% cashback in Bitcoin") — is the subject of scam-warning videos (unregulated, withdrawal-fee complaints, possible impersonation). Same name, different beast. Never deposit with the app-shaped one; the challenge company takes fees only and holds no trading capital.
 
-FIT FOR MONEY 24: (1) It is the prediction sleeve as an arena: a commercial paper-trading environment on Polymarket where passing pays real cash — conceptually adjacent to the indicator + paper-trading test bench, except the paper has stakes. A $10 Starter is the cheapest possible live-fire probe of a catalyst-reading edge (max downside $10). (2) It is NOT a copy-trading venue and does not change the strategy focus; simulated fills also ignore Polymarket book depth, so a pass proves price-reading, not executable size. (3) Automation warning: the review cluster shows the firm actively alleges "coordinated activity" — botting or multi-accounting a challenge is exactly what gets payouts denied. Human-paced, single account, or don't touch it.
+FIT FOR MONEY 24: (1) It is the prediction sleeve as an arena: a commercial trading environment on Polymarket where passing pays real cash — conceptually adjacent to the indicator + trading test bench, except the desk has stakes. A $10 Starter is the cheapest possible live-fire probe of a catalyst-reading edge (max downside $10). (2) It is NOT a copy-trading venue and does not change the strategy focus; simulated fills also ignore Polymarket book depth, so a pass proves price-reading, not executable size. (3) Automation warning: the review cluster shows the firm actively alleges "coordinated activity" — botting or multi-accounting a challenge is exactly what gets payouts denied. Human-paced, single account, or don't touch it.
 
 STATUS: evaluated and filed at his order. No signup, no fee paid, no account — any probe (the $10 Starter is the only rational size) needs his explicit word first, per the standing no-spend rule.
 
@@ -138,7 +138,7 @@ The trade shown: a whale's NVDA bull call debit spread — long 105,000 contract
 
 **Verdict: STRUCTURE IS SANE, COPY IS UNVERIFIED, SIZE IS IMPOSSIBLE.** A defined-risk debit spread with a far expiry and ~9.4:1 max risk/reward is the respectable end of options copying, and options-flow copying sits inside the standing strategy family. But: (1) the minimum ticket is one contract at ~$432 — over 4x the entire $100 float, so the trade cannot be taken live at any size; (2) flow shows a print, not intent — a spread this size can be a hedge, a roll, or one leg of a larger book, and the reel's own comment thread debates opening vs closing while mocking the timing after NVDA dropped on gossip headlines; (3) the source monetizes the audience, not the trade.
 
-**Fit for Money 24:** paper-desk candidate only — one paper contract of the identical structure, graded on the scoreboard like any other source. No live trade, no FLOW checklist, no DM funnel.
+**Fit for Money 24:** desk candidate only — one contract of the identical structure, graded on the scoreboard like any other source. No live trade, no FLOW checklist, no DM funnel.
 
 **Status:** evaluated and filed at his order (he asked "should we do this on NVDA"). No spend, no signup, no trade.
 
@@ -154,17 +154,17 @@ Source: https://www.instagram.com/reel/DfF8GmMyfs-/ — @julias.algos ("Wall Str
 
 **Status:** evaluated and filed at his order (he asked "is this possible?").
 
-## 2026-11-13 — @algo.jan VWAP x EMA9 crossover scalp (Instagram) — paper-source spec
+## 2026-11-13 — @algo.jan VWAP x EMA9 crossover scalp (Instagram) — desk-source spec
 
 Source: https://www.instagram.com/reel/DfkBJy3vBQd/ — @algo.jan (Jan Hottiger, algo trader) reviewing another trader's day-trading system. The origin trader claims $200K+ in October 2026; the reel's own backtest (3-minute timeframe, 2 years) shows +200.1%, $20,010 net, 174 trades, 55.8% win rate, Sharpe 1.80, max drawdown 22.2%, profit factor 2.17; a prop-firm simulator reports an 85.9% pass probability on a $50K My Funded Futures challenge.
 
-The system as stated: session-anchored VWAP + EMA9. Buy puts when VWAP crosses above EMA9; buy calls when it crosses below; stop when price breaks EMA9 or the position hits -30%. (As narrated the legs may be compressed or inverted vs the origin trader's real spec — treat the rules as a hypothesis to pin down in paper, not gospel.)
+The system as stated: session-anchored VWAP + EMA9. Buy puts when VWAP crosses above EMA9; buy calls when it crosses below; stop when price breaks EMA9 or the position hits -30%. (As narrated the legs may be compressed or inverted vs the origin trader's real spec — treat the rules as a hypothesis to pin down on the desk, not gospel.)
 
-**Skeptic's read:** 174 trades over two years is very few for a 3-minute crossover system — heavy filtering or parameter fitting is likely; backtest fills ignore options spreads and slippage, which a -30%-stop scalping system pays on every trade; the $200K month is unverified; the 85.9% prop-pass figure is a simulator run on the backtest's own statistics (circular). Decisive local fact: the advertised max drawdown, 22.2%, already exceeds Money 24's own go-live gate (max DD 20% of the $1,000 paper capital).
+**Skeptic's read:** 174 trades over two years is very few for a 3-minute crossover system — heavy filtering or parameter fitting is likely; backtest fills ignore options spreads and slippage, which a -30%-stop scalping system pays on every trade; the $200K month is unverified; the 85.9% prop-pass figure is a simulator run on the backtest's own statistics (circular). Decisive local fact: the advertised max drawdown, 22.2%, already exceeds Money 24's own go-live gate (max DD 20% of the $1,000 capital).
 
-**Fit for Money 24:** NOT copy trading — this is an own-signal indicator strategy. It fits only under the Nov 6 "an indicator with good paper trading" shape, as a new SOURCE on the paper desk: id `vwap-ema9-scalp`, starts on probation like every source, scored by the scoreboard, auto-disabled if it loses, same go-live gate (100 trades / 30 trading days / profitable after slippage / max DD 20%). Spec for the builder: instrument MES futures or SPY options (pick one per run, record which); 3-minute bars; session-anchored VWAP; EMA9; entries on cross per the rules above; exits on EMA9 break, -30% stop, or session close; every signal emitted through the existing callout/webhook contract so the journal and scoreboard grade it unchanged. Requires his explicit exception to the copy-trading-only rule (Nov 5) or classification under the indicator family (Nov 6). Muse files the spec; his Claude builds; nothing live.
+**Fit for Money 24:** NOT copy trading — this is an own-signal indicator strategy. It fits only under the Nov 6 "an indicator with good trading" shape, as a new SOURCE on the desk: id `vwap-ema9-scalp`, starts on probation like every source, scored by the scoreboard, auto-disabled if it loses, same go-live gate (100 trades / 30 trading days / profitable after slippage / max DD 20%). Spec for the builder: instrument MES futures or SPY options (pick one per run, record which); 3-minute bars; session-anchored VWAP; EMA9; entries on cross per the rules above; exits on EMA9 break, -30% stop, or session close; every signal emitted through the existing callout/webhook contract so the journal and scoreboard grade it unchanged. Requires his explicit exception to the copy-trading-only rule (Nov 5) or classification under the indicator family (Nov 6). Muse files the spec; his Claude builds; nothing live.
 
-**Status:** evaluated and filed at his order (he asked "can we try this with money24?"). Paper only. No build by Muse, no live trading, no spend.
+**Status:** evaluated and filed at his order (he asked "can we try this with money24?"). Only. No build by Muse, no live trading, no spend.
 
 ## 2026-11-13 — @eliteoptionstrader2 pairs trading / statistical arbitrage (Instagram)
 
@@ -174,9 +174,9 @@ Source: https://www.instagram.com/reel/DeaHN_lJJkB/ — @eliteoptionstrader2 ("B
 
 **The 46,000% is hindsight marketing.** A 54-year backtest on a pair chosen because it survived and stayed together is survivorship bias in a suit (his own comment section names it). Pairs break: when one business genuinely diverges — PepsiCo became a snacks company, Coke stayed drinks — the "gap" is information, not mispricing, and the convergence trade bleeds as it widens. LTCM is the permanent monument to convergence trades that didn't converge in time. Retail frictions the reel skips: short borrow fees, dividends owed on the short leg, margin for the short side, and small single-digit spread moves that need real size to matter in dollars.
 
-**Fit for Money 24:** own-signal again (not copy trading — same open classification as the VWAP/EMA9 spec), but structurally the best-mannered candidate yet: signals computable from free price data (no Discord, no flow feed, nobody to copy), slow-moving over days to weeks (the opposite of the seconds-latency game), and market-neutral — it trades a relationship, not a headline, which suits the politics-indicator worldview. Paper-source spec if greenlit: universe KO/PEP, WMT/TGT, HD/LOW, V/MA; spread = log-price ratio, 60-day lookback; enter at |z| >= 2 (long laggard / short leader, equal dollars), exit at |z| <= 0.5, stop at |z| >= 3.5 or 30 days; graded by the scoreboard under the same go-live gate. Not runnable live at his scale: two legs, one of them short, needs margin and size.
+**Fit for Money 24:** own-signal again (not copy trading — same open classification as the VWAP/EMA9 spec), but structurally the best-mannered candidate yet: signals computable from free price data (no Discord, no flow feed, nobody to copy), slow-moving over days to weeks (the opposite of the seconds-latency game), and market-neutral — it trades a relationship, not a headline, which suits the politics-indicator worldview. Desk-source spec if greenlit: universe KO/PEP, WMT/TGT, HD/LOW, V/MA; spread = log-price ratio, 60-day lookback; enter at |z| >= 2 (long laggard / short leader, equal dollars), exit at |z| <= 0.5, stop at |z| >= 3.5 or 30 days; graded by the scoreboard under the same go-live gate. Not runnable live at his scale: two legs, one of them short, needs margin and size.
 
-**Status:** evaluated and filed at his order — he is collecting all strategies in this book. Paper only. No build by Muse, no live trading, no spend.
+**Status:** evaluated and filed at his order — he is collecting all strategies in this book. Only. No build by Muse, no live trading, no spend.
 
 ## 2026-11-13 — Midterm seasonality: "Buy in November, sell in June" (Instagram, via @JesseCohenInv)
 
@@ -186,7 +186,7 @@ Source: https://www.instagram.com/p/DfL_tx9Tjx0/ — @investorsgivingadvice repo
 
 **The catches.** (1) Equities drift up: most random 8-month windows are positive, so an undefeated streak across 21 cherry-framed windows is less miraculous than it looks — the honest question is Nov-Jun vs any other 8 months, and the edge there is real but modest. (2) It is not a complete strategy: it says nothing about the other 40 months of each 4-year cycle or about position sizing — it is a tailwind, not a system. (3) It is index beta, not alpha: if the pattern repeats you earn roughly the index's gain for that window, nothing more.
 
-**Fit for Money 24:** wrong species for a trading source — right species for the catalyst calendar. We are inside this exact window right now (midterms Nov 3, 2026; window runs Nov 2026 to Jun 2027), so file it as a standing seasonal-bias note for the paper desk: post-midterm Nov-Jun = historically favorable regime; context for risk posture, not a signal, not a trade. At his scale a standalone index play would return index percentages on small dollars (about +$20 on $200 over 8 months if the average repeats).
+**Fit for Money 24:** wrong species for a trading source — right species for the catalyst calendar. We are inside this exact window right now (midterms Nov 3, 2026; window runs Nov 2026 to Jun 2027), so file it as a standing seasonal-bias note for the desk: post-midterm Nov-Jun = historically favorable regime; context for risk posture, not a signal, not a trade. At his scale a standalone index play would return index percentages on small dollars (about +$20 on $200 over 8 months if the average repeats).
 
 **Status:** evaluated and filed in the collection at his order. No build, no live trading, no spend.
 
@@ -198,7 +198,7 @@ Source: https://www.instagram.com/p/Dehcr83MK5H/ — Kraken's official @krakenfx
 
 **The "free" catch.** The post's free challenge was an invitation-only Rewards Hub promotion: trading activity between Oct 19-23, 2026 earned a fee-waived challenge voucher. That window is CLOSED, and its terms listed the EEA as the eligible area. The standing door is the $20 Starter fee. US/Texas eligibility for Kraken Funded itself: not excluded in the sources read (Kraken Prop excludes only Canada and India as of Nov 7, 2026), but the in-app check is decisive — if Funded appears in his Kraken app, he is in.
 
-**Can we do this? Yes — with the division of labor stated plainly.** The evaluation is the account holder's own trading test; Muse does not trade it for him (prop terms and the standing no-impersonation line). What Muse does: the training ground. The challenge is hard math — +12% before -3% at 1x means many small wins risking ~0.25-0.5% per trade — but the absence of a time limit makes it the fairest rule set in the prop-firm collection (compare TradeCatalyst: fees + pressure). Kraken Funded trades manually inside the Kraken app, so the Money 24 engine does not plug into it; Kraken Prop (Kraken Pro, $5K-$200K) is the separate advanced route. Recommended path: replicate the exact rules (12% target / 3% floor / 1x) as a paper challenge on the scoreboard, pass it on paper, then risk the $20.
+**Can we do this? Yes — with the division of labor stated plainly.** The evaluation is the account holder's own trading test; Muse does not trade it for him (prop terms and the standing no-impersonation line). What Muse does: the training ground. The challenge is hard math — +12% before -3% at 1x means many small wins risking ~0.25-0.5% per trade — but the absence of a time limit makes it the fairest rule set in the prop-firm collection (compare TradeCatalyst: fees + pressure). Kraken Funded trades manually inside the Kraken app, so the Money 24 engine does not plug into it; Kraken Prop (Kraken Pro, $5K-$200K) is the separate advanced route. Recommended path: replicate the exact rules (12% target / 3% floor / 1x) as a desk challenge on the scoreboard, pass it on the desk, then risk the $20.
 
 **Status:** evaluated and filed in the collection. No signup, no fee paid — both are his explicit taps.
 
@@ -208,31 +208,31 @@ Source: https://www.instagram.com/p/Dehcr83MK5H/ — Kraken's official @krakenfx
 
 Examined https://money24.dogs.red live and the repo state.
 
-**What exists:** a working engine (newsd + m24d paper runner + scoreboard + Plays board), in paper phase. The public landing renders as one sentence and the made-by-DOGS badge. There is no commercial surface at all: no price, no plan, no checkout, no waitlist in the repo. Nobody could pay for Money 24 today even if they wanted to.
+**What exists:** a working engine (newsd + m24d runner + scoreboard + Plays board), in phase. The public landing renders as one sentence and the made-by-DOGS badge. There is no commercial surface at all: no price, no plan, no checkout, no waitlist in the repo. Nobody could pay for Money 24 today even if they wanted to.
 
 **What the owner is not thinking about:**
 
 1. The legal gate is already in the project's own docs (ARCHITECTURE section 11, via notes/trading-service.md): copy-trading for customers can trigger investment-adviser or broker-dealer registration; a lawyer is required before anyone else gets it. Selling signals is regulated differently from selling software. The safer sellable shape is the tool (desk, scoreboard, journal, alert plumbing) plus transparency/education — not trade-following.
-2. The proof does not exist yet. The go-live gate (100 trades / 30 trading days / profitable after slippage / max drawdown 20% of $1,000 paper capital) has not been run as a public clock. The public scoreboard record is the one asset no signal Discord can fake: timestamped, per-source, losers auto-disabled. Until it exists, there is nothing to sell that others do not claim for free.
+2. The proof does not exist yet. The go-live gate (100 trades / 30 trading days / profitable after slippage / max drawdown 20% of $1,000 capital) has not been run as a public clock. The public scoreboard record is the one asset no signal Discord can fake: timestamped, per-source, losers auto-disabled. Until it exists, there is nothing to sell that others do not claim for free.
 3. The public demo opens on a recorded snapshot when no runner is live. A snapshot is a museum; the living feed is the demo that sells.
 4. Distribution is zero: no audience, no list, no channel. Trading products sell on trust plus attention. The org's own shorts-clipping lanes are distribution machinery that fits scoreboard content exactly.
 5. Retail signal subscribers are the highest-touch customers in the portfolio (churn, hand-holding, blame on losses) — in tension with the owner's operator-free end-state. Low-touch shapes: license the feed to one existing community (B2B, one customer), or sell the tool/kit.
-6. Paper fills flatter. Selling on paper numbers that live trading then contradicts produces refunds, chargebacks and reputation damage. The honest pitch is the transparent record plus the gate, not returns.
+6. fills flatter. Selling on the desk numbers that live trading then contradicts produces refunds, chargebacks and reputation damage. The honest pitch is the transparent record plus the gate, not returns.
 
 **Can it profit without customers?** Not as a service. The doors:
 
 - Own-money trading: the float is roughly $100-200; even extraordinary monthly returns are tens of dollars. Capital is the wall, not the bot.
-- Prop-firm capital (notes/prop-firms.md): the only real no-customer route — firm capital, risk capped at the evaluation fee. But copy-trading is banned on prop accounts; only own strategies qualify, and the edge must pass paper first or the fee is a donation. Kraken Funded ($20 Starter, the owner's own hands) is the cheap probe, evaluated 2026-11-13.
+- Prop-firm capital (notes/prop-firms.md): the only real no-customer route — firm capital, risk capped at the evaluation fee. But copy-trading is banned on prop accounts; only own strategies qualify, and the edge must pass desk first or the fee is a donation. Kraken Funded ($20 Starter, the owner's own hands) is the cheap probe, evaluated 2026-11-13.
 - Broker/exchange affiliate payouts: customers with extra steps, and they need an audience.
 - Sell the system once: a customer of one.
 
-So "no customers" reduces to prop capital, which requires an own strategy that has passed the paper gate — the two filed paper-source specs (VWAP x EMA9, pairs/stat-arb) are the candidates in waiting.
+So "no customers" reduces to prop capital, which requires an own strategy that has passed the gate — the two filed desk-source specs (VWAP x EMA9, pairs/stat-arb) are the candidates in waiting.
 
 **How it could sell, ranked for this owner:**
 
 1. License the Plays + scoreboard feed to one existing paid community (a Discord/Telegram that already has members). One customer, no retail support load; the public record is the pitch.
 2. Sell the tool: the desk as a kit or hosted service for other small traders ("run your own signal desk", BYO keys per the architecture). One-time kit fee or a monthly tool subscription; stays furthest from the adviser line.
-3. Founding-member subscription to the live Plays feed, sold as transparency/education with disclaimers — only after the 30-day public paper record exists. Highest ceiling, highest touch, legal care required.
+3. Founding-member subscription to the live Plays feed, sold as transparency/education with disclaimers — only after the 30-day public record exists. Highest ceiling, highest touch, legal care required.
 4. Content first: daily scoreboard clips/posts build the audience that makes 1-3 possible.
 
 **Next step (one move):** start the public proof clock and put a price on the page. The scoreboard runs publicly toward the existing gate; the landing gains one offer — founding access to the live Plays feed, priced, with waitlist capture. First-dollar test: 10 founding members x $25/mo = $250/mo — small, but it is the proven first dollar the portfolio doctrine requires before scale. No new features until the record exists.
@@ -273,12 +273,12 @@ So "no customers" reduces to prop capital, which requires an own strategy that h
 
 **Consumer platforms (mostly D):** Composer, Trade Ideas (Holly ~25%/yr is simulated — C), TrendSpider, Tickeron (+61% to +285% claims — D), 3Commas, Cryptohopper, Stoic, Pionex — none publish platform-wide live results. The exception is Bitsgap (B): H1 2026 closed grid bots were 35.14% profitable, average +2.34%, median +0.51%; DCA spot bots averaged −0.10%. Robinhood Agentic Trading (live beta May 2026, 150K+ accounts) publishes no performance — it is plumbing, not a strategy.
 
-**Open source (C or nothing):** TradingAgents' headline numbers are Q1 2024 paper backtests (AAPL +26.62%) with 9 look-ahead corrections in its 2026 changelog. virattt/ai-hedge-fund explicitly does not trade. FinRobot is research-only. No framework has a live track record.
+**Open source (C or nothing):** TradingAgents' headline numbers are Q1 2024 backtests (AAPL +26.62%) with 9 look-ahead corrections in its 2026 changelog. virattt/ai-hedge-fund explicitly does not trade. FinRobot is research-only. No framework has a live track record.
 
 **Failure context:** SEBI's study: 91.1% of retail derivatives traders lost money. The CFTC warns that AI-bot return claims are a fraud hallmark.
 
 **Honest range:** verified long-run AI management ≈ benchmark minus ~5pp/yr; live LLM agents are negative on average; a typical closed crypto bot nets a median of ~0–1.8% per run; the 25–285% figures are backtests or marketing. Strongest verified records: AIED (A), AIEQ (A for evidence quality, underperforms), Rallies' ChatGPT portfolio (B, +87% in 7.5 months, unproven).
 
-**Read for Money 24:** the entire commercial field has marketing where a track record should be. Money 24's design — paper gate (100 trades / 30 days / max DD 20%) before any live money, and a public scoreboard as the sellable asset — is aimed at exactly the gap none of these products fill. The README's own bar ("at least a dollar out the market a day") is more honest than the industry's published claims.
+**Read for Money 24:** the entire commercial field has marketing where a track record should be. Money 24's design — gate (100 trades / 30 days / max DD 20%) before any live money, and a public scoreboard as the sellable asset — is aimed at exactly the gap none of these products fill. The README's own bar ("at least a dollar out the market a day") is more honest than the industry's published claims.
 
 **Status:** research delivered + filed 3 ways. Nothing bought, signed up, or traded. Full research: workspace research_notes/hands-off-agentic-ai-trading-alternative-20261121-1947/report.md.

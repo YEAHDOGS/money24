@@ -1,7 +1,7 @@
 <script>
   /**
    * The rulebook: every rule (on or off, a block or a warning, its settings), the evidence weights,
-   * the news filter, the bracket new plays start with, and the paper switches. DOGS defaults ship
+   * the news filter, the bracket new plays start with, and the desk switches. DOGS defaults ship
    * on; everything is editable, and reset brings the defaults back.
    */
   import strings from './strings.json';

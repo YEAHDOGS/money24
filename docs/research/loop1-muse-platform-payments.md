@@ -4,7 +4,7 @@
 > Method: live web research, official docs preferred (`developers.cloudflare.com`). Prices/limits verified 2026-10-30 unless noted. Anything not verified is marked **UNVERIFIED**. This is planning research only — no application code.
 > Companion brief: [BRIEF.md](BRIEF.md). Repo rules: [AGENTS.md](../../AGENTS.md) — SQL migrations are the schema source of truth, Workers + D1 + R2, free tier while building, JS + JSDoc only, no ORM.
 
-**Blunt summary up front:** Cloudflare free tier is excellent for *building* Money 24 and for a handful of paper-trading users. It cannot run a 24/7, second-interval, always-on WebSocket trading fleet for many users for free — the Durable Object (DO) duration meter and the 100k requests/day cap kill that first. The winning shape is: Cloudflare for API/UI/auth/billing/control-plane + the user's own machine (Tauri) or a cheap VPS/container as the always-on runner. Do not try to hold 100 broker WebSockets open inside DOs on free tier. Details and math below.
+**Blunt summary up front:** Cloudflare free tier is excellent for *building* Money 24 and for a handful of trading users. It cannot run a 24/7, second-interval, always-on WebSocket trading fleet for many users for free — the Durable Object (DO) duration meter and the 100k requests/day cap kill that first. The winning shape is: Cloudflare for API/UI/auth/billing/control-plane + the user's own machine (Tauri) or a cheap VPS/container as the always-on runner. Do not try to hold 100 broker WebSockets open inside DOs on free tier. Details and math below.
 
 ---
 
@@ -84,7 +84,7 @@ In practice for Money 24, $5/mo moves you from "hard wall at 100k/day" to "pay p
 5. **Workers + DO requests 100k/day** — ~15–17 users.
 6. Workers AI Neurons — instant, if you use CF-hosted models for agents.
 
-**Takeaway:** Free tier comfortably supports **1–5 real users paper-trading** with a disciplined hibernating design (alarms + hibernatable WS, shared market feed, Queues only for orders). At 10 users you need Paid ($5) mainly to lift D1-write and request caps. At 100 users Cloudflare infra is still only ~$10–60/mo *provided* DOs hibernate between ticks and the runner is not 100 always-on DOs/containers. The architecture decision in §2 decides whether 100 users cost $15/mo or $400+/mo.
+**Takeaway:** Free tier comfortably supports **1–5 real users trading** with a disciplined hibernating design (alarms + hibernatable WS, shared market feed, Queues only for orders). At 10 users you need Paid ($5) mainly to lift D1-write and request caps. At 100 users Cloudflare infra is still only ~$10–60/mo *provided* DOs hibernate between ticks and the runner is not 100 always-on DOs/containers. The architecture decision in §2 decides whether 100 users cost $15/mo or $400+/mo.
 
 > Sensitivity: if ticks go to every 5 min (12/hr) multiply agent-driven rows by 1.5×; every 10 min multiply by 0.75×. If "second intervals" means 1 tick/sec/agent, multiply by ~11,000× — no Cloudflare free/paid design survives that server-side; seconds-level decisions must happen locally (Tauri/VPS) with only summaries synced to Cloudflare. See §2.4.
 
@@ -132,7 +132,7 @@ DO memory is billed at a fixed 128 MB = 0.125 GB regardless of actual use. ([DO 
 
 ### 2.4 Recommended topology for Money 24
 
-- **Control plane on Cloudflare (free → $5):** Pages/Workers API, auth, billing webhook, agent config, paper-trade ledger (D1), R2 candle archive, hibernatable DO per user *as server* fanning quotes/status to that user's dashboard WS.
+- **Control plane on Cloudflare (free → $5):** Pages/Workers API, auth, billing webhook, agent config, trade ledger (D1), R2 candle archive, hibernatable DO per user *as server* fanning quotes/status to that user's dashboard WS.
 - **Data plane wherever the user's runner lives:** Tauri desktop (default) holds the outbound Webull WS + runs the 30 loops locally at whatever cadence (including seconds) the user's machine/LLM can sustain; it syncs decisions/orders/fills back to Cloudflare via HTTPS (batched, e.g. every tick or every 30s) and receives config/kill-switch via the hibernatable DO WS or long-poll.
 - **Server-side runner as paid add-on only:** offer a Hetzner/Fly/Container runner per *paying* user who wants true 24/7 without their laptop. Price it to cover ~$4–7/mo wholesale. Never offer it free — the DO-duration math above is why.
 - **Shared market-data ingest:** one poller (Cron 1-min → Queue → Worker, or one alarm-loop DO) for common symbols, writing to R2/D1 and fanning out. Per-user private symbols/options chains are fetched by the user's runner, not multiplied server-side.
@@ -149,7 +149,7 @@ This keeps free tier viable through build + first users, keeps broker keys off D
 
 These reconcile cleanly: **write 3–5 migrations once, ever, for a document-shaped schema. After that, new fields live inside JSON and never need a migration.** You get NoSQL ergonomics on top of the mandated SQL source of truth. Pure NoSQL options on Cloudflare (KV, R2 objects, DO SQLite misused as blob store) each fail a real Money 24 requirement (see comparison), so the answer is document-style D1/DO-SQLite, not a different database.
 
-Also honour the brief wish *"store as much as possible at Webull to minimise our database"*: Webull remains system of record for balances, positions, live orders, fills. Money 24 stores only what Webull doesn't keep for you: agent configs/loops, decision audit trail, paper-ledger shadow, candle history, billing/entitlement, encrypted credential envelopes. That keeps D1 small and the privacy surface minimal.
+Also honour the brief wish *"store as much as possible at Webull to minimise our database"*: Webull remains system of record for balances, positions, live orders, fills. Money 24 stores only what Webull doesn't keep for you: agent configs/loops, decision audit trail, desk-ledger shadow, candle history, billing/entitlement, encrypted credential envelopes. That keeps D1 small and the privacy surface minimal.
 
 ### 3.2 Options compared
 
@@ -171,7 +171,7 @@ Also honour the brief wish *"store as much as possible at Webull to minimise our
 ```sql
 -- 0001_core.sql (illustrative sketch — planning only, not application code)
 CREATE TABLE docs (
-  kind       TEXT NOT NULL,          -- 'user' | 'agent' | 'loop_run' | 'paper_order' | 'paper_fill' | 'entitlement' | 'credential' | 'audit'
+  kind       TEXT NOT NULL,          -- 'user' | 'agent' | 'loop_run' | 'desk_order' | 'desk_fill' | 'entitlement' | 'credential' | 'audit'
   id         TEXT NOT NULL,          -- ULID/UUID; prefixed by kind for debuggability, e.g. 'agt_01J…'
   owner_id   TEXT,                   -- user id; NULL for global docs (market calendar, fee schedules)
   json       TEXT NOT NULL,          -- the document. New fields = new keys. No migration.
@@ -191,7 +191,7 @@ Rules that make this work: (a) only `status`/`symbol`/`created_at`-style fields 
 
 Append-only friends (still migration 0001): `audit_log(id, owner_id, kind, ref_id, json, created_at)` for the immutable decision/order audit trail (insert-only by app convention; D1 has no per-table ACLs — enforce in Worker code and say so). Do **not** abuse `docs` for candles (millions of rows) — that's R2's job.
 
-**Migration 0002 — DO SQLite per user (created by DO class migration, same `docs` shape, smaller).** Each user's DO gets: `docs` (agent state, loop cursors, last决策 snapshot, paper positions cache), `outbox` (pending sync to D1/Webull with retry), `kv` (`key TEXT PRIMARY KEY, value TEXT, expires_at`). Per-user isolation means a runaway loop corrupts one user's 10 GB sandbox, not the shared DB. Cross-user admin queries go through D1 (DO mirrors summaries up on each sync). DO SQLite billing mirrors D1 (5M reads/100k writes/day free). ([DO pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/))
+**Migration 0002 — DO SQLite per user (created by DO class migration, same `docs` shape, smaller).** Each user's DO gets: `docs` (agent state, loop cursors, last决策 snapshot, positions cache), `outbox` (pending sync to D1/Webull with retry), `kv` (`key TEXT PRIMARY KEY, value TEXT, expires_at`). Per-user isolation means a runaway loop corrupts one user's 10 GB sandbox, not the shared DB. Cross-user admin queries go through D1 (DO mirrors summaries up on each sync). DO SQLite billing mirrors D1 (5M reads/100k writes/day free). ([DO pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/))
 
 **Migration 0003 — R2 layout (no SQL; documented as bucket convention).** `candles/{exchange}/{symbol}/{yyyy}/{mm}/{dd}.ndjson.gz` for raw ingest, compacted nightly (Cron → Worker) to `candles-parquet/{symbol}/{yyyy}-{mm}.parquet` for backtests. One object per symbol-day keeps Class A writes tiny (~50 symbols × 30 days = 1,500 writes/mo — deep inside 1M free). Reads via Worker streaming + client-side chart lib; never load Parquet into D1. Ticks (if ever stored) are R2-only and expire via lifecycle rule after 7–30 days — tick storage in D1 would burn the 100k writes/day free cap in minutes.
 
@@ -254,9 +254,9 @@ Crypto: offer USDC-on-Base via Coinbase Commerce (1%) and/or BTCPay Lightning (0
 
 ### 4.5 Recommended payment path for a broke solo founder
 
-1. **Launch: Creem (3.9%+$0.40) or Dodo (verify contract) as MoR** — lowest flat MoR take, global tax handled, no monthly fee, no tax registrations. Keep Paddle as the fallback if Creem/Dodo reject a trading-adjacent product (see Open Risks — MoRs can be squeamish about trading/finance; apply early and describe the product accurately as *paper-trading software / user-controlled automation*, never as a fund or advisory).
+1. **Launch: Creem (3.9%+$0.40) or Dodo (verify contract) as MoR** — lowest flat MoR take, global tax handled, no monthly fee, no tax registrations. Keep Paddle as the fallback if Creem/Dodo reject a trading-adjacent product (see Open Risks — MoRs can be squeamish about trading/finance; apply early and describe the product accurately as *trading software / user-controlled automation*, never as a fund or advisory).
 2. **Web checkout only at launch.** Desktop Tauri = web entitlement. Android APK direct = web entitlement. Defer App Store/Play until revenue justifies IAP + review risk.
-3. **Price to the fee math:** e.g. Paper Pro $19/mo or $190/yr; Live $39/mo or $390/yr (illustrative). Annual default in UI. Fixed-fee drag at $19 (≈5.5% Creem) is tolerable; at $10 (≈8%) it is not.
+3. **Price to the fee math:** e.g. Desk Pro $19/mo or $190/yr; Live $39/mo or $390/yr (illustrative). Annual default in UI. Fixed-fee drag at $19 (≈5.5% Creem) is tolerable; at $10 (≈8%) it is not.
 4. **Add Coinbase Commerce USDC** as an optional annual-pay rail (keep ~99%); advertise "save ~5% pay annual in USDC" only if accounting can handle it.
 5. **Migrate to Stripe + Billing (+ Tax or a filing service) only** when MRR ≳ $5–10k and your sales are concentrated enough that tax registrations are few — the ~1% saving then funds the bookkeeping. Keep the MoR price IDs abstracted in `docs` (kind=`entitlement`) so migration is a Worker change, not an app release.
 
@@ -282,7 +282,7 @@ Entitlement source of truth: MoR webhook → Worker → D1 `docs` (kind=`entitle
 | Uptime + status | Better Stack / UptimeRobot free tier + Cloudflare health checks | Free tiers exist (**UNVERIFIED** exact probe counts) | $0–10/mo |
 | Logs | Workers Logs (included) + Tail Workers if needed | Included allotments vary — enable only on Paid with retention discipline | Watch log volume from agent loops; sample, don't log every tick |
 
-Rule: instrument the Worker/DO with Sentry + structured Workers Logs, PostHog only in the *product* (funnel: signup → connect broker (paper) → first loop → subscribe), CF Web Analytics on the landing page. Agent-loop ticks must not emit per-tick analytics events (see §1.3 — you'd burn 1M events in 2 days at 10 users). Batch to hourly rollups.
+Rule: instrument the Worker/DO with Sentry + structured Workers Logs, PostHog only in the *product* (funnel: signup → connect broker (desk) → first loop → subscribe), CF Web Analytics on the landing page. Agent-loop ticks must not emit per-tick analytics events (see §1.3 — you'd burn 1M events in 2 days at 10 users). Batch to hourly rollups.
 
 ### 5.3 Auth — Access vs Better Auth vs roll-your-own WebAuthn
 
@@ -319,7 +319,7 @@ Signing pipeline lives in the manually-triggered GitHub Actions native workflow 
 
 ### 5.6 Notifications (push / Telegram / Discord / email)
 
-- **Telegram Bot API** ($0) + **Discord webhooks** ($0): highest signal/cost for trading alerts ("loop placed paper order", "kill-switch tripped"). User pastes a bot token / webhook URL; store as `credential` docs; send from Worker/DO alarm. Respect Telegram ~30 msg/s global bot limits and per-chat throttles — batch fills.
+- **Telegram Bot API** ($0) + **Discord webhooks** ($0): highest signal/cost for trading alerts ("loop placed desk order", "kill-switch tripped"). User pastes a bot token / webhook URL; store as `credential` docs; send from Worker/DO alarm. Respect Telegram ~30 msg/s global bot limits and per-chat throttles — batch fills.
 - **Email alerts:** via §5.1 sender (fill confirmations, security alerts — required, not marketing).
 - **Mobile/web push:** Web Push (VAPID) is free (browser push services); APNs/FCM via a thin provider (OneSignal free tier / self via Worker) — **UNVERIFIED** free caps. Defer native push until mobile ships; Telegram/Discord/email cover launch.
 - Every alert path needs a per-user rate cap + digest mode, or one volatile session spams 30 loops × alerts and users churn/mute.
@@ -360,28 +360,28 @@ US-centric sketch (other jurisdictions differ — EU MiFID/PSD, UK FCA, etc. —
 
 - **Investment adviser (SEC/state RIA; Advisers Act §202(a)(11)).** Providing *securities advice for compensation* can make you an investment adviser — fiduciary duty, Form ADV, compliance program. Robo-advisers are RIAs. The narrower you stay to "**software tool the user configures and controls**" (user sets rules/strategies, user can override/kill, no discretionary management of their account by DOGS, no personalised recommendations marketed as advice), the stronger the "tools not advice" position. The moment Money 24 markets "our AI picks winning trades for you", runs discretionary copy-trading, or pools decisions across users, you drift toward adviser/broker analysis. Disclaimers help but **do not override what the product actually does** ("What you do matters more than what you say"). ([SEC robo-adviser guidance](https://www.sec.gov/investment/im-guidance-2017-02.pdf) concept; verify current text ⚖️)
 - **Broker-dealer (Exchange Act §15(a)).** Effecting securities transactions for others / receiving transaction-based compensation risks BD registration + FINRA membership. Routing user-directed orders through the *user's own* Webull account via the *user's own* credentials, charging a flat SaaS subscription (not per-trade commissions, not % of profits/assets), is the lowest-risk shape. Taking a cut per trade or of profits changes the analysis — don't, without ⚖️.
-- **Futures/options/prediction markets multiply regulators** (CFTC/NFA for futures + commodity interests; options need options-specific disclosures (OCC characteristics/risks); prediction markets / event contracts have evolving CFTC + state gaming analysis). Paper trading avoids most of this; live futures/options is a second legal project. ⚖️
+- **Futures/options/prediction markets multiply regulators** (CFTC/NFA for futures + commodity interests; options need options-specific disclosures (OCC characteristics/risks); prediction markets / event contracts have evolving CFTC + state gaming analysis). Trading avoids most of this; live futures/options is a second legal project. ⚖️
 - **Internet Adviser Exemption** (amended 2025) exists for purely algorithmic, interactive-website advice with no human-personnel advice — but still requires SEC registration + Form ADV. It is not a free pass; it is a registration path. ⚖️
 
 ### 6.2 Holding user broker keys ⚖️
 
 - Custody of *credentials* isn't custody of *assets*, but a breach that drains user brokerage accounts creates negligence, state privacy-law, and FTC §5 (unfair/deceptive practices) exposure, plus Webull API terms liability. Server-side keys (§5.4 layer 2) therefore need: explicit informed consent screen ("you grant Money 24 authority to place orders in your account…"), scope minimisation (trade-only API keys if Webull offers them; never withdrawal-capable credentials), instant revocation, encryption + access logging, breach-notification plan (state laws: 72h–60d windows vary).
 - Prefer the desktop-runner model precisely because "keys never leave your device" shrinks custody, breach blast-radius, and the sales pitch simultaneously.
-- Check Webull OpenAPI terms: automated trading, credential storage, third-party SaaS use, rate limits, and whether paper vs live keys differ. Terms violations can get *users'* accounts restricted — disclose that. **UNVERIFIED** — read current Webull developer agreement before building on it. ⚖️/contract review.
+- Check Webull OpenAPI terms: automated trading, credential storage, third-party SaaS use, rate limits, and whether desk vs live keys differ. Terms violations can get *users'* accounts restricted — disclose that. **UNVERIFIED** — read current Webull developer agreement before building on it. ⚖️/contract review.
 
 ### 6.3 Disclaimers, marketing, and product hygiene (do from day one)
 
-- Required-style disclosures (attorney to finalise wording ⚖️): "Money 24 is software, not a broker-dealer, investment adviser, or financial planner. Nothing here is financial advice or a recommendation. Trading involves substantial risk of loss, including loss of principal. Past/hypothetical/paper performance does not predict future results. You are solely responsible for orders placed in your account, including orders placed by automations you configure." On: landing page, pricing page, onboarding, live-trading enable screen, every strategy template.
-- **Paper trading must be labelled everywhere** (charts, fills, P&L) and paper results never marketed as live performance. Hypothetical-performance rules (SEC Marketing Rule for advisers; FTC truth-in-advertising for everyone) govern backtests — show methodology, period, costs, and "hypothetical" watermarking. No "AI wins X%", no cherry-picked testimonials without substantiation + disclosures. ⚖️ before any performance claim ships.
-- Kill-switch, position/size limits, "require confirmation for live orders > $X", and a prominent live-vs-paper mode indicator are not just UX — they are your best evidence of user control (supports tools-not-advice) and of reasonable care.
+- Required-style disclosures (attorney to finalise wording ⚖️): "Money 24 is software, not a broker-dealer, investment adviser, or financial planner. Nothing here is financial advice or a recommendation. Trading involves substantial risk of loss, including loss of principal. Past/hypothetical/simulated performance does not predict future results. You are solely responsible for orders placed in your account, including orders placed by automations you configure." On: landing page, pricing page, onboarding, live-trading enable screen, every strategy template.
+- **Trading must be labelled everywhere** (charts, fills, P&L) and results never marketed as live performance. Hypothetical-performance rules (SEC Marketing Rule for advisers; FTC truth-in-advertising for everyone) govern backtests — show methodology, period, costs, and "hypothetical" watermarking. No "AI wins X%", no cherry-picked testimonials without substantiation + disclosures. ⚖️ before any performance claim ships.
+- Kill-switch, position/size limits, "require confirmation for live orders > $X", and a prominent live-vs-mode indicator are not just UX — they are your best evidence of user control (supports tools-not-advice) and of reasonable care.
 - Terms of Service + Privacy Policy + Risk Disclosure as separate, versioned documents (acceptance logged in D1 `audit_log`); arbitration/class-action, limitation of liability, and indemnity clauses need ⚖️ drafting — templates are a starting point, not a shield. Age gate 18+, US-only at launch (geo-fence live trading) simplifies tax/securities scope; maintain OFAC/sanctions screening if you later open globally. ⚖️
 - Accessibility + consumer law: auto-renewing subscriptions need clear price/renewal/cancel disclosure (FTC Click-to-Cancel environment + state auto-renewal laws — **UNVERIFIED** current federal rule status post-litigation; MoR handles mechanics, you handle honest copy). Easy cancel in-app; no dark patterns.
 - Data protection: even US-only, adopt GDPR-grade basics (export/delete my data, breach notice, subprocessors list: Cloudflare, MoR, Sentry, PostHog). If any EU/UK users: GDPR/UK GDPR + VAT via MoR. ⚖️-lite (checklist review may suffice pre-launch).
 - Record-keeping: retain decision/order audit trail (§3) — it defends you ("user configured X; system did X") and helps users dispute broker fills. Define retention (e.g. 3–6 years) with counsel. ⚖️
 
-### 6.4 What stays paper-only until counsel clears it
+### 6.4 What stays desk-only until counsel clears it
 
-Paper trading + education + user-configured automation with desktop-held keys is the lowest-risk launch. **Gate behind counsel sign-off:** live-money execution, server-held live keys, options/futures, copy-trading/leaderboards that execute in followers' accounts, profit-based pricing, and any marketing using performance numbers.
+Trading + education + user-configured automation with desktop-held keys is the lowest-risk launch. **Gate behind counsel sign-off:** live-money execution, server-held live keys, options/futures, copy-trading/leaderboards that execute in followers' accounts, profit-based pricing, and any marketing using performance numbers.
 
 ---
 
@@ -389,16 +389,16 @@ Paper trading + education + user-configured automation with desktop-held keys is
 
 1. **Stay Cloudflare-native for control plane; do not run the trading loop server-side by default.** Pages/Workers + D1 (`docs`) + per-user DO (hibernating, as server) + R2 candles + KV config. Ship the **Tauri desktop as the always-on runner** holding the Webull WebSocket and the 30 loops locally; sync summaries to Cloudflare. This keeps build at ~$0, makes second-interval decisions possible, and keeps broker keys off DOGS servers.
 2. **Adopt the document-style D1 + DO-SQLite + R2 hybrid (§3.3).** Four bootstrap migrations, additive-only thereafter. Webull stays broker system-of-record; Money 24 stores configs, audit trail, entitlements, and candle history only. Reject external NoSQL and per-entity tables.
-3. **Budget for Workers Paid ($5/mo) at first real users, not at 100.** Free supports ~1–5 disciplined paper users. The $5 unlock (D1 writes, requests) plus hibernating DO design keeps 100 users at roughly **$10–60/mo** Cloudflare total. The one forbidden pattern is always-on non-hibernating DOs per user (~$400/mo at 100 users + free-tier death at 2 users).
+3. **Budget for Workers Paid ($5/mo) at first real users, not at 100.** Free supports ~1–5 disciplined desk users. The $5 unlock (D1 writes, requests) plus hibernating DO design keeps 100 users at roughly **$10–60/mo** Cloudflare total. The one forbidden pattern is always-on non-hibernating DOs per user (~$400/mo at 100 users + free-tier death at 2 users).
 4. **Shared market-data ingest, never per-user polling.** One Cron/Queue poller fans out via hibernatable DO WebSockets to dashboards. Polling dashboards or per-user symbol fetches will burn the 100k/day cap and Webull goodwill simultaneously.
 5. **Payments: launch on a low-rate MoR (Creem 3.9%+$0.40; Dodo as verified-contract alternative; Paddle fallback), web checkout only, $19+/mo with annual default.** Add USDC (Coinbase Commerce 1%) as an optional annual rail. Defer Stripe until ~$5–10k MRR and tax scope is narrow. Defer App Store/Play IAP until store revenue justifies 15% + review risk; sell on web, unlock in-app by entitlement.
 6. **Auth: Better Auth on D1 (passkeys + TOTP + social), Cloudflare Access for DOGS admin only, Turnstile on abuse surfaces.** Envelope-encrypt any server-held broker secret (Worker-secret KEK, D1-stored wrapped DEKs); default to keys-on-device. Require step-up 2FA for live-trading enable.
 7. **Side services at $0:** Sentry + PostHog (sampled) + Cloudflare Web Analytics + Telegram/Discord alerts + Email Routing. Defer all signing spend (Apple $99/yr, Windows OV ~$215/yr, Play $25) until public native launch — unsigned dev builds cost nothing.
-8. **Paper-first, counsel-gated live.** Launch paper trading with full risk disclosures, kill-switch, size limits, and audit logging. Engage a fintech/securities attorney before live orders, server-held live keys, options/futures, copy-execution, or any performance marketing. Describe the product everywhere as *user-controlled software*, because legally, what it does is what it is.
+8. **Paper-first, counsel-gated live.** Launch trading with full risk disclosures, kill-switch, size limits, and audit logging. Engage a fintech/securities attorney before live orders, server-held live keys, options/futures, copy-execution, or any performance marketing. Describe the product everywhere as *user-controlled software*, because legally, what it does is what it is.
 
 ## Open risks
 
-- **MoR / processor acceptance of trading-adjacent SaaS.** Paddle/Creem/Dodo/Lemon may classify auto-trading software as restricted/high-risk and reject or later offboard Money 24. Apply early, describe accurately (paper-first, user-controlled, no custody of funds), and keep a Stripe fallback integration path. **UNVERIFIED** per-provider stance — test with a real application before launch depends on it.
+- **MoR / processor acceptance of trading-adjacent SaaS.** Paddle/Creem/Dodo/Lemon may classify auto-trading software as restricted/high-risk and reject or later offboard Money 24. Apply early, describe accurately (desk-first, user-controlled, no custody of funds), and keep a Stripe fallback integration path. **UNVERIFIED** per-provider stance — test with a real application before launch depends on it.
 - **Webull OpenAPI terms, rate limits, and paper-vs-live parity.** Automation, third-party credential use, WS entitlements, and options/futures permissions are contract questions. If Webull forbids server-side credential storage or caps polling aggressively, the runner topology (§2.4) shifts further toward desktop-only. **UNVERIFIED** — requires reading the current developer agreement + a technical spike.
 - **DO outbound-WebSocket auth + eviction behaviour.** Custom-header outbound WS and long-lived socket survival across DO evictions need a hands-on spike; reconnect/state-rebuild must be assumed. If Webull requires headers Workers cannot set, desktop/VPS runner becomes mandatory, not optional.
 - **Cloudflare limit/price drift.** All §1 numbers are 2026-10-30 snapshots; DO SQLite storage billing itself only switched on Jan 2026. Re-verify Workers/DO/D1 pricing pages before pricing the product, and alert on usage (DO GB-s especially) from day one — a single non-hibernating code path can 10× the bill overnight.

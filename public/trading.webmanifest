@@ -1,7 +1,7 @@
 {
   "name": "Money 24 Trading",
   "short_name": "M24 Trade",
-  "description": "Paper trade social media callouts the moment you share them.",
+  "description": "Trade social media callouts the moment you share them.",
   "id": "/trading.html",
   "start_url": "/trading.html",
   "scope": "/",

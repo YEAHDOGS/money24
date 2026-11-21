@@ -238,7 +238,7 @@ func compact(v float64) string {
 }
 
 // Draft builds a complete play from a contract, the market and the template: entry at the mid,
-// the stop, the ladder, the runner and every failsafe, so it can paper trade the moment it exists.
+// the stop, the ladder, the runner and every failsafe, so it can trade the moment it exists.
 func Draft(c Contract, m Market, t Template, now time.Time) Play {
 	p := Play{CreatedAt: now.UTC(), UpdatedAt: now.UTC(), Status: STATUS_DRAFT, Contract: c, Market: &m}
 	p.Title = c.Symbol

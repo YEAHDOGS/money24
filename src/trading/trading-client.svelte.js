@@ -50,7 +50,7 @@ export class TradingClient {
   }
 
   /**
-   * Paper-trades a shared post right now: an x.com link (the runner reads the post) or pasted callout text.
+   * Trades a shared post right now: an x.com link (the runner reads the post) or pasted callout text.
    * Resolves with the signal as the runner read it; the plan arrives on the stream a moment later.
    * @param {string} input
    */

@@ -1,6 +1,6 @@
-// m24d is Money 24's trading runner. This first cut is paper only and has no broker code at all:
+// m24d is Money 24's trading runner. This first cut has no broker code at all:
 // it takes callouts on a webhook, plans each entry with its stop, ladder and time exits, and appends
-// every plan and rejection to a paper journal. The same binary runs headless on a Linux or Windows
+// every plan and rejection to a journal. The same binary runs headless on a Linux or Windows
 // server, or as the desktop app's sidecar behind the trading UI (trading.html).
 //
 //	m24d [--data DIR] [--addr 127.0.0.1:8025] [--origins a,b] [--hosts h] [--sources FILE] [--exit-with-stdin]
@@ -53,7 +53,7 @@ const (
 	SECRET_PERMS     = 0o600
 	HEADER_TIMEOUT   = 10 * time.Second
 	SHUTDOWN_TIMEOUT = 5 * time.Second
-	WATCH_INTERVAL   = 30 * time.Second // how often open paper positions are priced; one quote request each
+	WATCH_INTERVAL   = 30 * time.Second // how often open positions are priced; one quote request each
 	ENV_SECRET       = "M24D_WEBHOOK_SECRET"
 	PLACEHOLDER      = "change-me" // the value old copies of .env.example shipped with
 	SECRET_MIN_CHARS = 16
@@ -287,7 +287,7 @@ func main() {
 	for pattern, h := range playService.Routes() {
 		opts.Mount[pattern] = h
 	}
-	// The finder opens paper plays on its own from the stories newsd groups; the rulebook can turn it off.
+	// The finder opens plays on its own from the stories newsd groups; the rulebook can turn it off.
 	go playService.RunFinder(ctx)
 	for _, p := range plays.Providers() {
 		if p.Connected {
@@ -302,7 +302,7 @@ func main() {
 	srv := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: HEADER_TIMEOUT,
 		BaseContext: func(net.Listener) context.Context { return ctx }}
 	go func() {
-		log.Printf("m24d paper runner on %s, %d sources, data %s", *addr, len(catalog.Sources), *dataDir)
+		log.Printf("m24d runner on %s, %d sources, data %s", *addr, len(catalog.Sources), *dataDir)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal(err)
 		}

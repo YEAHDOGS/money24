@@ -212,7 +212,7 @@ func (r *Runner) plan(sig Signal, s Settings, asOf time.Time, e *Entry) (Plan, e
 	return Build(sig, s, price, asOf)
 }
 
-// Adopt journals a bracket planned somewhere else (a play) as a paper entry, so the exit watcher
+// Adopt journals a bracket planned somewhere else (a play) as an entry, so the exit watcher
 // prices and closes it like any other. It returns the journal id the watcher's lines will carry.
 func (r *Runner) Adopt(sig Signal, plan Plan, now time.Time) (int64, error) {
 	r.mu.Lock()

@@ -1,5 +1,5 @@
 {
-  "_about": "Sources every new Money 24 install starts with. All paper. Every source starts on probation: it is scored on paper results and auto-disabled if it loses. Handles were taken from public 'who to follow' lists on Nov 9, 2026 and could not be checked on X itself; the first scrape run confirms each one exists and posts. Most are commentators, not pure callout accounts, so the classifier will mark most of their posts as noise.",
+  "_about": "Sources every new Money 24 install starts with. All paper. Every source starts on probation: it is scored on results and auto-disabled if it loses. Handles were taken from public 'who to follow' lists on Nov 9, 2026 and could not be checked on X itself; the first scrape run confirms each one exists and posts. Most are commentators, not pure callout accounts, so the classifier will mark most of their posts as noise.",
   "defaults": {
     "probation": true,
     "stop_loss_pct": 20,

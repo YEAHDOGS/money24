@@ -2,7 +2,7 @@
   /**
    * One play, top to bottom: what must happen for it to pay, the stake dial (every number below
    * follows it), the price spine, the payoff and odds, the rules, the evidence, the bracket or the
-   * paper fills, and the AI reads. The disclaimer stays pinned under it. On a phone (compact) the
+   * fills, and the AI reads. The disclaimer stays pinned under it. On a phone (compact) the
    * dial comes first and the rest folds under its headings.
    */
   import { untrack } from 'svelte';

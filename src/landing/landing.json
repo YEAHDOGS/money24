@@ -7,14 +7,14 @@
   },
   "loop": {
     "title": "ONE LINK IN",
-    "line": "Paste a trade idea. Get the whole plan, traded on paper.",
+    "line": "Paste a trade idea. Get the whole plan, traded on the desk.",
     "steps": [
       "LINK",
       "CONTRACT",
       "ENTRY + EXITS",
       "ODDS",
       "RULEBOOK",
-      "PAPER TRADE"
+      "TRADE"
     ],
     "foot": "A stop, a way out and a worst case, before it runs."
   },
@@ -23,7 +23,7 @@
     "line": "More power aims higher and risks more.",
     "planned": "PLANNED",
     "riskLabel": "Risk",
-    "foot": "None is active yet. All start on paper.",
+    "foot": "None is active yet. All start on the desk.",
     "list": [
       {
         "id": "low",

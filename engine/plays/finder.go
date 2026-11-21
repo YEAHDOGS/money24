@@ -18,7 +18,7 @@ import (
 const (
 	// The finder is the part of Money 24 that works with nobody at the keyboard: it reads the stories
 	// newsd grouped, and where a loud, well-sourced story leans one way on a stock, it drafts the
-	// option play and paper trades it. Paper only. It never trades through a blocking rule.
+	// option play and trades it. It never trades through a blocking rule.
 	FINDER_EVERY    = 5 * time.Minute
 	FINDER_TIMEOUT  = 45 * time.Second
 	FINDER_STORIES  = "/api/stories?tradable=1&limit=40"
@@ -61,7 +61,7 @@ type FinderRules struct {
 	// more than a label: enough headlines on that side, and a price that is not moving the other way.
 	MinSided      int  `json:"min_sided"`       // headlines that must take the play's side
 	MoveMustAgree bool `json:"move_must_agree"` // skip when the instrument is moving against the angle
-	// MaxDayLossUSD pauses the finder for the day once the paper plays closed today have lost this much. 0 never pauses.
+	// MaxDayLossUSD pauses the finder for the day once the plays closed today have lost this much. 0 never pauses.
 	MaxDayLossUSD float64 `json:"max_day_loss_usd"`
 }
 
@@ -165,7 +165,7 @@ type FinderStatus struct {
 	State   string       `json:"state"` // looking, off, closed (the session), full (the day's count), paused (the day's loss) or error
 	Why     string       `json:"why,omitempty"`
 	Today   int          `json:"today"`   // plays it opened today
-	DayPnL  float64      `json:"day_pnl"` // every paper play closed today, in dollars
+	DayPnL  float64      `json:"day_pnl"` // every play closed today, in dollars
 	Notes   []FinderNote `json:"notes"`   // the stories loud enough to be looked at, loudest first
 	NextAt  time.Time    `json:"next_at"`
 	EveryMs int64        `json:"every_ms"`
@@ -252,7 +252,7 @@ func (s *Service) pickContract(ctx context.Context, symbol, right string, f Find
 		Expiry: time.Unix(chain.Expiry, 0).UTC().Format(market.EXPIRY_LAYOUT)}, nil
 }
 
-// open drafts the play for one story and paper trades it when no blocking rule fails. Unlike a pasted
+// open drafts the play for one story and trades it when no blocking rule fails. Unlike a pasted
 // link, a play nobody looked at never trades through a block: it waits as a draft.
 func (s *Service) open(ctx context.Context, story foundStory, symbol, right string, rules Rules, now time.Time) (Play, string, error) {
 	c, err := s.pickContract(ctx, symbol, right, *rules.Finder, now)
@@ -313,7 +313,7 @@ func (s *Service) find(ctx context.Context, now time.Time) FinderStatus {
 	case st.Today >= f.MaxPerDay:
 		st.State, st.Why = FINDER_FULL, fmt.Sprintf("%d plays opened today, the most the rulebook allows", st.Today)
 	case f.MaxDayLossUSD > 0 && st.DayPnL <= -f.MaxDayLossUSD:
-		st.State, st.Why = FINDER_PAUSED, fmt.Sprintf("paper plays closed today lost $%.2f, past the $%.2f pause", -st.DayPnL, f.MaxDayLossUSD)
+		st.State, st.Why = FINDER_PAUSED, fmt.Sprintf("plays closed today lost $%.2f, past the $%.2f pause", -st.DayPnL, f.MaxDayLossUSD)
 	}
 	if st.State != FINDER_LOOKING {
 		return st

@@ -1,9 +1,9 @@
 <script>
   /**
-   * Open positions: the plays running on paper right now. One row each: the contract, its entry,
+   * Open positions: the plays running on the desk right now. One row each: the contract, its entry,
    * what is left, what it cost, the stop in force, the next exit and its open result where a
    * price is known. A row opens its play on the Plays page. Wide: a table. Narrow: two lines a row.
-   * Everything here is paper trading and says so. The rows come from positions.js.
+   * Everything here is trading and says so. The rows come from positions.js.
    */
   import strings from './strings.json';
   import { fill, pnl, price, shortWhen, usd } from '../plays/play-format.js';

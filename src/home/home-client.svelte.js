@@ -1,5 +1,5 @@
-// The Home page's data. From the m24d runner: plays (the open ones are the positions), the paper
-// journal and starting paper capital (the paper account's history), a mark for each open play, and
+// The Home page's data. From the m24d runner: plays (the open ones are the positions), the
+// journal and starting capital (the account's history), a mark for each open play, and
 // quotes for the ribbon. From the newsd service: stories, or plain headlines when it has none.
 // Everything is read on a slow timer and only while the page is on screen (poller.js); the runner
 // caches market data, so many open windows cost the provider nothing extra.
@@ -15,7 +15,7 @@ const DEFAULT_RUNNER_API = 'http://127.0.0.1:8025';
 const DEFAULT_NEWS_API = 'http://127.0.0.1:8024';
 const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || DEFAULT_RUNNER_API;
 const NEWS_API = (import.meta.env.VITE_NEWS_API || DEFAULT_NEWS_API).replace(/\/+$/, '');
-const DEFAULT_CAPITAL = 1000; // go_live.paper_capital_usd in the runner's default sources
+const DEFAULT_CAPITAL = 1000; // the runner's go-live capital in the default sources
 const JOURNAL_LIMIT = 1000; // every line the runner keeps in memory
 const STORIES_LIMIT = 60;
 const EVENTS_LIMIT = 200;
@@ -55,11 +55,11 @@ export class HomeClient {
   newsStatus = $state(STATUS.connecting);
   /** @type {{ play: any, report: any }[]} every play, as the runner reports them */
   items = $state.raw([]);
-  /** @type {any[]} the paper journal, oldest first */
+  /** @type {any[]} the journal, oldest first */
   journal = $state.raw([]);
-  /** Starting paper capital in dollars. */
+  /** Starting capital in dollars. */
   capital = $state(DEFAULT_CAPITAL);
-  /** False until the journal has been read once: until then the paper account is not known. */
+  /** False until the journal has been read once: until then the account is not known. */
   walletReady = $state(false);
   /** @type {Record<string, import('./positions.js').Mark | null>} by play id */
   marks = $state.raw({});
@@ -74,7 +74,7 @@ export class HomeClient {
   /** When the demo snapshot was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
 
-  /** The plays running on paper now, one row each. */
+  /** The plays running on the desk now, one row each. */
   rows = $derived(this.items.filter((x) => x.play.status === STATUS_OPEN).map((x) => positionRow(x, this.marks[x.play.id])));
   /** @type {Tick[]} the ribbon, in its set order, then anything else that was quoted */
   ribbon = $derived.by(() => {

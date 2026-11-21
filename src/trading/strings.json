@@ -43,7 +43,7 @@
     "wallets": "Wallets",
     "insider": "Insider"
   },
-  "shareLabel": "Paper trade a post",
+  "shareLabel": "Trade a post",
   "sharePlaceholder": "x.com link or callout text",
   "shareButton": "Trade",
   "shareBusy": "Reading…",
@@ -93,7 +93,7 @@
   },
   "demo": {
     "hint": "Recorded {when} · nothing here is live",
-    "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to send callouts and paper trade.",
+    "readOnly": "This is the demo. Run Money 24 on your own machine (npm start) to send callouts and trade.",
     "noRecord": "The demo has no posts on record for a source. Your own runner scores each one."
   },
   "backToPlays": "Plays",

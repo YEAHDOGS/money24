@@ -40,11 +40,11 @@ These Terms of Use ("Terms") are a contract between you and DOGS ("DOGS", "we", 
 
 ## 2. What Money 24 is
 
-Money 24 is software. It reads market data and news, scores possible trades ("plays"), drafts trade plans with entries, ladder exits, runners, stop losses and failsafes, estimates the odds of those plans, and paper trades them.
+Money 24 is software. It reads market data and news, scores possible trades ("plays"), drafts trade plans with entries, ladder exits, runners, stop losses and failsafes, estimates the odds of those plans, and trades them.
 
 - **Money 24 is a work in progress and is not active yet.** It is in heavy development. Features can change, break or be removed without notice, and we do not yet know all the risks of using it.
 - **The public website is a demo.** It shows data recorded earlier from a test runner: plays, headlines, a calendar, quotes and charts. Nothing in the demo is live, current or a signal to trade.
-- **Today Money 24 trades on paper only.** Paper trades are simulations. No real money moves.
+- **Today Money 24 trades on the desk only.** Trades are simulations. No real money moves.
 - If live execution is offered later, it will run only on **your own** brokerage account, with **your own** API keys, and only after **your explicit approval**. DOGS never holds your money or securities and never has custody of your account.
 
 ## 3. Not financial advice
@@ -94,12 +94,12 @@ Event contracts can settle at zero. Trade them only on venues that are lawful wh
 
 Frequent trading increases costs and risk. Under FINRA's pattern day trader rule, a margin account that makes four or more day trades in five business days must keep at least **$25,000** in equity, or it can be restricted.
 
-## 5. Hypothetical and paper performance
+## 5. Hypothetical and simulated performance
 
 **Hypothetical or simulated performance results have certain inherent limitations.** Unlike an actual performance record, simulated results do not represent actual trading. Because the trades have not actually been executed, the results may have under- or over-compensated for the impact, if any, of certain market factors, such as lack of liquidity. Simulated trading programs in general are also subject to the fact that they are designed with the benefit of hindsight. **No representation is being made that any account will or is likely to achieve profits or losses similar to those shown.**
 
-- Paper fills are simulated at quoted prices. They ignore or only estimate slippage, fees, commissions, spreads, partial fills, halts and the effect of your own order on the market. Real results will differ and are usually worse.
-- Past performance, paper results, backtests, win rates and source trust scores do not guarantee or predict future results.
+- fills are simulated at quoted prices. They ignore or only estimate slippage, fees, commissions, spreads, partial fills, halts and the effect of your own order on the market. Real results will differ and are usually worse.
+- Past performance, results, backtests, win rates and source trust scores do not guarantee or predict future results.
 
 ## 6. AI output
 
@@ -133,7 +133,7 @@ Frequent trading increases costs and risk. Under FINRA's pattern day trader rule
 
 ## 10. Keys, data and privacy
 
-- **On your device:** API keys stay on your device: in a local settings file you control (.env), or the operating system's keychain where Money 24 supports it. Keys are sent only to the provider they belong to and never to DOGS. Your paper journal, plays, rules, link history and settings live in a local data folder on your device or server.
+- **On your device:** API keys stay on your device: in a local settings file you control (.env), or the operating system's keychain where Money 24 supports it. Keys are sent only to the provider they belong to and never to DOGS. Your journal, plays, rules, link history and settings live in a local data folder on your device or server.
 - **To AI providers you choose:** when you ask for an analysis, Money 24 sends that provider the play, the link or text you gave it, and the market and news data needed to answer.
 - **To market data providers:** Money 24 sends the tickers and contracts it looks up.
 - **We do not sell your personal data.** If Money 24 adds accounts or cloud features, we will describe what they store before you use them.

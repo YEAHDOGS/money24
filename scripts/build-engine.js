@@ -1,4 +1,4 @@
-// Builds the Go engine commands: newsd (news) and m24d (paper trading runner).
+// Builds the Go engine commands: newsd (news) and m24d (trading runner).
 //   node scripts/build-engine.js          -> Tauri sidecars for this machine: src/tauri/binaries/<cmd>-<target triple>[.exe]
 //   node scripts/build-engine.js --linux  -> headless server binaries: engine/dist/<cmd>-linux-amd64
 // Tauri sets TAURI_ENV_TARGET_TRIPLE when it runs this as a before-command, so cross-builds pick the right target.

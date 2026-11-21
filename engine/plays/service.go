@@ -35,14 +35,14 @@ const (
 	BACKTEST_LEAD     = 5 * 24 * time.Hour
 )
 
-// Service is the plays API: CRUD, the link inbox, AI reads, the rulebook and instant paper trades.
+// Service is the plays API: CRUD, the link inbox, AI reads, the rulebook and instant trades.
 type Service struct {
 	Store    *Store
 	Resolver Resolver
 	HTTP     *http.Client
-	// Paper hands a bracket to the paper runner and returns its journal id.
+	// Paper hands a bracket to the runner and returns its journal id.
 	Paper func(signals.Signal, signals.Plan) (int64, error)
-	// Lines returns the journal lines that act on a paper plan: fills and the close.
+	// Lines returns the journal lines that act on a plan: fills and the close.
 	Lines func(planID int64) []signals.Entry
 	// NewsURL is newsd's base URL, for headlines tagged with a play's symbol. Empty skips news.
 	NewsURL string
@@ -98,14 +98,14 @@ func (s *Service) sync() {
 	}
 }
 
-// paper hands a play to the paper runner. Blocking rule fails stop it unless the rulebook lets
-// paper trades through, in which case the broken rules are written on the play.
+// paper hands a play to the runner. Blocking rule fails stop it unless the rulebook lets
+// trades through, in which case the broken rules are written on the play.
 func (s *Service) paper(p Play, now time.Time) (Play, error) {
 	if p.Status == STATUS_ARMED {
-		return p, errors.New("already paper trading")
+		return p, errors.New("already trading")
 	}
 	if s.Paper == nil {
-		return p, errors.New("the paper runner is not connected")
+		return p, errors.New("the runner is not connected")
 	}
 	rules := s.Store.Rules()
 	rep := Build(p, rules, Book{Others: s.Store.Plays(), Now: now})
@@ -119,7 +119,7 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 		return p, fmt.Errorf("blocked by %s", strings.Join(broke, ", "))
 	}
 	if p.Qty <= 0 || p.Entry <= 0 || p.Stop <= 0 || p.Stop >= p.Entry {
-		return p, errors.New("a paper trade needs a quantity, an entry and a stop below it")
+		return p, errors.New("a trade needs a quantity, an entry and a stop below it")
 	}
 	sig := signals.Signal{SourceID: SOURCE_ID, PostID: p.ID, Kind: signals.KIND_ENTRY, Symbol: p.Contract.Symbol,
 		Right: p.Contract.Right, Strike: p.Contract.Strike, Expiry: p.Contract.Expiry, Price: p.Entry,
@@ -145,7 +145,7 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 	}
 	return s.Store.Update(p.ID, func(q *Play) {
 		q.Status, q.JournalID, q.ArmedAt, q.BrokeRules, q.UpdatedAt = STATUS_ARMED, id, now.UTC(), broke, now.UTC()
-		// A paper entry fills whole, at its limit. A live one will report what the broker did.
+		// An entry fills whole, at its limit. A live one will report what the broker did.
 		q.Filled = &Filled{At: now.UTC(), Price: plan.Entry, Qty: plan.Qty, AmountUSD: plan.CostUSD}
 	})
 }
@@ -265,7 +265,7 @@ func writeErr(w http.ResponseWriter, status int, err error) {
 //	POST   /api/plays                 save a play (new when it has no id)
 //	DELETE /api/plays/{id}            remove a play
 //	POST   /api/plays/{id}/refresh    reload the market snapshot
-//	POST   /api/plays/{id}/paper      paper trade it now
+//	POST   /api/plays/{id}/paper      trade it now
 //	POST   /api/plays/{id}/analyze    ask an AI provider to read it   {"provider":"anthropic"}
 //	POST   /api/plays/link            paste a link or callout          {"url":"...","provider":"","analyze":true}
 //	GET    /api/plays/links           the link history
@@ -321,7 +321,7 @@ func (s *Service) Routes() map[string]http.Handler {
 				}
 			} else if old, err := s.Store.Play(in.ID); err == nil {
 				if old.Status != STATUS_DRAFT {
-					writeErr(w, http.StatusConflict, errors.New("a play that is paper trading or closed can't be edited; copy it instead"))
+					writeErr(w, http.StatusConflict, errors.New("a play that is trading or closed can't be edited; copy it instead"))
 					return
 				}
 				// The engine owns these; an edit from the page can't change them.
@@ -415,7 +415,7 @@ func (s *Service) Routes() map[string]http.Handler {
 				return
 			}
 			if p.Status != STATUS_DRAFT {
-				writeErr(w, http.StatusConflict, errors.New("only a draft can be resized; this one is already paper trading"))
+				writeErr(w, http.StatusConflict, errors.New("only a draft can be resized; this one is already trading"))
 				return
 			}
 			sized := Resize(p, in.Units)
@@ -499,7 +499,7 @@ func (s *Service) Routes() map[string]http.Handler {
 }
 
 // link is the inbox: a pasted Robinhood or Webull link (or an option symbol, or callout text)
-// becomes a complete play with the market loaded, is paper traded at once when the rulebook says
+// becomes a complete play with the market loaded, is traded at once when the rulebook says
 // so, and is read by AI in the background when a provider is connected.
 func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -538,7 +538,7 @@ func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 		if armed, err := s.paper(p, now); err == nil {
 			p = armed
 		} else {
-			log.Printf("plays: auto paper %s: %v", p.ID, err)
+			log.Printf("plays: auto trade %s: %v", p.ID, err)
 		}
 	}
 	if in.Analyze {

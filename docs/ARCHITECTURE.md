@@ -13,7 +13,7 @@ renumbers sections.
 ## 1. Goals, non-goals, and the honest version of "money while I sleep"
 
 ### Goals
-1. **Paper first, safely.** A bot that paper trades unattended on Webull's API sandbox and
+1. **Desk first, safely.** A bot that trades unattended on Webull's API sandbox and
    never loses track of an order, even across crashes, sleep, timeouts and reconnects.
 2. **A garden of agents.** Users plant *bots* (agents with a role), group them into
    *gardens* (one strategy over a universe), and run a *farm* (all gardens on one broker
@@ -22,7 +22,7 @@ renumbers sections.
 3. **Fast where speed matters, smart where it pays.** Reflexes in Go and broker-resting
    orders; LLMs on minute cadences; humans for anything that raises risk.
 4. **Bring your own AI**, via API keys. No AI bill for DOGS.
-5. **Open to other agents** through MCP and an HTTP API, paper first.
+5. **Open to other agents** through MCP and an HTTP API, desk first.
 6. **Every screen.** Svelte web app; Tauri desktop (Windows, macOS; Linux best effort);
    Android as a monitor and remote control.
 7. **No platform bill while building**, and a paid tier that a payment processor will
@@ -52,7 +52,7 @@ renumbers sections.
 
 ```
  ┌───────────────────── CONTROL PLANE (Cloudflare, JS) — added in Phase 2+ ─────────────────────┐
- │ Pages (Svelte)  Workers API  Remote MCP (paper)  Auth  Billing webhook                       │
+ │ Pages (Svelte)  Workers API  Remote MCP (desk)  Auth  Billing webhook                       │
  │ Durable Object per user: hibernating WebSocket server for runner + UI; watchdog alarm        │
  │ D1: accounts, config docs, replicated ledger summaries   R2: archives, published ledgers     │
  └───────────────▲──────────────────────────────────────────────────────────────────────────────┘
@@ -142,7 +142,7 @@ An optional "devil's advocate" call only for intents above a size threshold.
 The TradingAgents role set (analysts, bull/bear debate, trader, risk, portfolio manager;
 Apache-2.0, credited in NOTICES) is the **menu**, not the default. Each extra role must
 win an **ablation**: same garden, same season, with vs. without the role, scored against
-a no-LLM rules baseline on the anchored paper record. Portfolio sizing and indicator
+a no-LLM rules baseline on the anchored record. Portfolio sizing and indicator
 "analysts" are arithmetic: Go does them. Multiple roles, when used, are **one call
 returning multi-role JSON**, not five calls.
 
@@ -218,7 +218,7 @@ exposure"). The phone shows *last confirmed state* and how to act in the Webull 
 | **Desktop sidecar** (default) | Tauri `externalBin`, one Go build per target triple, sidecar signed before bundling (Authenticode; macOS hardened runtime + notarization). Keep-awake (opt-in; Windows `SetThreadExecutionState`, macOS IOKit assertion) and autostart in the Tauri host. Autostart opens to tray **unarmed**; arming requires a fresh reconcile. Updates never restart an armed engine silently. Single-instance lock. |
 | **VPS** | `m24d --headless`. Always on. Keys in an encrypted file unlocked at start (no OS keychain on servers). |
 | **Android** | Monitor and remote control only. Tauri mobile cannot run sidecars; Android kills background work. Separate Android Tauri config with no `externalBin`. |
-| **Cloud-only** | Deferred. Later: paper-only, minute cadence, one batched Cron tick for all such users. |
+| **Cloud-only** | Deferred. Later: desk-only, minute cadence, one batched Cron tick for all such users. |
 
 ---
 
@@ -282,7 +282,7 @@ tested on our own labelled data first.
 | Durable Object per user | **Server only**: the runner dials in over one WebSocket; UIs connect too; hibernates between messages. A DO **alarm** runs the offline watchdog (no traffic ≠ code runs). Heartbeats are WS frames held in memory, never persisted. |
 | D1 | Accounts, config docs, entitlements, hourly ledger aggregates, intents/orders summaries |
 | R2 | Published ledgers, archives, candles written **once per symbol per day** |
-| Remote MCP | `createMcpHandler` (Agents SDK; `McpAgent` is deprecated) + `@cloudflare/workers-oauth-provider`. Paper tools only. Workers Paid before inviting outside agents. |
+| Remote MCP | `createMcpHandler` (Agents SDK; `McpAgent` is deprecated) + `@cloudflare/workers-oauth-provider`. Tools only. Workers Paid before inviting outside agents. |
 
 KV is not used in v1 (OAuth provider tokens excepted, with a write budget).
 
@@ -341,10 +341,10 @@ disk-full and corruption have defined recovery steps.
 ## 9. MCP and public API
 
 - **Local MCP** (stdio) for agents on the same machine, the fast path.
-- **Remote MCP** (Phase 4): OAuth 2.1 with scopes `read`, `paper_trade`. **No live-trade
+- **Remote MCP** (Phase 4): OAuth 2.1 with scopes `read`, `desk_trade`. **No live-trade
   scope exists** until the legal gate passes. Tools modelled on alpaca-mcp-server (MIT):
   `get_account`, `get_positions`, `get_quote`, `get_bars`, `list_gardens`,
-  `propose_intent`, `place_paper_order`, `cancel_order`, `get_ledger`, `get_loop_status`.
+  `propose_intent`, `place_desk_order`, `cancel_order`, `get_ledger`, `get_loop_status`.
   Ships a `skill.md` onboarding file.
 - HTTP API mirrors the tools; keys scoped per garden; per-key rate limits.
 - CORS: exact allow-list of the web origin and each shipped Tauri origin; bearer tokens,
@@ -366,7 +366,7 @@ disk-full and corruption have defined recovery steps.
 
 ## 11. Legal and policy gates (not legal advice)
 
-- **Own account, paper:** still subject to broker terms, data licences and privacy.
+- **Own account, the desk:** still subject to broker terms, data licences and privacy.
 - **Selling software** the user configures and runs is the safest framing; it does not by
   itself settle adviser or broker-dealer questions.
 - **Customer live trading, performance fees, copy-trading, signals** can trigger
@@ -378,7 +378,7 @@ disk-full and corruption have defined recovery steps.
   2027-10-20; read Webull account capabilities, never hardcode.
 - **Prediction markets:** state conflicts exist (e.g. Nevada vs. Kalshi); enforce broker
   eligibility; never route around geoblocks.
-- **Marketing a paper record** to sell a product needs the lawyer too (hypothetical
+- **Marketing a record** to sell a product needs the lawyer too (hypothetical
   performance and earnings-claim rules).
 
 ---
@@ -392,8 +392,8 @@ disk-full and corruption have defined recovery steps.
 | Second-level reflexes without second-level LLM bills | Two runtimes (JS + Go) plus a small Rust host to sign and ship |
 | Webull holds money truth; our database stays small | Webull Go client and reconciliation are real work (3–5 weeks) |
 | Adapters allow Alpaca, Kalshi, IBKR later | Data licences block sharing quotes between users |
-| Publishable, anchored paper record | Honest records will often show "no edge" |
-| Any agent can paper trade via MCP | More surface to secure and rate-limit |
+| Publishable, anchored record | Honest records will often show "no edge" |
+| Any agent can trade via MCP | More surface to secure and rate-limit |
 
 ---
 
@@ -408,7 +408,7 @@ disk-full and corruption have defined recovery steps.
 4. **AI cost** per decision (§6.4); unmeasured until a 7-day workload runs.
 5. **Strategy edge:** most strategies have none after costs. The walk-forward verdict
    (*validated / trade-off / no edge*) and the no-LLM baseline say so early.
-6. **Data:** delayed sandbox data (15 min by default) makes paper results meaningless unless
+6. **Data:** delayed sandbox data (15 min by default) makes results meaningless unless
    fills use the same clock as decisions; real-time costs money; redistribution needs a licence.
 7. **Free-tier writes** (§7) once Cloudflare sync exists.
 8. **Docs drift:** Webull docs conflict (options market orders, UK options, stream quotas,
@@ -428,10 +428,10 @@ everywhere. The large cuts come from MoR markups, Gumroad (~13%) and app stores 
 
 Plan:
 1. **Stripe first** (financial software is reviewed case by case, not category-banned).
-   Apply describing exactly: *paper-trading and automation software the user controls; no
+   Apply describing exactly: *trading and automation software the user controls; no
    custody, no advice, no signals*. Budget sales tax (Stripe Tax +0.5% or a filing service).
 2. In parallel, ask **Dodo** for written pre-clearance as an MoR alternative.
-3. **Launch paid tiers paper-only.** Live features are not sold until both the processor
+3. **Launch paid tiers desk-only.** Live features are not sold until both the processor
    and a lawyer approve.
 4. Web checkout only; Android/desktop unlock by account. App-store distribution is a
    separate decision per store.
@@ -482,11 +482,11 @@ priced at zero.
 | Phase | Scope | Exit test |
 |---|---|---|
 | **0 Spikes** | Go: Webull signing (golden fixtures), sandbox order, MQTT quotes, gRPC events; keychain; Tauri sidecar build+sign on Windows/macOS | Each spike runs 24 h; fault tests below pass |
-| **1 Paper core** | One Webull US sandbox account, **stocks/ETFs only**, one garden: rules → one thinker → Go risk; ledger; local Svelte monitor in Tauri | 7 days unattended, zero unreconciled orders, all fault tests pass |
+| **1 Desk core** | One Webull US sandbox account, **stocks/ETFs only**, one garden: rules → one thinker → Go risk; ledger; local Svelte monitor in Tauri | 7 days unattended, zero unreconciled orders, all fault tests pass |
 | **2 Farm + sync** | More gardens, budgets, decision board, DO sync, phone monitor, published anchored ledger | 30 days unattended; measured cost/day |
 | **3 More assets** | Each of options, futures, crypto, events behind its own acceptance test | Per-asset exit tests |
-| **4 Open** | Remote MCP (paper scope), API keys, `skill.md` | External agent paper round trip |
-| **5 Pay** | Stripe, entitlements, signed desktop builds | First paying user, paper-only |
+| **4 Open** | Remote MCP (scope), API keys, `skill.md` | External agent round trip |
+| **5 Pay** | Stripe, entitlements, signed desktop builds | First paying user, desk-only |
 | **6 Live (gated)** | Owner's own account first; users only after lawyer + processor approval | Written sign-offs |
 
 **Fault-injection exit tests** (Phase 0–1): drop the response after the broker accepted;

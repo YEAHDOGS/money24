@@ -6,7 +6,7 @@
 // plain numbers what must happen for it to pay: the price the stock has to reach, by when, and the
 // market's own odds of getting there. A play with a failing blocking rule cannot be armed.
 //
-// Arming is paper only: the runner journals the play's own bracket and the exit watcher closes it.
+// Arming hands the play to the runner, which journals its own bracket; the exit watcher closes it.
 package plays
 
 import (
@@ -15,7 +15,7 @@ import (
 
 const (
 	STATUS_DRAFT  = "draft"  // being built; may fail rules
-	STATUS_ARMED  = "armed"  // handed to the paper runner
+	STATUS_ARMED  = "armed"  // handed to the runner
 	STATUS_CLOSED = "closed" // the runner closed it, or it was dropped
 	MARKET_OPTION = "option"
 	MARKET_STOCK  = "stock"
@@ -140,12 +140,12 @@ type Play struct {
 	Analyses  []Analysis `json:"analyses,omitempty"`
 	Analyzing string     `json:"analyzing,omitempty"` // the provider reading it right now
 
-	JournalID  int64     `json:"journal_id,omitempty"` // the paper plan's journal id once armed
+	JournalID  int64     `json:"journal_id,omitempty"` // the plan's journal id once armed
 	ArmedAt    time.Time `json:"armed_at,omitzero"`
 	Filled     *Filled   `json:"filled,omitempty"`      // the entry as it actually filled, once armed
-	BrokeRules []string  `json:"broke_rules,omitempty"` // blocking rules a paper trade went through anyway
+	BrokeRules []string  `json:"broke_rules,omitempty"` // blocking rules a trade went through anyway
 	Fills      []Fill    `json:"fills,omitempty"`       // what the exit watcher sold, in order
-	Result     *Result   `json:"result,omitempty"`      // set when the paper trade closed
+	Result     *Result   `json:"result,omitempty"`      // set when the trade closed
 }
 
 // Filled is the entry as it actually happened, beside the entry the play expected.
@@ -156,7 +156,7 @@ type Filled struct {
 	AmountUSD float64   `json:"amount_usd"`
 }
 
-// Fill is one exit the paper runner took: a rung, the stop, the clock.
+// Fill is one exit the runner took: a rung, the stop, the clock.
 type Fill struct {
 	At     time.Time `json:"at"`
 	Qty    float64   `json:"qty"`

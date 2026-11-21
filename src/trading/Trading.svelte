@@ -1,6 +1,6 @@
 <script>
   /**
-   * Money 24 trading desk: what the paper runner saw and what it planned, live.
+   * Money 24 trading desk: what the runner saw and what it planned, live.
    * Desktop and tablet: rail | journal | plan, split by 1px lines.
    * Phones: one column with Journal / Plan / Sources tabs at the bottom, within thumb reach.
    */

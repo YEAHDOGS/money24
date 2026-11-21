@@ -29,7 +29,7 @@
     { id: "markets", label: "Markets" },
     { id: "demo", label: "The demo" },
     { id: "sources", label: "Public sources" },
-    { id: "paper", label: "Paper first" },
+    { id: "proof", label: "Proof first" },
     { id: "wip", label: "Not active yet" },
     { id: "soon", label: "Join the waitlist" },
   ];
@@ -201,12 +201,12 @@
   </section>
 
   <!-- 7 · DISCIPLINE -->
-  <section class="panel" id="paper">
+  <section class="panel" id="proof">
     <div class="bg bg-discipline"></div>
     <div class="scrim"></div>
     <div class="content fit">
-      <h2 class="rv word">PAPER FIRST</h2>
-      <p class="rv line">It proves itself in paper before a real dollar moves.</p>
+      <h2 class="rv word">PROOF FIRST</h2>
+      <p class="rv line">It proves itself on the desk before a real dollar moves.</p>
       <p class="rv line">Hard risk caps on every position.</p>
       <p class="rv line dim">And a kill switch that actually kills.</p>
     </div>

@@ -1,4 +1,4 @@
-// Package signals turns callout posts into trade signals and paper-trade plans.
+// Package signals turns callout posts into trade signals and trade plans.
 // The parser here is the fast, deterministic first pass. Posts it cannot read fully
 // get a low confidence and go to the LLM classifier instead.
 package signals

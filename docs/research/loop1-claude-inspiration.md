@@ -109,8 +109,8 @@ confirmed from a primary source.
   investment committee and an execution desk. Each repo comes with a prompt to paste into Claude
   Code. The article ends with a combined `fund.py` that runs daily. It pulls data, filters by
   Kronos path forecasts, gets a rating from the TradingAgents committee, sizes each trade to risk 1%
-  of equity, places **bracket orders on an Alpaca paper account**, and sends a Telegram summary. It
-  adds a 30-day paper plan and a 10% drawdown stop.
+  of equity, places **bracket orders on an Alpaca account**, and sends a Telegram summary. It
+  adds a 30-day plan and a 10% drawdown stop.
 - **Credibility: medium-high for the repo list, low for the framing.** The repos are real and
   popular. Star totals are inconsistent (329k in the tweet, 575k in the article, and per-repo
   numbers differ). "Replaces a hedge fund" and "free" are hype: LLM tokens and premium data cost
@@ -306,7 +306,7 @@ confirmed from a primary source.
   - Store each strategy as a record holding its source URL, rule text, generated code, last
     backtest and a daily re-run.
   - Publish a **skill.md plus remote MCP with OAuth** so any user's agent can connect. This is the
-    cleanest model for our "external agents can paper trade" feature.
+    cleanest model for our "external agents can trade" feature.
 
 ### 9. @cryptotrice: "TradingView is officially cooked" (TradingView Premium crack)
 
@@ -333,8 +333,8 @@ M=mirku21, I=issatheblows, R=RohOnChain, N=niraj_munot, T=cryptotrice.
 
 | Capability | Posts that have it | Money 24 priority | Notes |
 |---|---|---|---|
-| Paper trading before live | C (Alpaca paper, ai-hedge-fund ledger), R (Alpaca), I (paper or tiny size), D (no) | **Must** | Brief is paper-first. Webull paper is the target broker; see the Webull research. |
-| Hash-chained or append-only trade ledger | C (ai-hedge-fund) | **Must** | Makes the paper track record tamper-evident. It fits D1 or R2 append-only. |
+| Trading before live | C (Alpaca paper, ai-hedge-fund ledger), R (Alpaca), I (paper or tiny size), D (no) | **Must** | Brief is desk-first. Webull's sandbox is the target broker; see the Webull research. |
+| Hash-chained or append-only trade ledger | C (ai-hedge-fund) | **Must** | Makes the track record tamper-evident. It fits D1 or R2 append-only. |
 | Kill switch and drawdown stop | C (1% risk, 10% DD stop, ai-hedge-fund `h`/`r`), R (claims) | **Must** | Global and per-agent switches, enforced on the server, not in the prompt. |
 | Mandatory SL/TP, bracket orders | D, C (bracket orders) | **Must** | Use the broker's native bracket or OCO orders where Webull supports them. |
 | API keys with no withdrawal permission | D | **Must** | Also: keys never leave the Worker and are never sent to the LLM. |

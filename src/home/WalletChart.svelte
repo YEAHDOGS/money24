@@ -1,9 +1,9 @@
 <script>
   /**
-   * The paper account's history: starting paper capital plus every closed paper trade, as a line
+   * The account's history: starting capital plus every closed trade, as a line
    * over the picked range (1W, 1M, 6M, 1Y, All), with the account's value now, its change over the
    * range, its deepest fall and how many trades closed. There is no real wallet yet (deposits are
-   * closed), so this is paper and says so. With few closed trades the line is flat, because the
+   * closed), so this is the desk's book and says so. With few closed trades the line is flat, because the
    * account was. The arithmetic is equity.js; this only draws. Pointing at the line reads a moment.
    */
   import strings from './strings.json';
@@ -24,7 +24,7 @@
   const PAPER_CHIP = 'rounded-sm border border-paper px-1.5 py-px text-[0.6rem] font-bold tracking-wider text-paper uppercase tv:text-sm';
   const STAT = 'min-w-0 bg-app px-3 py-2 lg:px-4';
   const STAT_VALUE = 'mt-0.5 truncate font-mono text-sm font-semibold tabular-nums max-[419px]:text-xs tv:text-xl';
-  /** The line takes the color of the range's change; a flat line stays neutral. Money is never paper blue. */
+  /** The line takes the color of the range's change; a flat line stays neutral. Money never takes the desk color. */
   const TONES = { up: 'text-ok', down: 'text-bad', flat: 'text-white/80' };
   const FADE_ID = 'equity-fade';
   const FADE_TOP = 0.22; // how strong the fill is right under the line; it fades to nothing at the bottom

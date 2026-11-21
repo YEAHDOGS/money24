@@ -20,7 +20,7 @@ place — including the one big thing Webull does **not** do.
 
 ## What Webull does offer Money 24
 
-- **Stocks/ETFs + options** via API — the same asset classes the paper desk
+- **Stocks/ETFs + options** via API — the same asset classes the desk
   already gets quotes for elsewhere; a real execution candidate when the
   engine is built.
 - **CME futures** via API — this is the important one. Futures through Webull
@@ -35,9 +35,9 @@ place — including the one big thing Webull does **not** do.
 - **Overnight trading session** for US stocks — extended-hours access that
   makes the stock/ETF sleeve close to 24/5, including Treasury ETFs (BIL,
   SHY, IEF, TLT) as a rates proxy. See [treasuries.md](treasuries.md).
-- **Paper trading** — Webull markets paper accounts heavily (including fixed
-  income in its paper environment), which fits the standing paper rule:
-  60–90 days paper before live money is even discussed.
+- **Trading** — Webull markets practice accounts heavily (including fixed
+  income in its practice environment), which fits the standing rule:
+  60–90 days on the desk before live money is even discussed.
 
 ## Where Webull fits — and where it doesn't
 
@@ -63,4 +63,4 @@ specialist route for a pure-forex sleeve. Full detail in
 
 Nothing here changes the project rules: the engine build is stopped by the
 owner's order (Oct 27, 2026), no broker accounts are opened without the
-owner's word, and the paper rule applies to every sleeve.
+owner's word, and the standing rule applies to every sleeve.

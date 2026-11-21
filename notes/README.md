@@ -11,8 +11,8 @@ Landing: https://money24.dogs.red — status: **In Development**.
 - **The landing page is the only shipped artifact.** The trading engine does
   not exist yet. Its build was stopped by the owner's order on Oct 27, 2026
   ("Don't build anything yet") and stays stopped until the owner says go.
-- **Paper rule:** 60–90 days of paper trading before live money is even
-  discussed. The clock runs from the paper desk going live (Oct 11, 2026), so
+- **Rule:** 60–90 days of trading before live money is even
+  discussed. The clock runs from the desk going live (Oct 11, 2026), so
   mid-December 2026 is the earliest the live-money conversation can start.
 - **No live trading** without funded accounts *and* the owner's explicit
   per-action approval. A vague standing instruction does not authorize money
@@ -23,10 +23,10 @@ Landing: https://money24.dogs.red — status: **In Development**.
 ## Three things that must not be conflated
 
 1. **Money 24** — the named system: a landing page and a plan. Not built.
-2. **The paper desk** (`money-makers/ai-trading-desk/`) — a predecessor
-   scaffold with real plumbing (risk limits, kill switch, paper ledger,
-   decision journal) and **placeholder signal logic**. Its paper results
-   currently mean nothing. See [paper-desk.md](paper-desk.md).
+2. **The desk** (`money-makers/ai-trading-desk/`) — a predecessor
+   scaffold with real plumbing (risk limits, kill switch, ledger,
+   decision journal) and **placeholder signal logic**. Its results
+   currently mean nothing. See [desk.md](desk.md).
 3. **The earnings-put backtester** (`money-makers/earnings-put-backtest/`) —
    a standalone, finished research artifact. Research only. See
    [earnings-put-backtest.md](earnings-put-backtest.md).
@@ -64,7 +64,7 @@ exchange-grade API or liquidity).
   the analyst revision cascade, and defined-risk structures.
 - [integrations.md](integrations.md) — what the desk scaffold actually
   connects to today, plus the owner's candidate integration list.
-- [paper-desk.md](paper-desk.md) — the predecessor paper-trading scaffold:
+- [desk.md](desk.md) — the predecessor trading scaffold:
   agents, fail-safes, strategies, honest status.
 - [earnings-put-backtest.md](earnings-put-backtest.md) — the standalone
   earnings put-buying backtest: full results and verdict.

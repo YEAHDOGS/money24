@@ -123,7 +123,7 @@ volume without a story.
 
 ## m24d live quotes (Webull)
 
-`m24d` prices paper trades from Webull's OpenAPI when a key is set; without one it plans at the called
+`m24d` prices trades from Webull's OpenAPI when a key is set; without one it plans at the called
 price and notes that chase and liquidity went unchecked. The client (`engine/webull/`) only reads market
 data. It places no orders.
 
@@ -141,7 +141,7 @@ Check a key with `m24d --quote AAPL` or `m24d --quote AAPL260522C00300000`.
   subscription bought for OpenAPI itself (app subscriptions do not carry over): Nasdaq Basic for stocks,
   OPRA Real-Time Non-display for options.
 - Limits: 300 requests per minute in production, 30 in the sandbox. One lookup per callout stays far under.
-- After entry the exit watcher (`signals/watch.go`) follows each paper trade and closes it on its stop,
+- After entry the exit watcher (`signals/watch.go`) follows each trade and closes it on its stop,
   a target, its time exit or the source's own exit.
 
 ## m24d crypto quotes (Coinbase)
@@ -171,7 +171,7 @@ A post that carries a Solana token address is priced from DEX Screener's public 
   over half the pool, plus an assumed 1% venue fee each way. Buying and selling at once costs about
   9% on a $500 trade in a $42,000 pool.
 - `min_liquidity_usd` (default 10000) refuses thin pools. A pump.fun coin still on its bonding curve
-  reports no pool size, so it is refused until it graduates. Set the rule to 0 to paper trade those
+  reports no pool size, so it is refused until it graduates. Set the rule to 0 to trade those on the desk
   too; their fills then carry the fee only and will look better than real ones.
 - Prices lag the chain by a few seconds and the API allows about 300 requests a minute.
 - Nothing here checks whether a token can be sold, who holds it or whether liquidity is locked.
@@ -193,7 +193,7 @@ A post that carries a Solana token address is priced from DEX Screener's public 
 - Answers are cached (10 seconds for quotes and candles, longer for search and related), so any
   number of open windows costs the provider the same.
 - Symbols follow Yahoo: `NVDA`, `BTC-USD`, `^GSPC`, `ES=F`, `EURUSD=X`.
-- This feed is for looking. Paper trades are still priced by Coinbase, DEX Screener and Webull.
+- This feed is for looking. Trades are still priced by Coinbase, DEX Screener and Webull.
 
 ## m24d source records (who to trust)
 
@@ -233,7 +233,7 @@ Limits:
 
 ## m24d exit watcher
 
-Every 30 seconds `m24d` prices each open paper position and journals what the plan's exits would have
+Every 30 seconds `m24d` prices each open position and journals what the plan's exits would have
 done. These lines carry `plan_id`, the journal id of the plan they act on.
 
 | Action | Meaning |

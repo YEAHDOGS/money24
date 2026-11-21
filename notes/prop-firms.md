@@ -3,7 +3,7 @@
 **The goal:** Money 24 trades funded prop-firm accounts, so a proven
 strategy runs on the firm's capital instead of our own. Our risk shrinks to
 the evaluation fee. This is a long-term goal, and it comes after a strategy
-has passed its paper period.
+has passed its period.
 
 ## What the rules allow (checked Nov 9, 2026 against third-party summaries; confirm with each firm)
 
@@ -32,5 +32,5 @@ has passed its paper period.
 ## The catch
 
 Prop firms make most of their money on evaluation fees, because most
-traders fail. The edge has to be proven on paper first. Passing a
+traders fail. The edge has to be proven on the desk first. Passing a
 challenge with an unproven bot just pays the firm.

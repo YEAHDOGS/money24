@@ -1,10 +1,10 @@
 # Money 24 planning brief (shared by every research agent)
 
 Money 24 by DOGS: a cross-platform, 24/7, autonomous, agentic AI trading system
-for stocks, options, futures, crypto and prediction markets. Paper trading first.
+for stocks, options, futures, crypto and prediction markets. Trading first.
 
 Owner constraints and wishes (verbatim intent, not yet validated):
-- Broker: Webull API as the primary broker (OpenAPI), including its paper trading.
+- Broker: Webull API as the primary broker (OpenAPI), including its trading.
   Wants to store as much data as possible at Webull to minimise our database.
 - Infra: all Cloudflare, all serverless: Workers, Pages, D1 (SQLite), R2, plus
   whatever else is free. Must stay on the free tier while building.
@@ -16,8 +16,8 @@ Owner constraints and wishes (verbatim intent, not yet validated):
   for local compute. ~30 agents running loops every 5-10 minutes, restart forever.
   Wants decisions at second intervals. Wants a very fast LLM called "Jev"
   (identity unknown, find out what the owner likely means).
-- Product: Webull login, TradingView-like charts, paper trading, an MCP server and
-  API so external agents can paper trade and real trade, monitoring of AI loops.
+- Product: Webull login, TradingView-like charts, trading, an MCP server and
+  API so external agents can trade and real trade, monitoring of AI loops.
 - Business: owner is broke, wants paid tiers later, thinks Stripe takes too much.
 - Open questions: global markets? fastest data source? payments? subscriptions needed?
 - Inspiration X posts (owner wants to match their capabilities, reuse open-source code):

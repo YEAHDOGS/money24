@@ -1,11 +1,11 @@
 # Integrations
 
-## What the paper desk actually connects to today
+## What the desk actually connects to today
 
 All read-only, by construction — the desk scaffold contains **no
-order-placement code anywhere** (see [paper-desk.md](paper-desk.md)).
+order-placement code anywhere** (see [desk.md](desk.md)).
 
-- **Alpaca paper data API** — stocks / crypto / options quotes. Read-only
+- **Alpaca practice data API** — stocks / crypto / options quotes. Read-only
   module; no order methods exist in it. Keys via environment variables only.
 - **Polymarket public Gamma API** — prediction-market quotes, no key needed.
 - **Coinbase + Kraken public tickers** — crypto quotes, no key needed.

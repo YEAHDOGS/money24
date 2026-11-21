@@ -30,7 +30,7 @@
     "aiRead": "AI read",
     "provider": "AI",
     "noProvider": "No AI connected. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, XAI_API_KEY or GEMINI_API_KEY to .env and restart.",
-    "paperNow": "Paper trading now",
+    "paperNow": "Trading now",
     "drafted": "Drafted",
     "history": "History",
     "historyEmpty": "Links you paste land here.",
@@ -51,14 +51,14 @@
     "foundNote": "Opened by Money 24 from a news story, with nobody at the keyboard"
   },
   "detail": {
-    "paperNow": "Paper trade now",
-    "paperBusy": "Paper trading…",
+    "paperNow": "Trade now",
+    "paperBusy": "Trading…",
     "refresh": "Refresh market",
     "analyze": "AI read",
     "analyzing": "Reading…",
     "delete": "Delete",
     "deleteConfirm": "Delete this play? Its link stays in the history.",
-    "broke": "Paper trade went through {n} blocking rule(s): {list}",
+    "broke": "Trade went through {n} blocking rule(s): {list}",
     "theme": "Theme",
     "market": "Market",
     "spot": "Stock",
@@ -79,7 +79,7 @@
     "evidence": "Evidence",
     "bracket": "Bracket",
     "ai": "AI reads",
-    "fills": "Paper fills",
+    "fills": "fills",
     "result": "Result",
     "noFills": "No exits yet. The watcher prices it every 30 seconds.",
     "disclaimer": "Options trading involves substantial risk of losing 100% of your capital; this is probability and market-structure analysis, not financial advice.",
@@ -138,7 +138,7 @@
     "units": "units",
     "minDeposit": "Minimum deposit",
     "liquidityCap": "Liquidity cap",
-    "whatIf": "What-if: this play is already paper trading, so the dial previews sizes without changing it.",
+    "whatIf": "What-if: this play is already trading, so the dial previews sizes without changing it.",
     "saved": "Saved",
     "ofBankroll": "of bankroll",
     "ofVolume": "of today's volume",
@@ -243,7 +243,7 @@
     "thesis": "Thesis",
     "save": "Save bracket",
     "saved": "Saved",
-    "locked": "This play is paper trading. Its bracket is locked; copy the link into the inbox for a new draft."
+    "locked": "This play is trading. Its bracket is locked; copy the link into the inbox for a new draft."
   },
   "ai": {
     "none": "No AI reads yet.",
@@ -299,11 +299,11 @@
     "noQuote": "Glitch: no quote for (min)",
     "gap": "Chaos: gap past stop (%)",
     "calamity": "Calamity plan",
-    "autoPaper": "Paste a link → paper trade instantly",
-    "paperIgnores": "Paper trades go through blocking rules and record what they broke; live never would",
+    "autoPaper": "Paste a link → trade instantly",
+    "paperIgnores": "Trades go through blocking rules and record what they broke; live never would",
     "finder": {
       "title": "The finder",
-      "on": "Open paper plays from the news with nobody at the keyboard",
+      "on": "Open plays from the news with nobody at the keyboard",
       "moveMustAgree": "Skip a story when the stock is moving against its angle",
       "minAttention": "Min attention",
       "minValidity": "Min validity",
@@ -312,7 +312,7 @@
       "minDays": "Expiry at least (days)",
       "otmPct": "Strike past price (%)",
       "maxDayLoss": "Pause after losing ($)",
-      "note": "Every five minutes of the stock session the finder reads the stories board. A loud, well-sourced story that leans one way on a stock gets an option play: calls when bullish, puts when bearish. A found play is paper traded only when it passes every blocking rule; otherwise it waits as a draft."
+      "note": "Every five minutes of the stock session the finder reads the stories board. A loud, well-sourced story that leans one way on a stock gets an option play: calls when bullish, puts when bearish. A found play is traded only when it passes every blocking rule; otherwise it waits as a draft."
     },
     "save": "Save rulebook",
     "saved": "Saved",
@@ -519,7 +519,7 @@
   },
   "journal": "Journal",
   "orders": {
-    "active": "Active: paper trading now",
+    "active": "Active: trading now",
     "began": "Began",
     "amountIn": "Amount in",
     "now": "Right now",
@@ -554,7 +554,7 @@
       "void": "There was never a quote to close it at, so it was dropped unscored.",
       "other": "It closed at a loss."
     },
-    "wrongRules": "It was let through these blocking rules as a paper trade: {rules}.",
+    "wrongRules": "It was let through these blocking rules as a trade: {rules}.",
     "wrongSlip": "It lost {lost} against a planned {planned}: the sale filled below the stop, at the bid."
   }
 }

@@ -119,6 +119,6 @@ jobs:
         run: |
           gh release view "$RELEASE_TAG" > /dev/null 2>&1 || \
             gh release create "$RELEASE_TAG" --prerelease --title "Money 24 Android (latest)" \
-              --notes "Newest Android build of the Money 24 trading desk. Paper trading only."
+              --notes "Newest Android build of the Money 24 trading desk. Trading only."
           cp "$APK" money24.apk
           gh release upload "$RELEASE_TAG" money24.apk --clobber

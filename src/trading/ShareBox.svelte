@@ -1,6 +1,6 @@
 <script>
   /**
-   * Paper-trade a post right now: paste (or share from the X app) a status link, or paste the callout text.
+   * Trade a post right now: paste (or share from the X app) a status link, or paste the callout text.
    * The runner reads the post, plans it with the source's rules as of its post time, and the plan opens.
    */
   import { untrack } from 'svelte';

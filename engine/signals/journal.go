@@ -31,7 +31,7 @@ type Entry struct {
 	AsOf time.Time `json:"as_of,omitzero"`
 }
 
-// Journal is the append-only paper record. Every line also goes to live subscribers (the UI stream).
+// Journal is the append-only record. Every line also goes to live subscribers (the UI stream).
 type Journal struct {
 	mu     sync.Mutex
 	file   *os.File

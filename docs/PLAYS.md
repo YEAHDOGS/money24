@@ -1,7 +1,7 @@
 # Plays — Money 24's core loop
 
 Status: built (Nov 14, 2026). Engine: `engine/plays/`. Screen: `plays.html` (the launch page on
-every shell). Paper only.
+every shell).
 
 A **play** is one trade with everything it needs to run without a person: the contract, the entry,
 ladder exits, a runner, a stop, failsafes, the evidence that other money is in the same trade, and
@@ -9,7 +9,7 @@ the market snapshot it was planned against. The loop is:
 
 ```
 paste a link / AI finds one → resolve the contract → load the market → draft the full bracket
-→ score the odds → check the rulebook → paper trade (instantly) → exit watcher closes it → record
+→ score the odds → check the rulebook → trade (instantly) → exit watcher closes it → record
 ```
 
 This replaces the manual version of the job: a person asking a chatbot where open interest is,
@@ -70,10 +70,10 @@ $150 budget, entry at the mid, stop −50%, sell ⅓ at +100%, ⅓ at +300%, run
 trading day before expiry at 3 PM New York, sideways exit after a day, glitch plan after 15 minutes
 without a quote, calamity flatten on a 10% gap. All editable.
 
-### Paper switches
+### Desk switches
 
-- **Auto paper** (on): a pasted link is planned and paper traded in the same moment.
-- **Paper ignores blocks** (on): paper trades go through blocking rules and record which ones they
+- **Auto trade** (on): a pasted link is planned and traded in the same moment.
+- **Trade through blocks** (on): trades go through blocking rules and record which ones they
   broke (`broke_rules`), so the scoreboard can show whether the rules earn their keep — the same
   ablation idea as ARCHITECTURE §4.3. Live trading would never go through a block.
 
@@ -90,7 +90,7 @@ without a quote, calamity flatten on a 10% gap. All editable.
  │ Math:    levels, odds, payoff, sizing — deterministic Go, no AI                                │
  │ Rules:   the rulebook — deterministic Go, no AI                                                │
  │ AI read: play + report + newsd headlines as quoted JSON → provider → fixed JSON schema         │
- │ Paper:   Runner.Adopt → journal → exit watcher                                                 │
+ │ Desk:    Runner.Adopt → journal → exit watcher                                                 │
  └────────────▲────────────────────────────────────────────────────────▲──────────────────────────┘
               │ HTTPS, the user's own key, no tools, no web            │ headlines (newsd)
       Claude · OpenAI · Grok · Gemini                            newsd (Go)
@@ -116,15 +116,15 @@ Rules for the AI layer:
    moving against that angle. The finder then picks the option itself (calls when bullish, puts when
    bearish; the first expiry at least a week out; the two-sided strike nearest 2% past the price),
    drafts the full bracket from the template, files the story as news evidence with its outlet count,
-   and paper trades it **only if no blocking rule fails**. A blocked play waits as a draft. One play a
+   and trades it **only if no blocking rule fails**. A blocked play waits as a draft. One play a
    pass, six a day, never two on one symbol or one story. Found plays carry `found_by: "finder"` and
-   the story's id, and show a Found chip on the board. The finder pauses for the day once the paper
+   the story's id, and show a Found chip on the board. The finder pauses for the day once the
    plays closed that day have lost $150. Settings are on the Rules tab; its last pass, with what it
    decided about each loud story and why, is at `GET /api/plays/finder` (not on a page yet).
 7. **Where AI goes next** (not built): a model reading each loud story once to replace the word-count
    angle, and a scan of the catalyst calendar for scheduled events (a launch date, an earnings day)
    so a play can be opened before the coverage starts (the "middle agent" in
-   notes/catalyst-and-filings.md). Both stay paper first and are scored like any source.
+   notes/catalyst-and-filings.md). Both stay desk first and are scored like any source.
 
 Claude calls use `claude-opus-5-5` with structured output (`output_config.format`), effort
 `medium`, and server-side refusal fallback (`fallbacks: "default"`). Every provider's model can be
@@ -151,9 +151,9 @@ the local desk or the webhook secret, like the rest of m24d.
 
 With no runner set up, the public site (money24.dogs.red) opens every app page on a recorded
 snapshot in `public/demo/`, labelled Demo: real plays and reports from a runner (the stake dial
-recorded at every size, so every number still moves), the paper journal and source catalog, 400
-headlines with the calendar and network meter, and six symbols' quotes and charts. Writing (paper
-trading, links, rules, AI reads, callouts) says to run Money 24 locally. `?demo` forces it anywhere.
+recorded at every size, so every number still moves), the journal and source catalog, 400
+headlines with the calendar and network meter, and six symbols' quotes and charts. Writing (trades,
+links, rules, AI reads, callouts) says to run Money 24 locally. `?demo` forces it anywhere.
 Source trust records and stored posts are left out of the public snapshot on purpose. A first visit
 gets the work-in-progress notice and then a short tour (`src/lib/tour/`); the footer's Tour button
 or `?tour` shows it again. Re-record it with the services going:
@@ -170,7 +170,7 @@ npm run demo:snapshot    # writes public/demo/, then commit and push
   not a forecast.
 - The expected value is rough: scenarios weighted by touch odds, losses assumed at the stop.
 - The fill model for size is a model; there's no order-book depth.
-- Paper fills ignore fees and most slippage. See the Terms of Use §5.
+- fills ignore fees and most slippage. See the Terms of Use §5.
 
 *Options trading involves substantial risk of losing 100% of your capital; this is probability and
 market-structure analysis, not financial advice.*
@@ -184,7 +184,7 @@ Every play is filed in one format (`engine/plays/record.go`, shown as **Play rec
 | Market | stock, options, futures, forex, crypto or prediction |
 | Category | set by hand on the play ("News play"); shown on its card. `POST /api/plays/{id}/category` |
 | Expected entry, expected amount in | the entry price and cost the play planned |
-| Actual entry, actual amount in | what filled once it runs. A paper entry fills whole, at its limit |
+| Actual entry, actual amount in | what filled once it runs. An entry fills whole, at its limit |
 | Exit 1, 2, 3 | the ladder's rungs, then the runner's target |
 | Stop-loss 1, 2, 3 | the stop before any exit, after exit 1, after exit 2 |
 | Stop-loss override | *Time stop-loss* when the clock closed it, *Extremely volatile* when a gap did |
@@ -211,8 +211,8 @@ Every play lists its orders with a status and an exact time (`src/plays/orders.j
 the entry, each exit, the stop-loss, the time exit and how it ended. Statuses are *Not placed* (a
 draft), *Working* or *Scheduled* (a live play), *Filled*, *Triggered* and *Cancelled*.
 
-- **Active** plays (paper trading now) are marked in the list and open on a panel that says when they
+- **Active** plays (trading now) are marked in the list and open on a panel that says when they
   began, the amount in, what they are worth right now (from the replay, read again every 30 seconds)
   and where they end for a win or a loss.
 - **History** is the list of finished plays. One that lost says what went wrong: how it ended, the
-  blocking rules it was let through as a paper trade, and any gap between the planned and actual loss.
+  blocking rules it was let through as a trade, and any gap between the planned and actual loss.

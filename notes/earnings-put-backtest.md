@@ -1,4 +1,4 @@
-> **Provenance:** standalone research artifact from `money-makers/earnings-put-backtest/` (generated Oct 26, 2026 by `backtest.py`), predating the Money 24 name. Research only — it is not the Money 24 engine and not the paper desk. See [README.md](README.md) for why the three stay distinct.
+> **Provenance:** standalone research artifact from `money-makers/earnings-put-backtest/` (generated Oct 26, 2026 by `backtest.py`), predating the Money 24 name. Research only — it is not the Money 24 engine and not the desk. See [README.md](README.md) for why the three stay distinct.
 
 # Earnings put-buying backtest — MRNA & CRWD (last 8 quarters each)
 

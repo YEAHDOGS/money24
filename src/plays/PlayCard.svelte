@@ -1,7 +1,7 @@
 <script>
   /**
    * One play in the list: status, the DOGS odds, what the stock needs to do by when, what it can
-   * make and lose, and how many rules it is failing or broke on its way to paper.
+   * make and lose, and how many rules it is failing or broke on its way to the desk.
    */
   import strings from './strings.json';
   import { needsLine, failing, pct, pnl, usd, realized } from './play-format.js';
@@ -17,7 +17,7 @@
   const fails = $derived(failing(report));
   const broke = $derived(play.broke_rules?.length ?? 0);
   const made = $derived(realized(play));
-  const STATUS_ACTIVE = 'armed'; // paper trading right now
+  const STATUS_ACTIVE = 'armed'; // trading right now
   const showMade = $derived(play.status !== 'draft' && (play.result || play.fills?.length));
 </script>
 

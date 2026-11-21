@@ -110,7 +110,7 @@ type Template struct {
 }
 
 // Rules is the whole rulebook: checks, weights, the news filter, the starting bracket and the
-// paper switches. Saved as one document; reset brings back the DOGS defaults.
+// desk switches. Saved as one document; reset brings back the DOGS defaults.
 type Rules struct {
 	Version                     int      `json:"version"`
 	Name                        string   `json:"name"`
@@ -425,7 +425,7 @@ func evaluate(p Play, r Rules, rep Report, b Book) []Check {
 
 		case RULE_OPEN:
 			if nyNow.Weekday() == time.Saturday || nyNow.Weekday() == time.Sunday {
-				pass("Market closed: a paper fill uses the last quote.")
+				pass("Market closed: a fill uses the last quote.")
 				break
 			}
 			mins := nyNow.Hour()*MINUTES_PER_HR + nyNow.Minute()

@@ -19,8 +19,8 @@ function typed(/** @type {any} */ c) {
 }
 
 /**
- * A draft put on paper: active from now, entered at its planned price, with the blocking rules it
- * went through on record, as the runner does for a paper trade.
+ * A draft put on the desk: active from now, entered at its planned price, with the blocking rules it
+ * went through on record, as the runner does for a trade.
  * @param {import('./plays-client.svelte.js').Item} item
  * @returns {import('./plays-client.svelte.js').Item}
  */

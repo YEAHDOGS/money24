@@ -4,13 +4,13 @@
 //   plays.json, preview/   every play with its report, the link history, the rulebook, the AI
 //                          providers (names only, never keys), the stake dial at every size, and
 //                          each play's curve: since its entry, and backtested from BACKTEST_FROM
-//   trading.json           the paper journal and the source catalog
+//   trading.json           the journal and the source catalog
 //   news.json              recent headlines, the calendar, the poll setting and the network meter
 //   stories.json           the tradable stories board and the world map: what Home and the Stories tab open on
 //   stories-all.json       the board with every story, loaded only when the Tradable switch is turned off
 //   stories/               one file per story with its articles and its recorded numbers, loaded when it is opened
 //   markets/               a handful of symbols: quote, news, related tickers, a chart per range
-//   home.json              the Home page's quote ribbon and the paper account's starting capital
+//   home.json              the Home page's quote ribbon and the account's starting capital
 //
 //   npm start            (in another terminal: the services, with the plays you want to show)
 //   node scripts/demo-snapshot.js [runner URL] [news URL] [--only=news,markets]
@@ -38,7 +38,7 @@ const HOME_FILE = 'home.json';
 // The Home ribbon's set symbols: one list, shared with the page (src/home/home-client.svelte.js).
 const RIBBON_FILE = join(ROOT, 'src', 'home', 'ribbon.json');
 const RIBBON_MAX = 30; // the most symbols the runner quotes in one request
-const PLAY_OPEN = 'armed'; // a play running on paper
+const PLAY_OPEN = 'armed'; // a play running on the desk
 const PREVIEW_BATCH = 8;
 const JOURNAL_LIMIT = 300;
 const NEWS_LIMIT = 400;
@@ -214,7 +214,7 @@ async function recordMarkets(/** @type {string} */ takenAt) {
   return `${symbols.length} symbols`;
 }
 
-/** The Home page's ribbon: quotes for its set symbols and the symbols of open plays, and the paper account's starting capital. */
+/** The Home page's ribbon: quotes for its set symbols and the symbols of open plays, and the account's starting capital. */
 async function recordHome(/** @type {string} */ takenAt) {
   const { symbols } = JSON.parse(readFileSync(RIBBON_FILE, 'utf8'));
   const [items, catalog] = await Promise.all([get(runner, '/api/plays'), get(runner, '/api/sources')]);

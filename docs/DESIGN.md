@@ -10,7 +10,7 @@ need JS; the `index.html` fallback mirrors marketing copy only and never shows a
 ## 1. The product in one sentence
 
 A farm of AI trading bots you can watch think: plant bots, give them a mandate, let them
-paper trade around the clock, and see every decision, every dollar and every veto.
+trade around the clock, and see every decision, every dollar and every veto.
 
 ### Words
 Plain financial terms are the **primary labels**; the farm metaphor is secondary flavour
@@ -21,7 +21,7 @@ Plain financial terms are the **primary labels**; the farm metaphor is secondary
 | Bot | — | One AI role with a model and cadence |
 | Strategy | Garden | A universe, a mandate, rules and bots |
 | Account | Farm | All strategies on one broker account, with account-wide limits |
-| Season | Season | A dated, pre-registered run of a strategy, paper or live |
+| Season | Season | A dated, pre-registered run of a strategy, desk or live |
 | Realized P&L | Harvest | After fees |
 | Pause / Cancel entries / Flatten | — | Stop controls (§2.4) |
 
@@ -32,9 +32,9 @@ Plain financial terms are the **primary labels**; the farm metaphor is secondary
 1. **Show the decision trail, not private reasoning.** Every order links to its intent
    card: who proposed it, the inputs and their timestamps, the summary thesis, each risk
    check, the approval, and the cost in tokens. Raw model reasoning is not promised.
-2. **Paper is the default; live is a ceremony.** Live needs step-up 2FA, a typed
+2. **The desk is the default; live is a ceremony.** Live needs step-up 2FA, a typed
    confirmation and per-strategy limits, and shows a LIVE badge on every screen.
-3. **Honest numbers.** P&L after fees; *paper* and *delayed data* labels where true;
+3. **Honest numbers.** P&L after fees; *desk* and *delayed data* labels where true;
    every season shows its benchmark, its no-AI baseline and its walk-forward verdict
    (*validated / trade-off / no edge*).
 4. **Stop controls are always reachable** (§2.4), on every screen and size, from the
@@ -68,7 +68,7 @@ never uses brand red. Contrast measured on `--color-app` `#050508`
 |---|---|---|---|
 | `--color-gain` | `#2EEA7B` | 12.77:1 | Positive P&L, up candles; always with ▲ / + |
 | `--color-loss` | `#FF6B4A` | 7.23:1 | Negative P&L, down candles; always with ▼ / − |
-| `--color-paper` | `#6EC1FF` | 10.41:1 | PAPER badge and borders |
+| `--color-paper` | `#6EC1FF` | 10.41:1 | Desk badge and borders |
 | `--color-live` | `#E879F9` | 8.27:1 | LIVE badge (with text) |
 | `--color-warn` | `#FFB224` | 11.29:1 | Stale data, budget near cap, runner offline (with ⚠ and reason) |
 | `--color-grid` | `#2E2E3A` | 1.52:1 | Decorative 1px lines only; structural boundaries use `--color-muted` |
@@ -105,7 +105,7 @@ side margins.
 | **Account** (home) | Is everything OK? | Mode badge, runner status and data freshness, positions, open orders, stop controls, equity curve, realized P&L |
 | **Strategy** | One strategy | Mandate, universe, bots with status, offline policy, current season, verdict, baseline comparison |
 | **Board** | Watch decisions live | Intent lane and order lane (§4.1) |
-| **Chart** | TradingView-like | `lightweight-charts` (Apache-2.0, attribution kept); intents, entries, stops and exits marked on candles; paper order ticket |
+| **Chart** | TradingView-like | `lightweight-charts` (Apache-2.0, attribution kept); intents, entries, stops and exits marked on candles; desk order ticket |
 | **Ledger** | Every intent, order and fill | Chain status with a link to the public proof (anchored seasons only); filters; CSV export |
 | **Loops** | Monitor the AI | Per-bot last run, outcome, tokens, cost today, error streak, budget bar, pause/resume |
 | **Connections** | Broker and AI | Webull sandbox/live, AI keys (stored in OS keychain), local models, runner pairing and executor lease |
@@ -151,13 +151,13 @@ large text forces page scrolling, that is allowed, and stop controls stay pinned
 ## 6. Native shells
 
 - **Desktop** (Windows, macOS first; Linux best effort): bundles `m24d` as a sidecar. Tray
-  icon shows runner state with shape plus colour (running, degraded, stopped, paper).
+  icon shows runner state with shape plus colour (running, degraded, stopped, desk).
   Closing the window keeps the runner going (tray); Quit stops it after confirmation if a
   strategy is armed. Keep-awake and start-at-login are opt-in; start-at-login opens to the
   tray **unarmed**. Updates never restart an armed runner without asking.
 - **Android:** monitor and stop-control remote for a desktop or VPS runner; push alerts.
   Live approvals on the phone require step-up 2FA on the device. No runner on the phone.
-- **Web:** monitor and settings; cloud-only paper mode comes later.
+- **Web:** monitor and settings; cloud-only mode comes later.
 
 ---
 

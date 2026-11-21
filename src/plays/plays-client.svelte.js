@@ -186,7 +186,7 @@ export class PlaysClient {
     this.#schedule();
   }
 
-  /** Pastes a link: the runner resolves it, plans it and (by default) paper trades it at once. */
+  /** Pastes a link: the runner resolves it, plans it and (by default) trades it at once. */
   async link(/** @type {{url: string, provider?: string, analyze?: boolean, theme?: string}} */ input) {
     if (this.demo) {
       await new Promise((done) => setTimeout(done, DEMO_BUSY_MS));

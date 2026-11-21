@@ -9,7 +9,7 @@ forex, around the clock according to the news, signals, trackers, and AI analysi
 
 ## Trading Philosophies
 
-I have only ever lost money from the markets. But I see AI trading as my best shot at fixing that. The way this is gonna float is to tread lightly. Pins, needles, stop losses, gradual development. Paper trading, backtesting on collected data, and experimentation.
+I have only ever lost money from the markets. But I see AI trading as my best shot at fixing that. The way this is gonna float is to tread lightly. Pins, needles, stop losses, gradual development. Trading, backtesting on collected data, and experimentation.
 
 This repo is currently in heavy development, and I Brandon Dcruz am not liable for anything you do with it at this point in development. There's further terms at the bottom.
 
@@ -23,11 +23,11 @@ That night I angrily tweeted. That morning, Saturday while markets were closed, 
 
 Like chess, like clockwork, money from the sky. Short window, and many things can go wrong. But money24 is aimed at trying to capture this, entirely hands off. And this is me prompting Gemini manually, we need to automate this. Across all the 6 markets of the 7 seas on God's green earth.
 
-I won't lie. This is the riskiest form of trading there is. Even here, I paper traded these gains, but did not fund myself. I think this is doable. I've watched claude fable cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
+I won't lie. This is the riskiest form of trading there is. Even here, I traded these gains, but did not fund myself. I think this is doable. I've watched claude fable cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
 
 Once this is complete we can assess an overall risk of money24 as a product. I need help though. If you're reading this, email brando@dogs.red immediately, and help me build man's holy grail. The hybrid car that drives itself. Open source.
 
-I am currently collecting market data for backtesting, paper trading, polishing the UI, and orchestrating the new world order.
+I am currently collecting market data for backtesting, trading, polishing the UI, and orchestrating the new world order.
 
 Heavy development. Do not disturb. Don't cut yourself on the glass sharp blades.
 
@@ -47,7 +47,7 @@ Every situation is different. And I want money24 to be customizable, so rules ca
 |---|---|---|---|
 | Landing / client (`src/`) | Svelte 5 + Vite + Tailwind v4 landing page, plus the live feed at `feed.html` | Cloudflare Pages · Tauri desktop | Live |
 | `newsd` (`engine/cmd/newsd`) | Polls news, filings, central-bank, macro and Polymarket feeds; tags against the watchlist; stores in SQLite; streams over SSE | Desktop sidecar · Linux server | Running |
-| `m24d` + signals (`engine/`) | The trading runner. The signals package reads callout sources (X, Telegram, wallets, webhooks), parses them and paper-trades with our own exits | Same as `newsd` | Paper webhook runner; adapters next: [notes/trading-service.md](notes/trading-service.md) |
+| `m24d` + signals (`engine/`) | The trading runner. The signals package reads callout sources (X, Telegram, wallets, webhooks), parses them and trades with our own exits | Same as `newsd` | Webhook runner; adapters next: [notes/trading-service.md](notes/trading-service.md) |
 
 Everything server-side is one Go module in `engine/` (see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). Each process keeps its own
@@ -113,10 +113,10 @@ journalctl -u newsd -f                   # logs
 On a server, set `NEWSD_ADMIN_TOKEN` and `NEWSD_HOSTS` (your domain behind
 the reverse proxy). All flags are listed in [engine/README.md](engine/README.md).
 
-### m24d: paper trading runner
+### m24d: trading runner
 
 Takes callouts on a webhook, plans each entry with its stop, ladder and time
-exits, and writes every plan and rejection to `paper-journal.jsonl`. It has
+exits, and writes every plan and rejection to its journal. It has
 no broker code yet, so it can't place a real order. The UI is optional: the
 runner works the same headless.
 
@@ -148,7 +148,7 @@ Tests: `cd engine && go test ./signals/`.
 
 ### Guardrails
 
-- **Paper only.** The runner refuses to start if any key or endpoint looks
+- **Only.** The runner refuses to start if any key or endpoint looks
   live.
 - Scraper accounts (X, Telegram) are burners, never personal accounts.
 - Secrets go in environment variables or the host's secret store, never in git.

@@ -1,8 +1,8 @@
 # Trading service — copy-trading signals (design, Nov 9, 2026)
 
 The second always-on service, next to the news service. It watches callout
-sources, turns posts into signals, and paper-trades them within about a
-minute. **Status: design only.** No code yet, and the paper rule still
+sources, turns posts into signals, and trades them within about a
+minute. **Status: design only.** No code yet, and the rule still
 applies.
 
 ## The rules it runs on
@@ -21,7 +21,7 @@ applies.
     company is, why it's moving today, and matching headlines from the news
     service, then gives an AI verdict. It may tighten the stop or exit early,
     but it never delays the fill.
-- **Paper only.** Webull paper first. Nothing goes live without funded
+- **Only.** Webull desk first. Nothing goes live without funded
   accounts and the owner's explicit approval.
 
 ## Pipeline
@@ -89,7 +89,7 @@ about 16 callout and flow accounts on X across all six markets, 7 news
 squawk accounts (these feed the fast gate and never trade on their own),
 daily leaderboard pickers for Hyperliquid, Polymarket, Collective2 and
 Myfxbook, insider buys from Form 4, and the webhook. Every default starts
-on **probation**. It's scored on paper results and auto-disabled if it
+on **probation**. It's scored on the desk results and auto-disabled if it
 loses. A **blocklist** holds accounts charged with pump-and-dump schemes.
 
 Leaderboard sources choose wallets and strategies each day by their record
@@ -128,14 +128,14 @@ Every signal can override the defaults of its source.
 The client manages sources and settings. The chart shows the live price
 with the ladder and stop drawn on it, and there's a scoreboard per source.
 
-## Share to paper-trade (built)
+## Share to trade (built)
 
 From the trading desk (desktop app, website, or the Android share sheet once
 the desk is installed as an app from Chrome), share an X post or paste a
 callout. The runner reads the post through X's public oEmbed endpoint (no API
 key), takes the author as the source and the post time from the post id, and
 plans it with that source's rules **as of the post time**. Fresh posts become
-live paper trades; old posts show what the rules would have planned back then.
+live trades; old posts show what the rules would have planned back then.
 Phones need the runner's URL and webhook secret once. The local desktop app
 needs neither.
 
@@ -164,7 +164,7 @@ there, so only our own strategies qualify. See [prop-firms.md](prop-firms.md).
 
 ## Open items
 
-- Verify that the Webull API supports paper **options** with linked exit
+- Verify that the Webull API supports practice **options** with linked exit
   orders. If it doesn't, simulate the exits inside the service.
 - Collect 5–10 real callout and exit posts per format as classifier fixtures.
 - Decide what happens to callouts after the market closes: queue them for
@@ -178,6 +178,6 @@ there, so only our own strategies qualify. See [prop-firms.md](prop-firms.md).
   with no Node. The Telegram reader is a Go MTProto client, which needs a
   stated reason as a dependency.
 - **Legal gate** (ARCHITECTURE §11): copy-trading for our own account on
-  paper is fine. Copy-trading *for customers* can trigger investment-adviser
+  the desk is fine. Copy-trading *for customers* can trigger investment-adviser
   or broker-dealer registration, so that needs a lawyer before anyone else
   gets it.

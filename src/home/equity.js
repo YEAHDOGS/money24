@@ -1,5 +1,5 @@
-// The paper account over time, worked out in the browser from the runner's paper journal: starting
-// paper capital plus every realized gain or loss, in the order they happened. Pure arithmetic, so
+// The account over time, worked out in the browser from the runner's journal: starting
+// capital plus every realized gain or loss, in the order they happened. Pure arithmetic, so
 // WalletChart.svelte only draws. Nothing here is real money, and nothing is invented: with few
 // closed trades the line is flat, because the account was.
 //
@@ -69,7 +69,7 @@ export function rangeStart(id, first, now) {
 /**
  * The equity curve between two moments, with what the stat row shows. Drawdown is the deepest
  * fall from a peak inside the range.
- * @param {Step[]} steps oldest first  @param {number} capital starting paper capital
+ * @param {Step[]} steps oldest first  @param {number} capital starting capital
  * @param {number} from epoch ms  @param {number} to epoch ms
  * @returns {Curve}
  */

@@ -1,6 +1,6 @@
 // Money 24 app shell, shared by desktop and Android.
 // Desktop: one window that opens on Home (home.html), with the Go engines as sidecars: newsd
-// (news) and m24d (paper trading runner and plays engine). Both start on launch and stop on exit; they also exit on their
+// (news) and m24d (trading runner and plays engine). Both start on launch and stop on exit; they also exit on their
 // own if this app dies, because they watch their stdin pipe (--exit-with-stdin).
 // Android: no engines on the phone. The window opens Home, which talks to your runner (VPS or home
 // PC) at the URL saved in the Runner settings on the Plays page; Home links there while it is offline.
@@ -26,7 +26,7 @@ const ENGINES: [(&str, &str, &str); 2] = [
 const WINDOW_LABEL: &str = "main";
 #[cfg(desktop)]
 const WINDOW_TITLE: &str = "Money 24";
-// Every shell opens on Home: open positions first, then the paper account and the news.
+// Every shell opens on Home: open positions first, then the account and the news.
 const START_PAGE: &str = "home.html";
 #[cfg(desktop)]
 const WINDOW_SIZE: (f64, f64) = (1280.0, 800.0);

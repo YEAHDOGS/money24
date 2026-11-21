@@ -32,7 +32,7 @@ or time, fixable later; **Low** = polish.
    sandbox data (A§14) add cost, not edge. Start with 3 roles and earn each extra agent with an ablation.
 8. **API cost is real money for a broke owner.** The A§6 target of 1,500 calls a day is roughly
    $8/day on a Haiku-class model before caching (UNVERIFIED prices). The Gate must cut that to about 200.
-9. **The paper track record will not be credible** unless fills are modelled on fresh quotes,
+9. **The track record will not be credible** unless fills are modelled on fresh quotes,
    strategies are pre-registered, and every season (including the dead ones) is anchored and
    published. A hash chain alone proves only "not edited after anchoring".
 10. **MoR acceptance and the Anthropic high-risk finance rule** (new AUP effective 2026-11-12, which
@@ -84,10 +84,10 @@ chain on `audit_log`. Server-side events (config changes, entitlement changes) g
 chain if needed, not the trading one.
 
 **ARCH-4 · High · Cloud-only mode contradicts keys-on-device.**
-A§5 "Cloud-only (web users, no runner)" runs paper loops from Cron and a DO. To call an LLM and a
+A§5 "Cloud-only (web users, no runner)" runs loops from Cron and a DO. To call an LLM and a
 broker sandbox, the cloud needs the user's AI key and broker key, so the server holds keys after all
 (A§14 says to avoid this).
-Fix: A§5 / A§16: cloud-only uses **DOGS's own built-in paper simulator plus free public data, and a
+Fix: A§5 / A§16: cloud-only uses **DOGS's own built-in simulator plus free public data, and a
 DOGS-paid or user-supplied key stored with envelope encryption**, with a daily token cap. Or drop
 cloud-only LLM loops entirely and offer cloud-only as "watch a demo farm" until a runner is paired.
 
@@ -130,7 +130,7 @@ Fix: add those rows to A§12.
 24/7 without the owner awake (1) + bring-your-own subscription brain (4) + $0 a month (7). A laptop is
 not 24/7; subscriptions are not licensed for 24/7 automation (Part B1); API keys cost money.
 Fix: A§1: rewrite Goal 7 as **"$0 fixed platform cost to build; the owner budgets ~$5/mo VPS + ~$30/mo
-model spend for the 24/7 paper farm."** Make that the honest build budget in A§16.
+model spend for the 24/7 farm."** Make that the honest build budget in A§16.
 
 **GOAL-2 · High · "Second-level decisions" (BRIEF) versus 15-minute delayed sandbox data (A§14).**
 Second-level reflexes on delayed quotes are worse than no reflexes: stops trigger on stale prices
@@ -141,7 +141,7 @@ orders; our engine runs on minute cadence and labels results "delayed".
 
 **GOAL-3 · Medium · Missing measurable goal.**
 There is no success metric beyond "runs". Add to A§1: **"Each garden produces a pre-registered,
-anchored paper season of ≥ 90 days with cost-after-fees and drawdown reported, compared against a
+anchored season of ≥ 90 days with cost-after-fees and drawdown reported, compared against a
 buy-and-hold benchmark and a no-LLM rules baseline."** That baseline is what tells you whether the
 agents add anything (see AGENT-1).
 
@@ -151,7 +151,7 @@ The ranking misses three that bite first:
 
 1. **Anthropic/Google account bans** from subscription automation (Part B1, B2). Put it at #1 for the
    owner's own setup: it stops both the bot and the owner's development work.
-2. **Webull sandbox realism.** If sandbox fills are delayed or idealised, every paper result is noise.
+2. **Webull sandbox realism.** If sandbox fills are delayed or idealised, every result is noise.
    Unknown until the Phase 0 spike. Add a spike: compare 100 sandbox fills against real-time quotes
    from an independent feed.
 3. **Owner attention.** A 24/7 multi-asset system with options, futures, crypto and event contracts,
@@ -238,7 +238,7 @@ are rejected (v1), and the per-symbol sum of sub-ledgers must equal the broker p
 reconciler Frosts.
 
 **RISK-9 · High · Event contract settlement.**
-Scenarios: resolution is delayed or disputed; mid prices on illiquid markets make paper P&L fiction;
+Scenarios: resolution is delayed or disputed; mid prices on illiquid markets make desk P&L fiction;
 capital is locked until settlement.
 Fix: A§14: mark event contracts at the **executable side** (bid for longs), realise P&L only at
 settlement, cap exposure per market, and refuse markets that settle after the season ends.
@@ -290,7 +290,7 @@ Any local process, browser extension, or malicious page using DNS rebinding can 
 `127.0.0.1:<port>` and call `place_order`.
 Fix: A§5: **stdio only by default.** If HTTP is enabled: bind to 127.0.0.1, require a random bearer
 token stored in the OS keychain, reject requests whose `Host` is not `127.0.0.1:<port>` or whose
-`Origin` header is present (browsers send it; local CLIs do not), no CORS headers ever, and paper-only
+`Origin` header is present (browsers send it; local CLIs do not), no CORS headers ever, and desk-only
 scope unless the user enables live on that client.
 
 **SEC-3 · High · Key storage "encrypted on the runner" with no key-management story.**
@@ -302,9 +302,9 @@ journal, logs, Sentry breadcrumbs or the sync stream; add a Sentry `beforeSend` 
 
 **SEC-4 · High · Remote MCP exposes trading to arbitrary agents.**
 Dynamic client registration lets any MCP client register. A user who authorises a random agent with
-broad scope hands it their paper (and later live) account.
+broad scope hands it their desk (and later live) account.
 Fix (A§9):
-- OAuth **scopes**: `account:read`, `market:read`, `paper:trade`, `live:trade`. `live:trade` is never
+- OAuth **scopes**: `account:read`, `market:read`, `the desk:trade`, `live:trade`. `live:trade` is never
   issued through remote MCP in v1; live trading by external agents goes through the **local** MCP on
   the runner, which holds the keys anyway.
 - Consent screen shows client name, redirect host, requested scopes, and an "unverified client" warning.
@@ -346,7 +346,7 @@ Fix (A§4 Agent roles, A§18):
 - v1 garden = **Rules strategy (Go) → one Thinker call (thesis + intent, structured) → Risk check (Go)
   → optional LLM "devil's advocate" only for intents above a size threshold.**
 - Every extra role must win an **ablation**: same garden, same season, with versus without the role,
-  measured on the anchored paper record (GOAL-3). Roles that do not improve risk-adjusted results are
+  measured on the anchored record (GOAL-3). Roles that do not improve risk-adjusted results are
   removed.
 - "30 bots" stays as a **UI capacity and product tier** (D§1), not an architecture requirement.
 
@@ -366,7 +366,7 @@ KV free 1,000 writes per day (loop1-muse-platform-payments.md §1).
 | CF-2 · High | Heartbeat every 15 s into DO SQLite | 5,760 rows/day/user if persisted → ~17 users hit the DO row-write cap | Hold heartbeats **in memory**; persist only state transitions (A§10) |
 | CF-3 · High | OAuth grants and tokens in KV | `@cloudflare/workers-oauth-provider` stores grants and tokens in `OAUTH_KV` ([CF docs](https://developers.cloudflare.com/agents/model-context-protocol/authorization/)); every auth, token exchange and refresh writes → a chatty MCP client with 1-hour tokens ≈ 24+ writes/day; **~40 active clients exhaust 1,000/day** | Long-ish access tokens (hours) with refresh rotation; budget KV writes; monitor; move to Workers Paid before inviting external agents (A§9, A§16) |
 | CF-4 · High | External agents polling `get_quote` via MCP | One agent at 1 req/s = 86,400 requests/day, nearly the whole 100k Workers free quota | Per-key rate limits (Rate Limiting binding periods are 10 or 60 s and **per location, eventually consistent** ([docs](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)), so back it with a per-key daily counter in the DO); `get_quote` served from the edge cache with a TTL; quotes via WebSocket resource, not polling (A§9) |
-| CF-5 · Medium | Cloud-only paper loops via per-user DO alarm every minute | 1,440 requests/day/user → ~65 users on DO requests, plus duration | Batch all cloud-only users into one Cron tick per minute that processes a queue; per-user DO touched only on state change (A§7) |
+| CF-5 · Medium | Cloud-only loops via per-user DO alarm every minute | 1,440 requests/day/user → ~65 users on DO requests, plus duration | Batch all cloud-only users into one Cron tick per minute that processes a queue; per-user DO touched only on state change (A§7) |
 | CF-6 · Medium | R2 candle files "per symbol/day" written incrementally | R2 has no append; rewriting a file every minute = 1,440 Class A ops per symbol per day → 1M/month free gone at ~23 symbols | Buffer in the DO or runner; write **once per symbol per day** (A§7, A§8) |
 | CF-7 · Low | Sentry free plan flooded by a crash loop | Error quota gone in an hour | Client-side rate limit and dedupe in Go and JS (A§10) |
 
@@ -377,7 +377,7 @@ MoRs commonly list trading signals, investment advice and financial services as 
 categories (**UNVERIFIED** for Creem specifically; Loop 1 left this open, A§19 Q5). A rejection after
 launch freezes payouts.
 Fix: A§15: apply to **two** MoRs during Phase 3, with an honest description ("self-directed trading
-automation software; no advice; user's own brokerage account; paper by default"); keep Stripe + Stripe
+automation software; no advice; user's own brokerage account; desk by default"); keep Stripe + Stripe
 Tax as the fallback; never use the words "signals", "returns" or "profit" in checkout copy.
 
 **PAY-2 · Medium · Annual-by-default plus losing bots = chargebacks.**
@@ -398,8 +398,8 @@ The A§16 build-phase "$0/mo" is not true for the stated goal. Honest list:
 |---|---|---|
 | VPS for 24/7 runner | ~$4–6/mo | Goal 1 (24/7). Desktop is not 24/7. |
 | LLM API spend (Haiku/Flash-class, with gating and caching) | ~$10–60/mo (see Part B1 math, **UNVERIFIED** prices) | Thinkers, if subscriptions are not used for automation |
-| Real-time data for equities | $0 (IEX) → ~$99/mo (SIP) | Honest equity paper results at minute cadence |
-| Options data | OPRA-licensed feed, price **UNVERIFIED** | Any options paper trading worth reporting |
+| Real-time data for equities | $0 (IEX) → ~$99/mo (SIP) | Honest equity results at minute cadence |
+| Options data | OPRA-licensed feed, price **UNVERIFIED** | Any options trading worth reporting |
 | Apple Developer | $99/yr | macOS notarisation of app + Go sidecar (Gatekeeper blocks otherwise) |
 | Windows signing | Azure Trusted Signing (monthly, **UNVERIFIED** price) or OV cert | SmartScreen; AV heuristics on a sleep-blocking, socket-holding binary |
 | Domain | ~$10/yr | MCP OAuth redirect URIs and email |
@@ -415,7 +415,7 @@ actually run one owner farm 24/7."**
   "gate never woke anyone for 6 hours". Add a farm-level **liveness SLO**: expected wake-ups per garden
   per session; alert on silence, not only on errors.
 - **SYS-3 · Medium · Backtest/live skew.** A§14's walk-forward verdict must use the same Go strategy
-  code, the same fill model and the same snapshot builder as live paper, or the verdict is meaningless.
+  code, the same fill model and the same snapshot builder as the live desk, or the verdict is meaningless.
   State it in A§14.
 - **SYS-4 · Medium · Android.** D§6 says mobile can Frost; with ARCH-1 that is only true while a runner
   is online. Show the runner state in the Frost control (D§3 tokens: `--color-warn`).
@@ -558,7 +558,7 @@ From the current Cloudflare docs ([remote MCP guide](https://developers.cloudfla
   before opening MCP to the public (A§18 Phase 3).
 - Store props (which may contain upstream tokens) carefully: the docs warn "Do not log or return them."
 
-### B4. Tamper-evident ledger for a publishable paper track record
+### B4. Tamper-evident ledger for a publishable track record
 
 **What a hash chain can and cannot prove.** It proves the log was not edited **after** an anchor point.
 It does not prove fills were realistic, that the operator did not run 50 strategies and publish the
@@ -587,13 +587,13 @@ best one, or that entries were written at the time they claim. The design has to
      ([Rekor docs](https://docs.sigstore.dev/logging/overview/)). Good second witness for daily heads. $0.
    - **A public git repo** (daily commit of heads and `.ots` files). Weakest witness, best UX.
    - **R2 public bucket** for the full entries plus a `verify` script (JS for the browser, Go CLI).
-5. **Privacy.** Publish entries for paper seasons in full. For live seasons, publish salted commitments
+5. **Privacy.** Publish entries for seasons in full. For live seasons, publish salted commitments
    per entry and reveal on request, and reconcile against **broker statements**, which are the only
    real proof of live results.
 6. **Honest labels.** Every published season shows fill model, data delay, fees assumed, benchmark and
    the no-LLM baseline (GOAL-3).
 7. **Marketing caution.** In the US, advisers face strict limits on advertising hypothetical
-   performance, and the FTC polices earnings claims. Publishing a verifiable paper record is fine as
+   performance, and the FTC polices earnings claims. Publishing a verifiable record is fine as
    transparency; using it in paid marketing needs the lawyer from A§11 (**not legal advice**).
 
 Fix: A§5 Journal and A§8: replace "Hash-chained (ai-hedge-fund pattern)" with the design above

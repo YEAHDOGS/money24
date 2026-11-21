@@ -1,7 +1,7 @@
 <script>
   /**
    * The link inbox: paste a Robinhood or Webull link, an option symbol or "AAL 12.5P 11/20". The
-   * runner reads the contract, loads the market, builds the full bracket and (by default) paper
+   * runner reads the contract, loads the market, builds the full bracket and (by default)
    * trades it at once. An AI read can run alongside. Every paste stays in the history below.
    */
   import strings from './strings.json';

@@ -1,8 +1,8 @@
 <script>
   /**
-   * Money 24 Home: the screen the app opens on. First the plays running on paper now and the paper
+   * Money 24 Home: the screen the app opens on. First the plays running on the desk now and the
    * account's history; then the news: a banner of top stories and headlines by category. A ribbon
-   * of quotes runs under the header. Everything is read-only, and every dollar on it is paper.
+   * of quotes runs under the header. Everything is read-only, and every dollar on it is the desk's own.
    * Wide: positions over the account on the left, news in a side column, split by 1px lines.
    * Phones: one column that scrolls as a list. Phones on their side: the two halves side by side,
    * each its own list. Portrait monitors: news in a row underneath, headlines two abreast. Ultra-wide: three columns.

@@ -124,7 +124,7 @@ func record(p Play, r Rules) Record {
 	case p.Filled != nil:
 		rec.ActualEntry, rec.ActualAmount = p.Filled.Price, p.Filled.AmountUSD
 	case p.Status != STATUS_DRAFT:
-		// Armed before fills were recorded: a paper entry filled whole, at its limit.
+		// Armed before fills were recorded: an entry filled whole, at its limit.
 		rec.ActualEntry, rec.ActualAmount = rec.ExpectedEntry, rec.ExpectedAmount
 	}
 	if p.Result == nil {

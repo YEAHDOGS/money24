@@ -25,7 +25,7 @@ const LABEL_WIDTH = 6;
 const ENV_LINE = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/i;
 const SERVICES = [
   { name: 'newsd', port: 8024, about: 'news and calendar' },
-  { name: 'm24d', port: 8025, about: 'paper trading, market data, source records' },
+  { name: 'm24d', port: 8025, about: 'trading, market data, source records' },
 ];
 const PAGES = [
   ['Home (start here)', 'home.html'],
@@ -124,7 +124,7 @@ for (let tries = 0; tries < READY_TRIES && !(await portBusy(WEB_PORT)); tries++)
   await new Promise((wait) => setTimeout(wait, READY_POLL_MS));
 }
 const base = `http://localhost:${WEB_PORT}`;
-console.log('\nMoney 24 is running. Paper only: nothing here can place a real order.\n');
+console.log('\nMoney 24 is running. Only: nothing here can place a real order.\n');
 for (const [title, page] of PAGES) console.log(`  ${title.padEnd(20)}${base}/${page}`);
 for (const { name, port, about } of SERVICES) console.log(`  ${name.padEnd(20)}http://${HOST}:${port}  (${about})`);
 console.log('\nPress Ctrl+C to stop everything.\n');

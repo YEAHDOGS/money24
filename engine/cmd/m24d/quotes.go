@@ -22,7 +22,7 @@ const (
 	ENV_WEBULL_ENV    = "WEBULL_ENV"          // sandbox (default) or production
 	QUOTE_TIMEOUT     = 6 * time.Second
 	// Assumed venue fee on each side of an on-chain trade. A round number on the high side of what
-	// pump.fun and the Solana pools charge, so paper results do not flatter.
+	// pump.fun and the Solana pools charge, so results do not flatter.
 	POOL_FEE_PCT     = 1.0
 	COIN_PAIR_SUFFIX = "-USD"
 )
@@ -50,7 +50,7 @@ func snapshotFor(ctx context.Context, client *webull.Client, sig signals.Signal)
 
 // liveQuotes prices on-chain tokens from DEX Screener and listed coins from Coinbase, neither of
 // which needs a key, and everything else from Webull when a key is set, or else from Yahoo's
-// delayed option chain and quotes, so a paper play is priced with no keys at all. A failed lookup
+// delayed option chain and quotes, so a play is priced with no keys at all. A failed lookup
 // is logged and reported as "no quote", so the runner plans at the called price and notes what it
 // could not check.
 func liveQuotes(client *webull.Client, prices *market.Client) signals.QuoteFunc {
@@ -124,7 +124,7 @@ func priceHistory(client *market.Client) signals.HistoryFunc {
 }
 
 // yahooQuote is the keyless fallback: the option's bid and ask from Yahoo's chain, or a stock's
-// last price a cent either side. Delayed, so paper exits trail the live market by minutes.
+// last price a cent either side. Delayed, so exits trail the live market by minutes.
 func yahooQuote(ctx context.Context, prices *market.Client, sig signals.Signal) (signals.Quote, bool) {
 	if sig.Right != "" && sig.Expiry != "" {
 		q, err := prices.Option(ctx, sig.Symbol, sig.Expiry, sig.Right, sig.Strike)

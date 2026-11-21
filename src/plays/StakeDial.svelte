@@ -3,7 +3,7 @@
    * The stake dial. It starts at the play's minimum deposit (one unit for every rung and the runner)
    * and scales the whole bracket above it: every dollar, level and check on the page follows the
    * dial through the runner's preview. Releasing it saves the size on a draft; on a play already
-   * paper trading it is a what-if and saves nothing. Drag, arrow keys, PageUp/PageDown, the wheel.
+   * trading it is a what-if and saves nothing. Drag, arrow keys, PageUp/PageDown, the wheel.
    */
   import strings from './strings.json';
   import { usd, price, pnl } from './play-format.js';

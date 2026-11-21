@@ -1,10 +1,10 @@
-// Open positions for the Home page: the plays running on paper right now, one row each, read from
+// Open positions for the Home page: the plays running on the desk right now, one row each, read from
 // the play as the runner reports it. The order list (src/plays/orders.js) already knows the entry,
 // the stop in force and which exit is next, so this only picks from it. Pure functions:
 // Positions.svelte only draws.
 import { orders, STATUS_WORKING } from '../plays/orders.js';
 
-export const STATUS_OPEN = 'armed'; // the runner's word for a play running on paper
+export const STATUS_OPEN = 'armed'; // the runner's word for a play running on the desk
 const KIND_ENTRY = 'entry';
 const KIND_EXIT = 'exit';
 const KIND_STOP = 'stop';

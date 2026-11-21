@@ -7,12 +7,12 @@ import (
 )
 
 const (
-	ACTION_CLOSE = "close" // journal line for a finished paper trade; carries a Result
+	ACTION_CLOSE = "close" // journal line for a finished trade; carries a Result
 	ALL_SOURCES  = "all"
 	DAY_LAYOUT   = "2006-01-02"
 )
 
-// Result is how one paper trade ended. PnLUSD is after slippage: fills are scored at the price
+// Result is how one trade ended. PnLUSD is after slippage: fills are scored at the price
 // we could really have had, never at the called price. On a close line PnLUSD is the whole trade,
 // earlier fills included; on a fill line it is that rung alone.
 type Result struct {
@@ -23,7 +23,7 @@ type Result struct {
 	Price  float64 `json:"price,omitempty"`  // what they sold at
 }
 
-// GoLive is the bar paper trading must clear before real money. It is set before the results are in.
+// GoLive is the bar the record must clear before real money. It is set before the results are in.
 type GoLive struct {
 	MinTrades       int     `json:"min_trades"`
 	MinTradingDays  int     `json:"min_trading_days"`
@@ -31,13 +31,13 @@ type GoLive struct {
 	PaperCapitalUSD float64 `json:"paper_capital_usd"` // starting equity drawdown is measured against
 }
 
-// Score is one source's paper record. Trades is the sample size; a win rate without it means nothing.
+// Score is one source's record. Trades is the sample size; a win rate without it means nothing.
 type Score struct {
 	SourceID       string   `json:"source_id"`
 	Posts          int      `json:"posts"`    // signals seen, noise excluded
 	Planned        int      `json:"planned"`  // entries that passed the gate
 	Rejected       int      `json:"rejected"` // entries the gate refused
-	Trades         int      `json:"trades"`   // closed paper trades
+	Trades         int      `json:"trades"`   // closed trades
 	Wins           int      `json:"wins"`
 	WinRatePct     float64  `json:"win_rate_pct"`
 	PnLUSD         float64  `json:"pnl_usd"`

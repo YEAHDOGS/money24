@@ -1,7 +1,7 @@
 <script>
   /**
    * Money 24 Plays: the home screen. Every play with what has to happen for it to pay, a link inbox
-   * that turns a pasted Robinhood or Webull link into a paper trade at once, and the rulebook.
+   * that turns a pasted Robinhood or Webull link into a trade at once, and the rulebook.
    * Wide screens: rail (inbox, history) | plays | detail, split by 1px lines.
    * Phones: one pane at a time with tabs at the bottom. Phones on their side: icon rail | list | detail.
    */
@@ -24,7 +24,7 @@
   import { demoHref } from '../lib/demo.js';
 
   const CLOCK_TICK_MS = 1000;
-  const JOURNAL_PAGE = 'trading.html'; // the paper journal: filed under the Plays tab
+  const JOURNAL_PAGE = 'trading.html'; // the journal: filed under the Plays tab
   const PHONE_QUERY = '(max-width: 767px)';
   const LANDSCAPE_QUERY = '(orientation: landscape) and (max-height: 500px) and (max-width: 1023px)';
   const MODE_WIDE = 'wide';

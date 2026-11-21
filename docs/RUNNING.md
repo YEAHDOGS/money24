@@ -1,7 +1,7 @@
 # Running Money 24
 
 How to get the whole app running on a fresh machine: Windows, macOS or Linux.
-Everything is paper only. Nothing here can place a real order.
+Everything is only. Nothing here can place a real order.
 
 ## 1. Install two things
 
@@ -64,7 +64,7 @@ npm start
 | Label | Program | Port | What it does |
 |---|---|---|---|
 | `newsd` | Go service | 8024 | Collects news and the events calendar |
-| `m24d` | Go service | 8025 | Paper trading, market data and source records |
+| `m24d` | Go service | 8025 | Trading, market data and source records |
 | `web` | Vite dev server | 5173 | Serves the pages |
 
 All three listen on this machine only. The built programs go in `.run/`, which git ignores.
@@ -77,7 +77,7 @@ Your data is kept outside the code folder, so updating or deleting the code does
 | macOS | `~/Library/Application Support/Money24/` |
 | Linux | `~/.config/Money24/` |
 
-`news/` holds the news database. `trading/` holds the paper journal (`paper-journal.jsonl`), every
+`news/` holds the news database. `trading/` holds the journal (`the journal`), every
 post received (`posts.jsonl`) and the webhook secret (`webhook-secret`).
 
 ## 5. Settings (optional)
@@ -88,7 +88,7 @@ It runs with no settings. To change any, copy `.env.example` to `.env` and fill 
 | Setting | What it is for |
 |---|---|
 | `USER_AGENT` | Put a contact email in it. Without one, SEC and BLS feeds refuse to answer and those news sources stay empty |
-| `WEBULL_APP_KEY`, `WEBULL_APP_SECRET` | Live stock and option quotes from Webull. Without them, plays and paper trades use Yahoo Finance quotes, delayed up to 15 minutes |
+| `WEBULL_APP_KEY`, `WEBULL_APP_SECRET` | Live stock and option quotes from Webull. Without them, plays and trades use Yahoo Finance quotes, delayed up to 15 minutes |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY` | AI reads of your plays (Claude, OpenAI, Grok, Gemini). Add any you use; each key goes only to its own provider. Plays work without one |
 | `M24D_WEBHOOK_SECRET` | Fixes the secret other tools use to send callouts. Left empty, one is generated in the data folder |
 

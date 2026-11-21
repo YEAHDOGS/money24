@@ -289,7 +289,7 @@ func (t *Tracker) Ranking(ctx context.Context) []Trust {
 }
 
 // Load pulls an X source's public sample of posts into the record and returns how many were new.
-// Old posts are only recorded: they never reach the runner, so they cannot open a paper trade.
+// Old posts are only recorded: they never reach the runner, so they cannot open a trade.
 func (t *Tracker) Load(ctx context.Context, client *http.Client, id string) (int, error) {
 	handle, isX := strings.CutPrefix(id, X_SOURCE_PREFIX)
 	if !isX {

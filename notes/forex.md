@@ -6,14 +6,14 @@ prediction. The landing page was updated the same night — the market list now
 reads six: CRYPTO, OPTIONS, STOCKS, FUTURES, PREDICTION, FOREX.
 
 **Status: design addition only.** The engine build remains stopped; no broker
-accounts have been opened. The paper rule applies to forex like every other
-class: 60–90 days paper before live money is even discussed, and no live
+accounts have been opened. The standing rule applies to forex like every other
+class: 60–90 days on the desk before live money is even discussed, and no live
 trading without funded accounts plus explicit per-action approval.
 
 ## Verified routes (checked Oct 30, 2026 against broker docs)
 
 - **OANDA v20 REST API** — the standard retail algo-forex route. US-regulated
-  (CFTC/NFA). REST + streaming prices, token auth, a practice (paper) account
+  (CFTC/NFA). REST + streaming prices, token auth, a practice account
   spins up in minutes, no minimum deposit, fractional position sizing. Best
   first integration for a pure-forex sleeve.
 - **Interactive Brokers API** (TWS API / Web API / FIX) — spot FX, 100+

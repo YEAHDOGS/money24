@@ -2,7 +2,7 @@
 
 ## Venues
 
-- **Polymarket** — the paper desk already reads it: public Gamma API,
+- **Polymarket** — the desk already reads it: public Gamma API,
   read-only, no key needed. Crypto-settled, runs 24/7.
 - **Kalshi** — US-regulated exchange for event contracts; on the owner's
   candidate integration list (see [integrations.md](integrations.md)).
@@ -59,10 +59,10 @@ must clear ~3.5% at the mid, and a UCLA study of 75M order-book snapshots
 found 7 executable episodes with a 3.6-second median life. Owned by
 sub-second bots; not retail-executable.
 
-**Money 24 takeaway:** prediction stays in the pot. The honest paper-test
+**Money 24 takeaway:** prediction stays in the pot. The honest desk-test
 candidate is a maker-side quoting / sub-$1 arb scanner on 5-minute crypto
 markets **with the real fee formula modeled** — entry rule pure, per the
-standing testing rule. Nothing built; the engine stop order and paper rule
+standing testing rule. Nothing built; the engine stop order and the standing rule
 are unchanged.
 
 ## Reference: 10 free GitHub repos for trading on Polymarket

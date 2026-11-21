@@ -1,6 +1,6 @@
 <script>
   /**
-   * What the paper runner did with a play: each exit it sold, in order, and how the play ended.
+   * What the runner did with a play: each exit it sold, in order, and how the play ended.
    * The watcher prices open plays every 30 seconds; this list fills in as it goes.
    */
   import strings from './strings.json';
