@@ -1,0 +1,14 @@
+// The owner's live desk at money24.dogs.red/desk/ (api/desk/worker.js). The public demo is the Pages
+// site on the same domain; this Worker only answers under /desk.
+// Secrets are not in this file: set them with `npx wrangler secret put ACCESS_AUD` and `DESK_SECRET`.
+{
+  "name": "money24-desk",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-21",
+  "workers_dev": false,
+  "routes": [{ "pattern": "money24.dogs.red/desk*", "zone_name": "dogs.red" }],
+  "vpc_services": [
+    // The tunnel "money24" to http://127.0.0.1:8025 on the machine running the runner.
+    { "binding": "DESK", "service_id": "01a2007a-a830-7943-bda4-e8e003e97af0", "remote": true }
+  ]
+}

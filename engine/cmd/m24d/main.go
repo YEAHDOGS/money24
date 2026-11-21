@@ -66,7 +66,8 @@ const (
 	PLAYS_SUBDIR     = "plays"
 	ENV_NEWSD        = "M24D_NEWSD" // newsd base URL, for headlines on a play
 	DEFAULT_NEWSD    = "http://127.0.0.1:8024"
-	ENV_WEB          = "M24D_WEB" // folder of built pages to serve, same as --web
+	ENV_WEB          = "M24D_WEB"  // folder of built pages to serve, same as --web
+	ENV_BASE         = "M24D_BASE" // the path the pages were built for, same as --base
 	ROUTE_ACCOUNT    = "GET /api/account"
 	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
@@ -164,6 +165,7 @@ func main() {
 	quote := flag.String("quote", "", "print the Webull quote for a ticker or option symbol (AAPL, AAPL260522C00300000) and exit")
 	coin := flag.String("coin", "", "print the quote for a listed coin (BTC, PEPE) or an on-chain token address and exit")
 	web := flag.String("web", os.Getenv(ENV_WEB), "folder of built pages to serve at / with the news under /news/, so one address shows everything")
+	base := flag.String("base", os.Getenv(ENV_BASE), "path the runner also answers under, the one the pages were built for (/desk)")
 	awake := flag.Bool("keep-awake", false, "stop this machine from idle-sleeping while the runner runs (Windows)")
 	cryptoBacktest := flag.Int("crypto-backtest", 0, "replay the crypto desk's rule over this many days of hourly candles, print the result and exit")
 	flag.Parse()
@@ -368,7 +370,7 @@ func main() {
 	}
 	handler := signals.API(journal, catalog, signals.Webhook(secret, opts.TrustsLocalDesk, resolver, record, queue), opts)
 	// Request contexts end with ctx, so open UI streams close on shutdown instead of holding it up.
-	srv := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: HEADER_TIMEOUT,
+	srv := &http.Server{Addr: *addr, Handler: withBase(*base, handler), ReadHeaderTimeout: HEADER_TIMEOUT,
 		BaseContext: func(net.Listener) context.Context { return ctx }}
 	go func() {
 		log.Printf("m24d runner on %s, %d sources, data %s", *addr, len(catalog.Sources), *dataDir)

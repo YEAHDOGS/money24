@@ -44,7 +44,9 @@ const SUPERVISOR = 'forever'; // the supervisor's own log
 const FLAG = { noBuild: '--no-build', stop: '--stop', status: '--status', install: '--install', uninstall: '--uninstall', dryRun: '--dry-run' };
 // Both services exit on their own when this pipe closes, so a supervisor that dies leaves nothing behind.
 const EXIT_WITH_STDIN = '--exit-with-stdin';
-const RUNNER_FLAGS = ['--web', WEB_DIR, '--keep-awake'];
+// The desk lives under this path, here (http://127.0.0.1:8025/desk/) and on money24.dogs.red/desk/.
+const DESK_PATH = '/desk';
+const RUNNER_FLAGS = ['--web', WEB_DIR, '--base', DESK_PATH, '--keep-awake'];
 const ENV_RUNNER_ARGS = 'M24D_ARGS'; // replaces RUNNER_FLAGS, space-separated
 const ENV_PUBLIC_HOST = 'M24D_PUBLIC_HOST'; // a tunnel's hostname, added to the hosts the runner answers to
 const ENV_HOSTS = 'M24D_HOSTS';
@@ -60,7 +62,7 @@ const TUNNEL_HEALTH_PATH = '/ready';
 const TUNNEL_ARGS = ['tunnel', '--no-autoupdate', '--metrics', `${HOST}:${TUNNEL_PORT}`, 'run'];
 const LOCAL_HOSTS = [`${HOST}:${RUNNER_PORT}`, `localhost:${RUNNER_PORT}`];
 // The pages call their own origin: the runner for trading, the runner's /news/ for news, and never the demo.
-const WEB_ENV = { VITE_TRADING_API: '/', VITE_NEWS_API: '/news', VITE_SELF_HOSTED: '1' };
+const WEB_ENV = { M24_BASE: `${DESK_PATH}/`, VITE_TRADING_API: DESK_PATH, VITE_NEWS_API: `${DESK_PATH}/news`, VITE_SELF_HOSTED: '1' };
 const BACKOFF_START_MS = 1000;
 const BACKOFF_MAX_MS = 60000;
 const HEALTHY_AFTER_MS = 600000; // a run this long resets the wait before the next restart
@@ -211,7 +213,7 @@ function saveState() {
     pid: process.pid,
     started_at: startedAt,
     beat_at: Date.now(),
-    url: `http://${HOST}:${RUNNER_PORT}/`,
+    url: `http://${HOST}:${RUNNER_PORT}${DESK_PATH}/`,
     services: services.map((s) => ({
       name: s.name, port: s.port, pid: s.child?.pid ?? 0, started_at: s.startedAt, restarts: s.restarts,
       misses: s.misses, health: s.health, last_exit: s.lastExit,
@@ -386,7 +388,7 @@ async function supervise() {
   }, HEALTH_EVERY_MS);
 
   console.log(`\nMoney 24 is running around the clock. Nothing here can place a real order.\n`);
-  console.log(`  Open                http://${HOST}:${RUNNER_PORT}/`);
+  console.log(`  Open                http://${HOST}:${RUNNER_PORT}${DESK_PATH}/`);
   console.log(`  Logs                ${LOG_DIR}`);
   console.log(`\nPress Ctrl+C to stop everything, or from another terminal: npm run forever -- ${FLAG.stop}\n`);
 }
@@ -590,7 +592,7 @@ async function install() {
   else spawn(command, args, { cwd: ROOT, detached: true, stdio: 'ignore', windowsHide: true }).unref();
   const up = await waitFor(async () => (await busyPorts()).length === SERVICES.length, START_WAIT_MS);
   if (!up) fail(`It has not come up yet. Look at ${join(LOG_DIR, `${SUPERVISOR}.log`)}, and check again with: npm run forever -- ${FLAG.status}`);
-  console.log(`Running. Open http://${HOST}:${RUNNER_PORT}/`);
+  console.log(`Running. Open http://${HOST}:${RUNNER_PORT}${DESK_PATH}/`);
 }
 
 /** --uninstall: no longer start at logon. What is running now is left running. */

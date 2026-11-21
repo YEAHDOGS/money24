@@ -181,38 +181,33 @@ addresses. So the app becomes a monitor window. Quitting it stops nothing. The o
 
 ### Watching it from your phone
 
-A [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
-to `http://127.0.0.1:8025` puts the same pages on a hostname of yours.
+The desk lives at **https://money24.dogs.red/desk/**, the same domain as the public demo. The demo
+stays open to everyone; `/desk/` is the runner on this machine, for the owner only.
 
-1. **Put Cloudflare Access on the hostname first** (Zero Trust → Access → Applications, a policy
-   that allows only your email with a one-time PIN). Without it, anyone who has the address can
-   read your journal, plays and rules.
-2. Point the tunnel's public hostname at `http://127.0.0.1:8025`.
-3. Install `cloudflared` (`winget install Cloudflare.cloudflared`), then put the hostname and the
-   tunnel's token in `.env` and restart the supervisor. It runs the tunnel as a third service,
-   `tunnel`, health-checked on `http://127.0.0.1:8026/ready`:
+| Lock | What it does |
+|---|---|
+| Cloudflare Access on `money24.dogs.red/desk` | A one-time PIN to the owner's email addresses; a week between logins |
+| The Worker `money24-desk` (`api/desk/worker.js`) | Checks the Access token's signature, audience, issuer and expiry itself, and refuses anything else |
+| The tunnel | Publishes no hostname at all. The Worker reaches `127.0.0.1:8025` through Workers VPC, and nothing else can |
+| The runner | Listens on `127.0.0.1` only |
 
-   ```sh
-   M24D_PUBLIC_HOST=m24.example.com
-   M24D_TUNNEL_TOKEN=eyJ...
-   ```
+From the phone the desk works fully: the Worker adds the runner's webhook secret to every change
+(pasting a link, trading a play, editing rules), and only a request that passed the locks above gets it.
 
-4. Make the tunnel check the login too: in the tunnel's public hostname, under Access, turn on
-   "Protect with Access" for the same application. Then cloudflared refuses any request without a
-   valid Access token before it reaches the runner, a second lock behind Cloudflare's.
+Setting it up on a new machine (the desktop that will run it for good):
 
-The live desk is set up this way at `m24desk.dogs.red`: two allowed email addresses, a one-time PIN,
-a week between logins, and the tunnel checking every request. The public demo at money24.dogs.red
-is a separate site and stays open to everyone.
+1. Install `cloudflared` (`winget install Cloudflare.cloudflared`).
+2. Copy `.env` from the old machine: `M24D_TUNNEL_TOKEN` is the tunnel's token. The supervisor runs
+   the tunnel as a third service, `tunnel`, health-checked on `http://127.0.0.1:8026/ready`.
+3. Copy `%AppData%\Money24\` so the journal and plays come along, or the desk starts empty with a
+   new webhook secret. With a new secret, set it on the Worker: `npx wrangler secret put DESK_SECRET`
+   from `api/desk/`.
+4. `npm run forever -- --install`.
 
-The runner only answers to the names it knows. The supervisor turns that setting into the full
-list (`M24D_HOSTS=127.0.0.1:8025,localhost:8025,m24.example.com`); if you set `M24D_HOSTS`
-yourself, list all three, because it replaces the local defaults.
+Only one machine may run the tunnel's runner at a time: stop the old one first.
 
-Through the tunnel the pages **only read**: positions, the account, plays, markets and news.
-Anything that changes something (pasting a link, trading a play, editing rules) is refused
-there by design, and stays on this machine at http://127.0.0.1:8025/. News settings are not
-changed from these pages at all; use `npm start` or the desktop app for that.
+On this machine the desk is at http://127.0.0.1:8025/desk/. News settings are not changed from these
+pages; use `npm start` or the desktop app for that.
 
 ## 8. Updating
 

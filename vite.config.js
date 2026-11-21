@@ -25,6 +25,9 @@ const PAGES = {
   wallet: 'wallet.html',
   terms: 'terms.html',
 }
+// The path the pages are served under. "/" everywhere except the build the runner serves itself, which
+// lives at /desk/ so the same pages work on this machine and behind money24.dogs.red/desk/ (scripts/forever.js).
+const BASE = process.env.M24_BASE || '/'
 // Tauri's dev window loads this port; it must not drift to another one.
 const DEV_PORT = 5173
 // The app pages and the terms hold their first paint until the page script has run (blocking="render" in
@@ -48,6 +51,7 @@ function keepRenderBlocking() {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: BASE,
   plugins: [
     tailwindcss(),
     svelte(),

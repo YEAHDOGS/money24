@@ -16,7 +16,19 @@ const (
 	API_METHODS           = "GET, POST, PUT, DELETE, OPTIONS"
 	API_HEADERS           = "Content-Type, Authorization, Last-Event-ID"
 	API_PREFLIGHT_MAX_AGE = "600"
+	SCHEME_HTTP           = "http://"
+	SCHEME_HTTPS          = "https://"
 )
+
+// sameOriginRead is a GET or HEAD from a page this server served itself: module scripts and
+// stylesheets send an Origin even then. It may read whatever the page may read; a write from an
+// origin that is not on the allow-list is still refused.
+func sameOriginRead(r *http.Request, origin string) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+	return origin == SCHEME_HTTP+r.Host || origin == SCHEME_HTTPS+r.Host
+}
 
 // APIOptions guards the read API the UI uses. Origins are the browser origins allowed to call it;
 // Hosts, when set, are the only Host headers accepted (DNS-rebinding defence on localhost).
@@ -81,6 +93,10 @@ func API(j *Journal, c *Catalog, webhook http.Handler, opts APIOptions) http.Han
 			return
 		}
 		if origin := r.Header.Get("Origin"); origin != "" {
+			if !origins[origin] && sameOriginRead(r, origin) {
+				mux.ServeHTTP(w, r)
+				return
+			}
 			if !origins[origin] {
 				http.Error(w, "origin not allowed", http.StatusForbidden)
 				return

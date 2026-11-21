@@ -26,7 +26,28 @@ const (
 	NEWS_DOWN         = "the news service is not answering"
 	FLUSH_AT_ONCE     = -1 // the proxy flushes every write, so the news stream arrives as it is sent
 	SELF_SCHEME       = "http://"
+	PATH_SEP          = "/"
 )
+
+// withBase lets the whole runner answer under a path as well as at the root: /desk/api/plays is
+// /api/plays, and /desk alone goes to /desk/. The pages are built for that path, so the same build
+// works on this machine and behind money24.dogs.red/desk/, where a Worker forwards the path as it is.
+func withBase(base string, next http.Handler) http.Handler {
+	base = strings.TrimRight(base, PATH_SEP)
+	if base == "" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == base || r.URL.Path == PATH_SEP:
+			http.Redirect(w, r, base+PATH_SEP, http.StatusFound)
+		case strings.HasPrefix(r.URL.Path, base+PATH_SEP):
+			http.StripPrefix(base, next).ServeHTTP(w, r)
+		default:
+			next.ServeHTTP(w, r)
+		}
+	})
+}
 
 // WEB_TYPES are set by hand: Windows takes content types from the registry, where .js is often
 // text/plain, and a browser refuses to run a module served as that.
