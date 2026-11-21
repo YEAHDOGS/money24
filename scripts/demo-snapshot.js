@@ -10,7 +10,7 @@
 //   stories-all.json       the board with every story, loaded only when the Tradable switch is turned off
 //   stories/               one file per story with its articles and its recorded numbers, loaded when it is opened
 //   markets/               a handful of symbols: quote, news, related tickers, a chart per range
-//   home.json              the Home page's quote ribbon and the account's starting capital
+//   home.json              the Home page's quote ribbon, the account, the calendar week and each desk's last pass
 //
 //   npm start            (in another terminal: the services, with the plays you want to show)
 //   node scripts/demo-snapshot.js [runner URL] [news URL] [--only=news,markets]
@@ -35,6 +35,7 @@ const STORIES_FILE = 'stories.json';
 const STORIES_ALL_FILE = 'stories-all.json';
 const MARKETS_INDEX = 'index.json';
 const HOME_FILE = 'home.json';
+const HOME_DAYS = 8; // today and the week after it, as the Home day strip asks for
 // The Home ribbon's set symbols: one list, shared with the page (src/home/home-client.svelte.js).
 const RIBBON_FILE = join(ROOT, 'src', 'home', 'ribbon.json');
 const RIBBON_MAX = 30; // the most symbols the runner quotes in one request
@@ -214,14 +215,21 @@ async function recordMarkets(/** @type {string} */ takenAt) {
   return `${symbols.length} symbols`;
 }
 
-/** The Home page's ribbon: quotes for its set symbols and the symbols of open plays, and the account's starting capital. */
+/**
+ * The Home page's own data: quotes for the ribbon's set symbols and the symbols of open plays, the
+ * account and its starting capital, the calendar week, and each desk's last pass. A runner from
+ * before the account, the calendar or the crypto desk records the page without that part.
+ */
 async function recordHome(/** @type {string} */ takenAt) {
   const { symbols } = JSON.parse(readFileSync(RIBBON_FILE, 'utf8'));
   const [items, catalog] = await Promise.all([get(runner, '/api/plays'), get(runner, '/api/sources')]);
   const open = items.filter((/** @type {any} */ x) => x.play.status === PLAY_OPEN).map((/** @type {any} */ x) => x.play.contract?.symbol).filter(Boolean);
   const wanted = [...new Set([...symbols, ...open])].slice(0, RIBBON_MAX);
   const quotes = await get(runner, `/api/market/quotes?${new URLSearchParams({ symbols: wanted.join(',') })}`);
-  write(DEMO_DIR, HOME_FILE, { taken_at: takenAt, paper_capital_usd: catalog.go_live?.paper_capital_usd, quotes });
+  const [account, calendar, crypto, finder] = await Promise.all(
+    ['/api/account', `/api/day?days=${HOME_DAYS}`, '/api/plays/crypto', '/api/plays/finder'].map((path) => get(runner, path).catch(() => null)),
+  );
+  write(DEMO_DIR, HOME_FILE, { taken_at: takenAt, paper_capital_usd: catalog.go_live?.paper_capital_usd, quotes, account, days: calendar?.days ?? [], crypto, finder });
   return `${quotes.length} ribbon quotes`;
 }
 

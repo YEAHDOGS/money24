@@ -1,5 +1,5 @@
 /* Home page (src/home/): what Tailwind can't express. The quote ribbon's run, the equity line
-   drawing itself in, and the banner's swipe surface. Colors come from src/styles/theme.css. */
+   drawing itself in, the day panel dropping open, and the banner's swipe surface. Colors come from src/styles/theme.css. */
 
 /* THE RIBBON: the same quotes several times in a row, moved left by one copy's width and started
    again, so the loop has no seam. The width, the time one loop takes and where it starts are set
@@ -48,7 +48,19 @@
   }
 }
 
+/* THE DAY PANEL drops out from under its stripe, over the page: nothing beneath it moves. */
+.day-panel {
+  animation: day-drop 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes day-drop {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .day-panel,
   .ribbon-run,
   .equity-line,
   .equity-area {

@@ -1,6 +1,6 @@
 // The Home page's data. From the m24d runner: plays (the open ones are the positions), the
-// journal and starting capital (the account's history), a mark for each open play, and
-// quotes for the ribbon. From the newsd service: stories, or plain headlines when it has none.
+// journal and starting capital (the account's history), a mark for each open play,
+// quotes for the ribbon, the cash account, the trading calendar and each desk's last pass. From the newsd service: stories, or plain headlines when it has none.
 // Everything is read on a slow timer and only while the page is on screen (poller.js); the runner
 // caches market data, so many open windows cost the provider nothing extra.
 // With no runner or news service (the public site, or ?demo) it shows the recorded snapshot
@@ -20,6 +20,7 @@ const JOURNAL_LIMIT = 1000; // every line the runner keeps in memory
 const STORIES_LIMIT = 60;
 const EVENTS_LIMIT = 200;
 const QUOTES_MAX = 30; // the most symbols the runner quotes in one request (engine/market)
+const DAYS_AHEAD = 8; // today and the week after it, for the day strip
 const MARKS_MAX = 8; // open plays that get a mark; the rulebook caps plays running at once below this
 const SLIDES_MAX = 6; // stories in the banner
 const HEADLINES_MAX = 60; // headlines in the list; the news page has the rest
@@ -71,6 +72,13 @@ export class HomeClient {
   category = $state(CATEGORY_ALL);
   /** @type {Record<string, import('./news-model.js').Headline[]>} a category's own list, once the service answered for it */
   fetched = $state.raw({});
+  /** The runner's cash account (engine/signals/account.go); null from a runner or a recording that has none. */
+  account = $state.raw(null);
+  /** @type {any[]} today and the days ahead on the trading calendar (engine/calendar); empty when unknown */
+  days = $state.raw([]);
+  /** The crypto desk's last pass and the stock finder's (engine/plays); null when unknown. */
+  crypto = $state.raw(null);
+  finder = $state.raw(null);
   /** When the demo snapshot was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
 
@@ -138,7 +146,22 @@ export class HomeClient {
       this.status = STATUS.offline;
       return;
     }
-    await Promise.all([this.#loadQuotes(), this.#loadMarks()]);
+    await Promise.all([this.#loadQuotes(), this.#loadMarks(), this.#loadDesk()]);
+  }
+
+  /**
+   * The cash account, the calendar and each desk's last pass. A runner from before any of them
+   * answers 404 for it: that block shows it has nothing, and the rest of the page is unaffected.
+   */
+  async #loadDesk() {
+    const read = (/** @type {string} */ path) => getJSON(this.#base + path).catch(() => null);
+    const [account, calendar, crypto, finder] = await Promise.all([
+      read('/api/account'), read(`/api/day?days=${DAYS_AHEAD}`), read('/api/plays/crypto'), read('/api/plays/finder'),
+    ]);
+    this.account = account;
+    this.days = calendar?.days ?? [];
+    this.crypto = crypto;
+    this.finder = finder;
   }
 
   /** Short quotes for the ribbon. A failed round keeps the last ones. */
@@ -180,6 +203,10 @@ export class HomeClient {
     }
     const [home, markets] = await Promise.all([loadDemo(DEMO_HOME).catch(() => null), loadDemo(DEMO_MARKETS).catch(() => null)]);
     this.capital = home?.paper_capital_usd || DEFAULT_CAPITAL;
+    this.account = home?.account ?? null;
+    this.days = home?.days ?? [];
+    this.crypto = home?.crypto ?? null;
+    this.finder = home?.finder ?? null;
     /** @type {Tick[]} */
     const ticks = [...(home?.quotes ?? []), ...Object.values(markets?.quotes ?? {})];
     this.quotes = Object.fromEntries(ticks.map((t) => [t.symbol, t]));

@@ -43,7 +43,78 @@
     "unknown": "The account can't be read while the runner is offline.",
     "chartLabel": "equity over {range}: {start} to {end}.",
     "now": "Now",
-    "wallet": "Wallet"
+    "wallet": "Wallet",
+    "cash": "Cash",
+    "buyingPower": "Buying power",
+    "invested": "In positions",
+    "settling": "Settling",
+    "settlesAt": "Spendable {when}",
+    "cashNote": "A cash account: no margin, no borrowing. A buy needs settled cash. Coin sales settle at once; stock and option sales the next business day."
+  },
+  "day": {
+    "label": "Today on the calendar",
+    "open": "Show today's playbook and the week ahead",
+    "close": "Hide the calendar",
+    "unknown": "The calendar comes from the runner.",
+    "stocksOpenIn": "Stocks open in {time}",
+    "stocksCloseIn": "Stocks close in {time}",
+    "today": "Today",
+    "playbook": "How the desk treats today",
+    "marketsTitle": "Markets",
+    "ahead": "The week ahead",
+    "markets": {
+      "stocks": "Stocks",
+      "options": "Options",
+      "futures": "Futures",
+      "forex": "Forex",
+      "crypto": "Crypto",
+      "prediction": "Predictions"
+    },
+    "states": {
+      "open": "Open",
+      "half": "Half day",
+      "closed": "Closed",
+      "thin": "Thin",
+      "always": "24/7"
+    }
+  },
+  "desk": {
+    "title": "The desk",
+    "tabsLabel": "What the desk shows",
+    "tabs": { "activity": "Activity", "scan": "Last scan" },
+    "coins": "Coins",
+    "stocks": "Stocks",
+    "nextScan": "next scan {time}",
+    "scanning": "scanning",
+    "states": {
+      "looking": "Looking",
+      "off": "Off",
+      "closed": "Session closed",
+      "full": "Full for today",
+      "paused": "Paused",
+      "error": "Error"
+    },
+    "outcomes": {
+      "opened": "Opened",
+      "drafted": "Drafted",
+      "skipped": "Skipped"
+    },
+    "reasons": {
+      "stop": "stop",
+      "target": "target",
+      "time": "time exit",
+      "time stop": "sideways exit",
+      "source exit": "source's exit"
+    },
+    "bought": "Bought {name}",
+    "sold": "Sold part of {name}: {reason}",
+    "closed": "Closed {name}: {reason}",
+    "voided": "Dropped {name}: no price to close it at",
+    "refused": "Passed on {name}",
+    "empty": "Nothing yet. The desk writes every buy, sale and refusal here as it happens.",
+    "scanEmpty": "No scan yet. The first one runs a few seconds after the runner starts.",
+    "scanOld": "This runner has no crypto desk. Update and restart it.",
+    "openPlay": "Open this play"
   },
   "ribbon": {
     "label": "Market quotes",

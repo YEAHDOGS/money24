@@ -6,7 +6,7 @@
    * Everything here is trading and says so. The rows come from positions.js.
    */
   import strings from './strings.json';
-  import { fill, pnl, price, shortWhen, usd } from '../plays/play-format.js';
+  import { fill, pnl, price, shortWhen, units, usd } from '../plays/play-format.js';
   import { totals } from './positions.js';
   import { PLAYS_PAGE, PLAY_PARAM, pageLink } from './home-links.js';
   import ArrowRight from '@lucide/svelte/icons/arrow-right';
@@ -86,13 +86,13 @@
 
           <span class="col-span-2 grid grid-cols-5 gap-x-2 font-mono text-xs tabular-nums text-white/85 @2xl:contents tv:text-base">
             <span class={CELL}><span class={CELL_LABEL}>{strings.positions.cols.entry}</span>{dollars(row.entry)}</span>
-            <span class={CELL}><span class={CELL_LABEL}>{strings.positions.cols.size}</span>{row.qty}</span>
+            <span class={CELL}><span class={CELL_LABEL}>{strings.positions.cols.size}</span>{units(row.qty)}</span>
             <span class={CELL}><span class={CELL_LABEL}>{strings.positions.cols.cost}</span>{Number.isFinite(row.cost) ? usd(row.cost) : DASH}</span>
             <span class={CELL}><span class={CELL_LABEL}>{strings.positions.cols.stop}</span><span class="text-bad">{dollars(row.stop)}</span></span>
             <span class={CELL}>
               <span class={CELL_LABEL}>{strings.positions.cols.next}</span>
               {#if row.next}
-                <span class="truncate text-ok">{dollars(row.next.price)}<span class="text-muted @max-2xl:hidden"> {TIMES}{row.next.qty}</span></span>
+                <span class="truncate text-ok">{dollars(row.next.price)}<span class="text-muted @max-2xl:hidden"> {TIMES}{units(row.next.qty)}</span></span>
               {:else if row.exitBy}
                 <span class="truncate text-white/70" title={strings.positions.timeExit}>{shortWhen(row.exitBy)}</span>
               {:else}

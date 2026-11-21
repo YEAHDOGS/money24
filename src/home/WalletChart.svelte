@@ -4,10 +4,12 @@
    * over the picked range (1W, 1M, 6M, 1Y, All), with the account's value now, its change over the
    * range, its deepest fall and how many trades closed. There is no real wallet yet (deposits are
    * closed), so this is the desk's book and says so. With few closed trades the line is flat, because the
-   * account was. The arithmetic is equity.js; this only draws. Pointing at the line reads a moment.
+   * account was. Under the numbers is the cash account as the runner keeps it: cash, what of it is
+   * settled and can be spent, what is in open positions and what is still settling.
+   * The arithmetic is equity.js; this only draws. Pointing at the line reads a moment.
    */
   import strings from './strings.json';
-  import { fill, pnl, usd } from '../plays/play-format.js';
+  import { fill, pnl, shortWhen, usd } from '../plays/play-format.js';
   import { percent } from '../markets/market-format.js';
   import { DEFAULT_RANGE, RANGES, chartShape, equityCurve, rangeStart, realizedSteps, valueAt } from './equity.js';
   import { WALLET_PAGE, pageLink } from './home-links.js';
@@ -34,10 +36,11 @@
   const MOMENT = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
 
   /**
-   * @type {{ journal: any[], capital: number, ready: boolean, status: string, now: number }}
+   * @type {{ journal: any[], capital: number, ready: boolean, status: string, now: number, account?: any }}
    * ready: the journal has been read. status: the runner's connection. now: epoch ms.
+   * account: the runner's cash account, null from a runner that keeps none.
    */
-  let { journal, capital, ready, status, now } = $props();
+  let { journal, capital, ready, status, now, account = null } = $props();
 
   let range = $state(DEFAULT_RANGE);
   let width = $state(0);
@@ -59,6 +62,13 @@
     const value = valueAt(curve.points, t);
     return { x: shape.x(t), y: shape.y(value), value, when: new Date(t).toLocaleString(undefined, MOMENT) };
   });
+  /** The cash account's four numbers, in the order they are read. */
+  const cash = $derived([
+    { id: 'cash', value: account?.cash_usd, note: '' },
+    { id: 'buyingPower', value: account?.buying_power_usd, note: '' },
+    { id: 'invested', value: account?.invested_usd, note: '' },
+    { id: 'settling', value: account?.unsettled_usd, note: account?.settles?.[0] ? fill(strings.wallet.settlesAt, { when: shortWhen(account.settles[0].at) }) : '' },
+  ]);
   const summary = $derived(fill(strings.wallet.chartLabel, { range: strings.wallet.rangeNames[range], start: usd(curve.start), end: usd(curve.end) }));
 </script>
 
@@ -107,6 +117,16 @@
       <dt class={LABEL}>{strings.wallet.trades}</dt>
       <dd class="{STAT_VALUE} text-white/80">{ready ? curve.trades : DASH}</dd>
     </div>
+  </dl>
+
+  <!-- THE CASH ACCOUNT: the row keeps its place before the runner has answered, so nothing jumps when it does. -->
+  <dl class="grid grid-cols-4 gap-px border-b border-line bg-line max-[419px]:grid-cols-2" title={strings.wallet.cashNote}>
+    {#each cash as cell (cell.id)}
+      <div class={STAT}>
+        <dt class={LABEL}>{strings.wallet[cell.id]}</dt>
+        <dd class="{STAT_VALUE} text-white/80" title={cell.note || undefined}>{Number.isFinite(cell.value) ? usd(cell.value) : DASH}</dd>
+      </div>
+    {/each}
   </dl>
 
   <!-- THE LINE. Its box is measured, so it is drawn in real pixels and nothing stretches. -->

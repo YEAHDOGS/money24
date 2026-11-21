@@ -5,6 +5,7 @@ import strings from './strings.json';
 const MARKET_TZ = 'America/New_York';
 const SMALL_PRICE_DIGITS = 4;
 const CENT_FLOOR = 0.01; // a cent or more reads in cents; below that, in significant digits (tokens)
+const UNIT_DIGITS = 6; // significant digits kept in a fractional size (coins)
 const PERCENT = 100;
 const MINUS = '−'; // a real minus sign: tabular and readable
 const PLUS = '+';
@@ -36,6 +37,12 @@ export function fill(/** @type {string} */ template, /** @type {Record<string, s
 export function price(/** @type {number} */ n) {
   if (!Number.isFinite(n)) return '—';
   return n >= CENT_FLOOR || n <= 0 ? n.toFixed(2) : n.toPrecision(SMALL_PRICE_DIGITS);
+}
+
+/** A position's size: whole contracts and shares as they are, a fraction of a coin to six significant digits. */
+export function units(/** @type {number} */ n) {
+  if (!Number.isFinite(n)) return '—';
+  return Number.isInteger(n) ? String(n) : String(Number(n.toPrecision(UNIT_DIGITS)));
 }
 
 /** "$1,234.50" with no sign. */
