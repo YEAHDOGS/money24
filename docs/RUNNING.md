@@ -188,11 +188,22 @@ to `http://127.0.0.1:8025` puts the same pages on a hostname of yours.
    that allows only your email with a one-time PIN). Without it, anyone who has the address can
    read your journal, plays and rules.
 2. Point the tunnel's public hostname at `http://127.0.0.1:8025`.
-3. Put the hostname in `.env` and restart the supervisor:
+3. Install `cloudflared` (`winget install Cloudflare.cloudflared`), then put the hostname and the
+   tunnel's token in `.env` and restart the supervisor. It runs the tunnel as a third service,
+   `tunnel`, health-checked on `http://127.0.0.1:8026/ready`:
 
    ```sh
    M24D_PUBLIC_HOST=m24.example.com
+   M24D_TUNNEL_TOKEN=eyJ...
    ```
+
+4. Make the tunnel check the login too: in the tunnel's public hostname, under Access, turn on
+   "Protect with Access" for the same application. Then cloudflared refuses any request without a
+   valid Access token before it reaches the runner, a second lock behind Cloudflare's.
+
+The live desk is set up this way at `m24desk.dogs.red`: two allowed email addresses, a one-time PIN,
+a week between logins, and the tunnel checking every request. The public demo at money24.dogs.red
+is a separate site and stays open to everyone.
 
 The runner only answers to the names it knows. The supervisor turns that setting into the full
 list (`M24D_HOSTS=127.0.0.1:8025,localhost:8025,m24.example.com`); if you set `M24D_HOSTS`

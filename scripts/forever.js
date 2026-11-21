@@ -48,6 +48,16 @@ const RUNNER_FLAGS = ['--web', WEB_DIR, '--keep-awake'];
 const ENV_RUNNER_ARGS = 'M24D_ARGS'; // replaces RUNNER_FLAGS, space-separated
 const ENV_PUBLIC_HOST = 'M24D_PUBLIC_HOST'; // a tunnel's hostname, added to the hosts the runner answers to
 const ENV_HOSTS = 'M24D_HOSTS';
+// The Cloudflare Tunnel runs as a third service when .env holds its token (docs/RUNNING.md). cloudflared
+// reads the token from TUNNEL_TOKEN, so it never shows on a command line.
+const TUNNEL = 'tunnel';
+const ENV_TUNNEL_TOKEN = 'M24D_TUNNEL_TOKEN';
+const ENV_CLOUDFLARED = 'M24D_CLOUDFLARED'; // where cloudflared is, when it is not in the usual place
+const CLOUDFLARED_TOKEN_VAR = 'TUNNEL_TOKEN';
+const CLOUDFLARED_DEFAULT = IS_WINDOWS ? 'C:/Program Files (x86)/cloudflared/cloudflared.exe' : 'cloudflared';
+const TUNNEL_PORT = 8026; // cloudflared's own status page: /ready answers 200 once it is connected to Cloudflare
+const TUNNEL_HEALTH_PATH = '/ready';
+const TUNNEL_ARGS = ['tunnel', '--no-autoupdate', '--metrics', `${HOST}:${TUNNEL_PORT}`, 'run'];
 const LOCAL_HOSTS = [`${HOST}:${RUNNER_PORT}`, `localhost:${RUNNER_PORT}`];
 // The pages call their own origin: the runner for trading, the runner's /news/ for news, and never the demo.
 const WEB_ENV = { VITE_TRADING_API: '/', VITE_NEWS_API: '/news', VITE_SELF_HOSTED: '1' };
@@ -76,7 +86,8 @@ const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 
 /**
- * @typedef {{ name: string, port: number, args: string[], child: import('node:child_process').ChildProcess | null,
+ * @typedef {{ name: string, port: number, args: string[], exe?: string, healthPath?: string, env?: Record<string, string>,
+ *   child: import('node:child_process').ChildProcess | null,
  *   startedAt: number, restarts: number, backoff: number, misses: number, timer: NodeJS.Timeout | undefined,
  *   health: { ok: boolean, at: number } | null, lastExit: { at: number, how: string } | null }} Service
  */
@@ -257,7 +268,10 @@ function buildServiceEnv() {
 
 /** Starts one service and labels each of its output lines into its log. */
 function start(/** @type {Service} */ svc) {
-  const child = spawn(join(RUN_DIR, svc.name + EXE), [...svc.args, EXIT_WITH_STDIN], { cwd: ROOT, env: serviceEnv, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+  // Our own services exit when the supervisor's pipe closes; cloudflared does not, and is killed on stop instead.
+  const command = svc.exe ?? join(RUN_DIR, svc.name + EXE);
+  const args = svc.exe ? svc.args : [...svc.args, EXIT_WITH_STDIN];
+  const child = spawn(command, args, { cwd: ROOT, env: { ...serviceEnv, ...svc.env }, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
   Object.assign(svc, { child, startedAt: Date.now(), misses: 0, health: null });
   for (const stream of [child.stdout, child.stderr]) {
     let rest = '';
@@ -293,7 +307,7 @@ function gone(/** @type {Service} */ svc, /** @type {import('node:child_process'
 async function checkHealth(/** @type {Service} */ svc) {
   const child = svc.child;
   if (!child) return;
-  const ok = await fetch(`http://${HOST}:${svc.port}${HEALTH_PATH}`, { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) }).then((res) => res.ok, () => false);
+  const ok = await fetch(`http://${HOST}:${svc.port}${svc.healthPath ?? HEALTH_PATH}`, { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) }).then((res) => res.ok, () => false);
   if (svc.child !== child) return; // it was restarted while we asked
   Object.assign(svc, { misses: ok ? 0 : svc.misses + 1, health: { ok, at: Date.now() } });
   if (ok) return;
@@ -347,6 +361,12 @@ async function supervise() {
     ...s, args: s.name === RUNNER ? runnerArgs : [], child: null, startedAt: 0, restarts: 0, backoff: BACKOFF_START_MS,
     misses: 0, timer: undefined, health: null, lastExit: null,
   }));
+  const token = serviceEnv[ENV_TUNNEL_TOKEN];
+  if (token) {
+    services.push({ name: TUNNEL, port: TUNNEL_PORT, args: TUNNEL_ARGS, exe: serviceEnv[ENV_CLOUDFLARED] || CLOUDFLARED_DEFAULT,
+      healthPath: TUNNEL_HEALTH_PATH, env: { [CLOUDFLARED_TOKEN_VAR]: token }, child: null, startedAt: 0, restarts: 0,
+      backoff: BACKOFF_START_MS, misses: 0, timer: undefined, health: null, lastExit: null });
+  }
   startedAt = Date.now();
   rmSync(STOP_FILE, { force: true });
   writeFileSync(PID_FILE, String(process.pid));
