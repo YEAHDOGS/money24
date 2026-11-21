@@ -50,7 +50,7 @@
   <div class="list-scroll mx-auto min-h-0 w-full max-w-7xl flex-1 border-line select-text max-md:overflow-x-hidden max-md:overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] xl:border-x desktop-portrait:grid-cols-1! desktop-portrait:grid-rows-[auto_minmax(0,1fr)] landscape-phone:grid landscape-phone:grid-cols-2! landscape-phone:overflow-hidden! ultrawide:max-w-none ultrawide:grid-cols-[minmax(0,1fr)_minmax(0,32rem)]">
     <main class="list-scroll flex min-h-0 flex-col border-line md:overflow-x-hidden md:overflow-y-auto md:border-r desktop-portrait:border-r-0 landscape-phone:overflow-x-hidden landscape-phone:overflow-y-auto landscape-phone:border-r ultrawide:grid ultrawide:grid-cols-3 ultrawide:grid-rows-[minmax(0,1fr)] ultrawide:divide-x ultrawide:divide-line ultrawide:overflow-y-hidden">
       <Positions rows={client.rows} status={client.status} />
-      <Desk journal={client.journal} crypto={client.crypto} finder={client.finder} status={client.status} {now} />
+      <Desk journal={client.journal} flow={client.flow} crypto={client.crypto} finder={client.finder} status={client.status} {now} />
       <WalletChart journal={client.journal} capital={client.capital} ready={client.walletReady} status={client.status} account={client.account} {now} />
     </main>
 

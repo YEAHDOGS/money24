@@ -226,10 +226,10 @@ async function recordHome(/** @type {string} */ takenAt) {
   const open = items.filter((/** @type {any} */ x) => x.play.status === PLAY_OPEN).map((/** @type {any} */ x) => x.play.contract?.symbol).filter(Boolean);
   const wanted = [...new Set([...symbols, ...open])].slice(0, RIBBON_MAX);
   const quotes = await get(runner, `/api/market/quotes?${new URLSearchParams({ symbols: wanted.join(',') })}`);
-  const [account, calendar, crypto, finder] = await Promise.all(
-    ['/api/account', `/api/day?days=${HOME_DAYS}`, '/api/plays/crypto', '/api/plays/finder'].map((path) => get(runner, path).catch(() => null)),
+  const [account, calendar, crypto, finder, flow] = await Promise.all(
+    ['/api/account', `/api/day?days=${HOME_DAYS}`, '/api/plays/crypto', '/api/plays/finder', '/api/plays/flow'].map((path) => get(runner, path).catch(() => null)),
   );
-  write(DEMO_DIR, HOME_FILE, { taken_at: takenAt, paper_capital_usd: catalog.go_live?.paper_capital_usd, quotes, account, days: calendar?.days ?? [], crypto, finder });
+  write(DEMO_DIR, HOME_FILE, { taken_at: takenAt, paper_capital_usd: catalog.go_live?.paper_capital_usd, quotes, account, days: calendar?.days ?? [], crypto, finder, flow });
   return `${quotes.length} ribbon quotes`;
 }
 

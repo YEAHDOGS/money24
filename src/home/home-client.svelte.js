@@ -79,6 +79,8 @@ export class HomeClient {
   /** The crypto desk's last pass and the stock finder's (engine/plays); null when unknown. */
   crypto = $state.raw(null);
   finder = $state.raw(null);
+  /** The options flow desk's last pass (engine/plays/flow.go); null when unknown. */
+  flow = $state.raw(null);
   /** When the demo snapshot was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
 
@@ -155,9 +157,10 @@ export class HomeClient {
    */
   async #loadDesk() {
     const read = (/** @type {string} */ path) => getJSON(this.#base + path).catch(() => null);
-    const [account, calendar, crypto, finder] = await Promise.all([
-      read('/api/account'), read(`/api/day?days=${DAYS_AHEAD}`), read('/api/plays/crypto'), read('/api/plays/finder'),
+    const [account, calendar, crypto, finder, flow] = await Promise.all([
+      read('/api/account'), read(`/api/day?days=${DAYS_AHEAD}`), read('/api/plays/crypto'), read('/api/plays/finder'), read('/api/plays/flow'),
     ]);
+    this.flow = flow;
     this.account = account;
     this.days = calendar?.days ?? [];
     this.crypto = crypto;
@@ -207,6 +210,7 @@ export class HomeClient {
     this.days = home?.days ?? [];
     this.crypto = home?.crypto ?? null;
     this.finder = home?.finder ?? null;
+    this.flow = home?.flow ?? null;
     /** @type {Tick[]} */
     const ticks = [...(home?.quotes ?? []), ...Object.values(markets?.quotes ?? {})];
     this.quotes = Object.fromEntries(ticks.map((t) => [t.symbol, t]));

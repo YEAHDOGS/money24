@@ -1,9 +1,9 @@
 <script>
   /**
-   * The desk at work, for watching it run on its own: whether the crypto desk and the stock finder
-   * are looking right now and when they look next, then either everything the desk did (each buy,
+   * The desk at work, for watching it run on its own: whether the options flow desk, the crypto desk
+   * and the stock finder are looking right now and when they look next, then either everything the desk did (each buy,
    * sale and refusal from the journal, newest first, with what it made or lost) or what its last
-   * scan decided about every coin and why. Nothing the desk decides is hidden. A row that belongs
+   * scan decided about every name and coin and why. Nothing the desk decides is hidden. A row that belongs
    * to a play opens that play. The rows come from desk.js; this only draws.
    */
   import strings from './strings.json';
@@ -27,18 +27,20 @@
   const TONE_DOT = { [TONE.buy]: 'bg-paper', [TONE.win]: 'bg-ok', [TONE.loss]: 'bg-bad', [TONE.skip]: 'bg-muted/50' };
 
   /**
-   * @type {{ journal: any[], crypto: any, finder: any, status: string, now: number }}
-   * crypto, finder: each desk's last pass, null from a runner that has none. status: the runner's connection.
+   * @type {{ journal: any[], flow: any, crypto: any, finder: any, status: string, now: number }}
+   * flow, crypto, finder: each desk's last pass, null from a runner that has none. status: the runner's connection.
    */
-  let { journal, crypto, finder, status, now } = $props();
+  let { journal, flow, crypto, finder, status, now } = $props();
 
   let tab = $state(TAB_ACTIVITY);
 
   const rows = $derived(activity(journal, ACTIVITY_MAX));
-  const notes = $derived(crypto?.notes ?? []);
+  /** The last scans, options names first, then coins. */
+  const notes = $derived([...(flow?.notes ?? []), ...(crypto?.notes ?? [])]);
   const tabIndex = $derived(TABS.indexOf(tab));
   /** The two desks, for the header: a name, a state, and a countdown while it is looking. */
   const desks = $derived([
+    { id: 'options', name: strings.desk.options, pass: flow },
     { id: 'coins', name: strings.desk.coins, pass: crypto },
     { id: 'stocks', name: strings.desk.stocks, pass: finder },
   ].filter((d) => d.pass));
@@ -117,8 +119,8 @@
       {:else}
         <li class="px-3 py-4 text-sm text-muted lg:px-4">
           {#if status === STATUS_OFFLINE}{strings.offline}
-          {:else if status === STATUS_LIVE && !crypto}{strings.desk.scanOld}
-          {:else}{crypto?.why || strings.desk.scanEmpty}{/if}
+          {:else if status === STATUS_LIVE && !crypto && !flow}{strings.desk.scanOld}
+          {:else}{flow?.why || crypto?.why || strings.desk.scanEmpty}{/if}
         </li>
       {/each}
     {/if}

@@ -82,6 +82,7 @@
     "title": "The desk",
     "tabsLabel": "What the desk shows",
     "tabs": { "activity": "Activity", "scan": "Last scan" },
+    "options": "Options",
     "coins": "Coins",
     "stocks": "Stocks",
     "nextScan": "next scan {time}",
@@ -113,7 +114,7 @@
     "refused": "Passed on {name}",
     "empty": "Nothing yet. The desk writes every buy, sale and refusal here as it happens.",
     "scanEmpty": "No scan yet. The first one runs a few seconds after the runner starts.",
-    "scanOld": "This runner has no crypto desk. Update and restart it.",
+    "scanOld": "This runner has no desks. Update and restart it.",
     "openPlay": "Open this play"
   },
   "ribbon": {

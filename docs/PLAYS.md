@@ -121,7 +121,20 @@ Rules for the AI layer:
    the story's id, and show a Found chip on the board. The finder pauses for the day once the
    plays closed that day have lost $150. Settings are on the Rules tab; its last pass, with what it
    decided about each loud story and why, is at `GET /api/plays/finder` (not on a page yet).
-7. **Where AI goes next** (not built): a model reading each loud story once to replace the word-count
+7. **The flow desk** (built Nov 21, 2026, `engine/plays/flow.go`; no model in it): every five minutes of
+   the stock session (after a 15-minute wait at the open, stopping 15 minutes before the close) it reads
+   the option chains of the most traded names (SPY, QQQ, IWM, NVDA, TSLA, AAPL, AMD, META, AMZN, MSFT,
+   GOOGL, PLTR) for the next three expiries 7 to 45 days out. A name counts only when one side leads:
+   calls at least 1.3x puts by volume, or the reverse. On that side it takes the contract with the most
+   premium traded today (volume x mid x 100), within 10% of the stock, at least 500 contracts, at least
+   half its open interest traded today (new money, not old positions changing hands), spread under 10%.
+   The top call and the top put of the pass get the rulebook's whole bracket and trade **only if no
+   blocking rule fails**. One flow play per name a day, four running at once, six a day, and a pause
+   once the day's closed flow plays have lost $150. When an AI key is set, the first connected provider
+   reads each new play; the read changes nothing. Its last pass is at `GET /api/plays/flow` and on Home.
+   Option volume has no free history, so this desk cannot be replayed: it is proven or not by its own
+   record, and its trades can be hedges it is following rather than bets.
+8. **Where AI goes next** (not built): a model reading each loud story once to replace the word-count
    angle, and a scan of the catalyst calendar for scheduled events (a launch date, an earnings day)
    so a play can be opened before the coverage starts (the "middle agent" in
    notes/catalyst-and-filings.md). Both stay desk first and are scored like any source.

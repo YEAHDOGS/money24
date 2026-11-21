@@ -356,6 +356,8 @@ func main() {
 	go playService.RunFinder(ctx)
 	// The crypto desk does the same for coins from their own candles, around the clock.
 	go playService.RunCrypto(ctx)
+	// The flow desk follows the most premium traded in the most traded options, through the stock session.
+	go playService.RunFlow(ctx)
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

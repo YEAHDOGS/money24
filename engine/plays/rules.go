@@ -130,6 +130,8 @@ type Rules struct {
 	Finder *FinderRules `json:"finder,omitempty"`
 	// Crypto is how the crypto desk opens coin plays on its own, around the clock. Nil in an older rulebook: the defaults apply.
 	Crypto *CryptoRules `json:"crypto,omitempty"`
+	// Flow is how the flow desk follows the most traded options. Nil in an older rulebook: the defaults apply.
+	Flow *FlowRules `json:"flow,omitempty"`
 }
 
 // DOGSRules is the default rulebook.
@@ -182,6 +184,7 @@ func DOGSRules() Rules {
 		PaperIgnoresBlocks: true,
 		Finder:             DefaultFinder(),
 		Crypto:             DefaultCrypto(),
+		Flow:               DefaultFlow(),
 	}
 }
 
@@ -217,6 +220,9 @@ func (r Rules) merged() Rules {
 	}
 	if r.Finder == nil {
 		r.Finder = d.Finder
+	}
+	if r.Flow == nil {
+		r.Flow = d.Flow
 	}
 	if r.Crypto == nil {
 		r.Crypto = d.Crypto
