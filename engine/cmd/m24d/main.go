@@ -32,6 +32,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/alpaca"
 	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
@@ -71,8 +72,10 @@ const (
 	ENV_BASE         = "M24D_BASE" // the path the pages were built for, same as --base
 	ROUTE_ACCOUNT    = "GET /api/account"
 	ROUTE_TAPE       = "GET /api/tape"
-	TAPE_SUBDIR      = "tape"           // every minute's 0DTE and weekly chains, for backtests
-	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
+	ROUTE_BROKER     = "GET /api/broker"
+	MIRROR_FILE      = "alpaca-mirror.json" // the last journal line placed at the broker
+	TAPE_SUBDIR      = "tape"               // every minute's 0DTE and weekly chains, for backtests
+	BACKTEST_TIMEOUT = 10 * time.Minute     // a replay pages months of hourly candles for every coin
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -363,6 +366,26 @@ func main() {
 	go playService.RunCrypto(ctx)
 	// The flow desk follows the most premium traded in the most traded options, through the stock session.
 	go playService.RunFlow(ctx)
+	// The broker: with Alpaca paper keys in .env, every desk trade is also placed as a real paper order,
+	// so the desk's prices can be checked against what the market actually filled.
+	broker, err := alpaca.FromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if broker != nil {
+		startup, cancel := context.WithTimeout(ctx, QUOTE_TIMEOUT)
+		if _, err := broker.CashOnly(startup); err != nil {
+			log.Printf("alpaca: could not set the account to cash only: %v", err)
+		}
+		cancel()
+		mirror := &alpaca.Mirror{Client: broker, Journal: journal, StateFile: filepath.Join(*dataDir, MIRROR_FILE)}
+		go mirror.Run(ctx)
+		opts.Mount[ROUTE_BROKER] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(mirror.Status())
+		})
+		log.Printf("broker: Alpaca %s, cash only; desk trades are placed there too", broker.Mode)
+	}
 	// The tape records the same-day and weekly option chains every minute of the session: the
 	// history short-term option plays are backtested on, which no free source has.
 	tapeRecorder := &tape.Recorder{Dir: filepath.Join(*dataDir, TAPE_SUBDIR), Market: prices}
