@@ -1,4 +1,6 @@
-import { spawnSync } from 'node:child_process';
+// Moves the Money 24 runner onto Google's free e2-micro and keeps it free. See docs/CLOUD.md.
+//   node scripts/vps.js <command> [--dry-run]
+// Every gcloud command passes the free-tier allowlist in scripts/vps/freetier.js, in a dry run too.
 import { randomBytes } from 'node:crypto';
 import {
   closeSync, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync,
@@ -7,8 +9,13 @@ import {
 import { connect } from 'node:net';
 import { homedir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { DESK_PATH, WEB_ENV } from './desk-build.js';
+import { Gcloud } from './vps/gcloud.js';
+import { AUDIT_LISTS, auditProblems, freeZone, instanceProblems, machinePlan } from './vps/freetier.js';
+import { assertKillswitchVerified, setupKillswitch, testKillswitch } from './vps/killswitch.js';
+import { pullBackup } from './vps/pull.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RUN_DIR = join(ROOT, '.run', 'vps');
@@ -16,19 +23,29 @@ const RELEASE = join(RUN_DIR, 'release');
 const DEPLOY_DIR = join(ROOT, 'engine', 'deploy', 'vps');
 const VITE = join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 const ENV_FILE = join(ROOT, '.env');
-const BINS = ['m24d', 'newsd', 'm24backup'];
-const UNITS = ['newsd.service', 'm24d.service', 'money24-cloudflared.service', 'm24backup.service', 'm24backup.timer'];
+const BINS = ['m24d', 'newsd', 'm24backup', 'm24guard'];
+const UNITS = ['money24-gate.service', 'm24guard.service', 'm24guard.timer', 'newsd.service', 'm24d.service',
+  'money24-cloudflared.service', 'm24backup.service', 'm24backup.timer'];
 const IS_WINDOWS = process.platform === 'win32';
 const IS_MAC = process.platform === 'darwin';
 const INSTANCE = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
-const ZONE = /^(us-central1|us-east1|us-west1)-[a-z]$/;
 const PROJECT = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+const BILLING_ACCOUNT = /^[A-F0-9]{6}-[A-F0-9]{6}-[A-F0-9]{6}$/;
+const BUDGET = /^\d{1,2}(\.\d{1,2})?$/;
+const MAX_BUDGET_USD = 10;
+const DEFAULT_BUDGET_USD = '1';
+const DEFAULT_INSTANCE = 'money24';
+const MAX_GUARD_BYTES = 950_000_000; // the guard's own ceiling, under Google's free 1 GB
+const MAX_R2_CAP_BYTES = 8_000_000_000;
+const MAX_R2_NIGHT_BYTES = 50_000_000;
+const PLACEHOLDERS = { VPS_PROJECT: 'your-project-id', VPS_ZONE: 'us-west1-b', GCP_BILLING_ACCOUNT: '000000-000000-000000' };
 const STAGING = /^\/tmp\/money24\.[a-zA-Z0-9]{10}$/;
+const DRY_STAGING = '/tmp/money24.XXXXXXXXXX';
 const ENV_LINE = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/;
 const DATA_DIR = 'Money24';
+const PULL_DIR = 'Money24-cloud-backup';
 const LOCAL_PORTS = [8024, 8025, 8026];
 const PORT_TIMEOUT_MS = 800;
-const MAX_COMMAND_OUTPUT = 4 * 1024 * 1024;
 const SERVER_SETTINGS = [
   'USER_AGENT', 'NEWSD_ADMIN_TOKEN', 'NEWSD_ORIGINS', 'NEWSD_HOSTS',
   'M24D_WEBHOOK_SECRET', 'M24D_ORIGINS', 'M24D_HOSTS', 'M24D_NEWSD',
@@ -38,24 +55,19 @@ const SERVER_SETTINGS = [
   'M24D_ANTHROPIC_MODEL', 'M24D_OPENAI_MODEL', 'M24D_XAI_MODEL', 'M24D_GEMINI_MODEL',
   'ALPACA_KEY_ID', 'ALPACA_SECRET_KEY', 'ALPACA_DATA_FEED',
   'TELEGRAM_API_ID', 'TELEGRAM_API_HASH', 'DISCORD_BOT_TOKEN',
-  'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_BACKUP_MAX_BYTES',
+  'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_BACKUP_MAX_BYTES', 'R2_BACKUP_NIGHT_BYTES',
 ];
-const REQUIRED_SETTINGS = ['M24D_TUNNEL_TOKEN', 'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'];
+const R2_SETTINGS = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET'];
 const SECRET_KEY = /TOKEN|SECRET|KEY|HASH|PHONE/;
 const EXTRA_DISCORD_TOKEN = /^DISCORD_[A-Z0-9_]+_BOT_TOKEN$/;
 const DESK_PORT = 8025;
 const PC_STOP = 'node scripts/forever.js --stop';
 const PC_UNINSTALL = 'node scripts/forever.js --uninstall';
-const DRY_RUN = {
-  build: `Cross-build CGO-free Linux amd64 m24d, newsd and m24backup. Build Vite pages for ${DESK_PATH}/. Assemble .run/vps/release/.`,
-  setup: 'Use gcloud SSH over IAP to install Cloudflare’s Debian package, SQLite and vnStat. Configure 1 GiB swap, the money24 user, private data and bounded journald. Enable systemd services and the nightly timer for boot, gated on data cutover.',
-  env: 'Send allowlisted settings from .env over gcloud SSH stdin to root-owned /etc/money24.env (0600). Map the tunnel token to TUNNEL_TOKEN and enforce Alpaca paper mode. Values are omitted.',
-  deploy: 'Upload .run/vps/release/ via gcloud SCP. Atomically select the release and keep the previous build. Restart and check active VPS services, or stage the first release with services stopped.',
-  'move-data': `Require the PC services to be stopped (${PC_UNINSTALL}, then ${PC_STOP}). Upload the full local data tree privately via gcloud SCP. Refuse newer/server-only data unless --force. Activate VPS services after import. PC autostart command: ${PC_UNINSTALL}`,
-  status: 'Use gcloud SSH to report systemd state, memory, disk, data size, journal usage and monthly interface TX if available.',
-  logs: 'Use gcloud SSH to show the last 100 journal lines from the runner, news, tunnel and backup units.',
-  rollback: 'Switch the VPS to the previous release. Restart and check services if cutover is complete.',
-};
+const COMMANDS = ['killswitch', 'build', 'setup', 'warp', 'netcheck', 'env', 'deploy', 'move-data', 'status', 'logs',
+  'rollback', 'pull-backup'];
+const USAGE = `Usage: node scripts/vps.js <${COMMANDS.join('|')}> [--dry-run]
+       node scripts/vps.js killswitch test [--dry-run]
+       node scripts/vps.js move-data [--force] [--dry-run]`;
 
 function readEnv() {
   if (!existsSync(ENV_FILE)) return {};
@@ -67,12 +79,41 @@ function readEnv() {
   return values;
 }
 
+/** The cloud settings from .env, validated. A dry run fills gaps with placeholders and says so. */
+function cloudSettings(env, dry) {
+  const missing = [];
+  const pick = (name) => {
+    if (env[name]) return env[name];
+    if (!dry) return '';
+    missing.push(name);
+    return PLACEHOLDERS[name];
+  };
+  const s = {
+    project: pick('VPS_PROJECT'), zone: pick('VPS_ZONE'), billingAccount: pick('GCP_BILLING_ACCOUNT'),
+    instance: env.VPS_INSTANCE || DEFAULT_INSTANCE, budgetUsd: env.GCP_BUDGET_USD || DEFAULT_BUDGET_USD,
+  };
+  if (missing.length) console.log(`[dry-run] placeholders for unset .env values: ${missing.join(', ')}`);
+  if (!PROJECT.test(s.project)) throw new Error('Set VPS_PROJECT in .env to the Google Cloud project ID.');
+  if (!freeZone(s.zone)) throw new Error('Set VPS_ZONE in .env to a zone in us-west1, us-central1 or us-east1, such as us-west1-b.');
+  if (!INSTANCE.test(s.instance)) throw new Error('VPS_INSTANCE must be a lowercase instance name.');
+  if (!BUDGET.test(s.budgetUsd) || Number(s.budgetUsd) <= 0 || Number(s.budgetUsd) > MAX_BUDGET_USD) {
+    throw new Error(`GCP_BUDGET_USD must be a dollar amount above 0 and at most ${MAX_BUDGET_USD}.`);
+  }
+  s.region = s.zone.slice(0, s.zone.lastIndexOf('-'));
+  return s;
+}
+
 function local(command, args, options = {}) {
   const result = spawnSync(command, args, { cwd: ROOT, stdio: 'inherit', ...options });
   if (result.error || result.status !== 0) throw new Error(`${command === process.execPath ? 'Node build step' : command} failed.`);
 }
 
-function build() {
+function build(dry) {
+  if (dry) {
+    console.log(`[dry-run] node scripts/build-engine.js --linux --cloud   # CGO-free linux/amd64 ${BINS.join(', ')}`);
+    console.log(`[dry-run] vite build for ${DESK_PATH}/, then assemble .run/vps/release/`);
+    return;
+  }
   if (!existsSync(VITE)) throw new Error('Run npm ci in the repo before building.');
   mkdirSync(RUN_DIR, { recursive: true });
   const scratch = mkdtempSync(join(RUN_DIR, 'build-'));
@@ -80,7 +121,7 @@ function build() {
   const next = join(scratch, 'release');
   try {
     mkdirSync(next);
-    local(process.execPath, ['scripts/build-engine.js', '--linux', '--backup']);
+    local(process.execPath, ['scripts/build-engine.js', '--linux', '--cloud']);
     for (const bin of BINS) {
       copyFileSync(join(ROOT, 'engine', 'dist', `${bin}-linux-amd64`), join(next, bin));
     }
@@ -101,42 +142,26 @@ function build() {
   }
 }
 
-/** Runs gcloud with static commands and validated names. Secrets travel only over stdin. */
-function gcloud(args, input) {
-  const options = { cwd: ROOT, input, encoding: 'utf8', maxBuffer: MAX_COMMAND_OUTPUT, windowsHide: true };
-  if (!IS_WINDOWS) return spawnSync('gcloud', args, options);
-  // The Windows SDK entry point is a .cmd file. All caller-supplied arguments are validated or generated.
-  if (args.some((arg) => !/^[a-zA-Z0-9_:/ .-]+$/.test(arg))) throw new Error('Invalid gcloud argument.');
-  const command = args.map((arg) => arg.includes(' ') ? `"${arg}"` : arg).join(' ');
-  return spawnSync('cmd.exe', ['/d', '/s', '/c', `"gcloud.cmd ${command}"`], { ...options, windowsVerbatimArguments: true });
-}
-
 class VM {
-  /** Validates the target and checks that the local Google Cloud CLI has active credentials. */
-  constructor(settings) {
-    if (!INSTANCE.test(settings.VPS_INSTANCE ?? '') || !ZONE.test(settings.VPS_ZONE ?? '')) {
-      throw new Error('Set VPS_INSTANCE and VPS_ZONE in .env. Use a zone in us-central1, us-east1 or us-west1.');
-    }
-    this.instance = settings.VPS_INSTANCE;
-    this.flags = ['--zone', settings.VPS_ZONE, '--tunnel-through-iap', '--quiet'];
-    if (settings.VPS_PROJECT) {
-      if (!PROJECT.test(settings.VPS_PROJECT)) throw new Error('VPS_PROJECT must be a Google Cloud project ID.');
-      this.flags.push('--project', settings.VPS_PROJECT);
-    }
-    this.secrets = Object.entries(settings)
+  /** @param {Gcloud} gcloud @param {{instance: string, zone: string}} s @param {Record<string, string>} env */
+  constructor(gcloud, s, env) {
+    this.gcloud = gcloud;
+    this.dry = gcloud.dry;
+    this.instance = s.instance;
+    this.flags = [`--zone=${s.zone}`, '--tunnel-through-iap'];
+    this.secrets = Object.entries(env)
       .filter(([key, value]) => SECRET_KEY.test(key) && value)
       .map(([, value]) => value)
       .sort((a, b) => b.length - a.length);
-    const version = gcloud(['--version']);
-    if (version.error || version.status !== 0) throw new Error('Install Google Cloud CLI (gcloud) and add it to PATH.');
-    const auth = gcloud(['auth', 'print-access-token', '--quiet']);
-    if (auth.error || auth.status !== 0 || !auth.stdout?.trim()) {
-      throw new Error('Sign in first with gcloud auth login and select the project with gcloud config set project.');
-    }
   }
 
-  call(args, input, show = true) {
-    const result = gcloud([...args, ...this.flags], input);
+  relative(file) {
+    return relative(ROOT, file).split(sep).join('/');
+  }
+
+  call(args, input, show = true, note) {
+    const result = this.gcloud.run([...args, ...this.flags], { input, quiet: true, note });
+    if (this.dry) return '';
     if (show) {
       for (const [stream, raw] of [[process.stdout, result.stdout], [process.stderr, result.stderr]]) {
         if (!raw) continue;
@@ -145,40 +170,42 @@ class VM {
         stream.write(output);
       }
     }
-    if (result.error || result.status !== 0) {
-      throw new Error(`gcloud compute ${args[1]} failed.${show ? '' : ' Check IAP SSH access and noninteractive sudo.'}`);
-    }
+    if (!result.ok) throw new Error(`gcloud compute ${args[1]} failed.${show ? '' : ' Check IAP SSH access and noninteractive sudo.'}`);
     return result.stdout;
   }
 
-  ssh(command, input, show) {
-    return this.call(['compute', 'ssh', this.instance, '--command', command], input, show);
-  }
-
-  admin(action, { args = [], units = false, settings, show = true } = {}) {
+  /** Sends admin.sh over SSH stdin and runs one action as root. */
+  admin(action, { args = [], units = false, settings, show = true, pullList } = {}) {
     let script = readFileSync(join(DEPLOY_DIR, 'admin.sh'), 'utf8').replaceAll('\r\n', '\n');
+    const parts = [];
     if (units) {
-      const install = UNITS.map((unit) => {
+      script = script.replace('# INSTALL_UNITS', () => UNITS.map((unit) => {
         const content = readFileSync(join(DEPLOY_DIR, unit), 'utf8').replaceAll('\r\n', '\n').trimEnd();
         return `cat > "$UNIT_DIR/${unit}" <<'MONEY24_UNIT'\n${content}\nMONEY24_UNIT\nchmod 0644 "$UNIT_DIR/${unit}"`;
-      });
-      script = script.replace('# INSTALL_UNITS', () => install.join('\n'));
+      }).join('\n'));
+      parts.push(`${UNITS.length} units`);
     }
     if (settings) {
-      const delimiter = `MONEY24_ENV_${randomBytes(16).toString('hex')}`;
-      const install = [
-        'temp=$(mktemp /etc/.money24.env.XXXXXXXXXX)',
-        'trap \'rm -f -- "$temp"\' EXIT',
-        `cat > "$temp" <<'${delimiter}'\n${settings}\n${delimiter}`,
-        'mv -Tf -- "$temp" "$ENV_FILE"',
-      ].join('\n');
-      script = script.replace('# INSTALL_ENV', () => install);
+      script = script.replace('# INSTALL_ENV', () => installEnv(settings));
+      parts.push('settings, values withheld');
     }
-    return this.ssh(`sudo -n bash -s -- ${[action, ...args].join(' ')}`, script, show);
+    if (pullList) {
+      script = script.replace('# PULL_LIST', () => `cat <<'MONEY24_LIST'\n${pullList.join('\n')}\nMONEY24_LIST`);
+      parts.push(`${pullList.length} paths`);
+    }
+    const note = `stdin: engine/deploy/vps/admin.sh${parts.length ? ` with ${parts.join(', ')}` : ''}`;
+    return this.call(['compute', 'ssh', this.instance, '--command', `sudo -n bash -s -- ${[action, ...args].join(' ')}`],
+      script, show, note);
   }
 
   /** Uploads via a private remote staging directory and always attempts cleanup. */
   transfer(action, source, force = false) {
+    const tail = force ? ['force'] : [];
+    if (this.dry) {
+      console.log(`  [dry-run] tar -cf .run/vps/upload-XXXX/payload.tar -C ${this.relative(source) || '.'} .`);
+      this.call(['compute', 'scp', '.run/vps/upload-XXXX/payload.tar', `${this.instance}:${DRY_STAGING}/payload.tar`]);
+      return { staging: DRY_STAGING, args: [DRY_STAGING, ...tail] };
+    }
     mkdirSync(RUN_DIR, { recursive: true });
     const scratch = mkdtempSync(join(RUN_DIR, 'upload-'));
     const archive = join(scratch, 'payload.tar');
@@ -186,12 +213,11 @@ class VM {
     try {
       closeSync(openSync(archive, 'wx', 0o600));
       local('tar', ['-cf', archive, '-C', source, '.'], { stdio: 'ignore' });
-      const remote = this.ssh('mktemp -d /tmp/money24.XXXXXXXXXX', undefined, false).trim();
+      const remote = this.call(['compute', 'ssh', this.instance, '--command', 'mktemp -d /tmp/money24.XXXXXXXXXX'], undefined, false).trim();
       if (!STAGING.test(remote)) throw new Error('The VPS did not return a private staging directory.');
       staging = remote;
-      const rel = relative(ROOT, archive).split(sep).join('/');
-      this.call(['compute', 'scp', rel, `${this.instance}:${staging}/payload.tar`], undefined, action !== 'move-data');
-      return { staging, args: force ? [staging, 'force'] : [staging] };
+      this.call(['compute', 'scp', this.relative(archive), `${this.instance}:${staging}/payload.tar`], undefined, action !== 'move-data');
+      return { staging, args: [staging, ...tail] };
     } catch (error) {
       if (staging) this.clean(staging);
       throw error;
@@ -202,25 +228,42 @@ class VM {
 
   clean(staging) {
     try {
-      this.ssh('sudo -n bash -s', `rm -rf -- '${staging}'\n`, false);
+      this.call(['compute', 'ssh', this.instance, '--command', 'sudo -n bash -s'], `rm -rf -- '${staging}'\n`, false);
     } catch {
       console.error('The private upload could not be removed from the VPS.');
     }
   }
 }
 
-function serverEnv(settings) {
-  for (const name of REQUIRED_SETTINGS) {
-    if (!settings[name]) throw new Error(`Set ${name} in .env before installing server settings.`);
+/** The root-only files env installs: service settings, guard limit, and whether R2 backup is on. */
+function installEnv({ service, guard, r2 }) {
+  const write = (target, content) => {
+    const delimiter = `MONEY24_ENV_${randomBytes(16).toString('hex')}`;
+    return [`temp=$(mktemp /etc/.money24.env.XXXXXXXXXX)`, `cat > "$temp" <<'${delimiter}'\n${content}\n${delimiter}`,
+      `trap 'rm -f -- "$temp"' EXIT`, `chmod 0600 "$temp"`, `mv -Tf -- "$temp" "${target}"`].join('\n');
+  };
+  return [write('$ENV_FILE', service), write('/etc/money24-guard.env', guard),
+    r2 ? 'touch /etc/money24-r2.enabled' : 'rm -f /etc/money24-r2.enabled'].join('\n');
+}
+
+function byteLimit(env, name, most) {
+  const raw = env[name];
+  if (raw && (!/^\d+$/.test(raw) || Number(raw) <= 0 || Number(raw) > most)) {
+    throw new Error(`${name} must be a whole number of bytes from 1 to ${most}.`);
   }
+  return raw;
+}
+
+function serverEnv(settings) {
+  if (!settings.M24D_TUNNEL_TOKEN) throw new Error('Set M24D_TUNNEL_TOKEN in .env before installing server settings.');
+  const r2Count = R2_SETTINGS.filter((name) => settings[name]).length;
+  if (r2Count && r2Count !== R2_SETTINGS.length) throw new Error(`Set all of ${R2_SETTINGS.join(', ')}, or none to back up with pull-backup.`);
   if (settings.ALPACA_ENV && settings.ALPACA_ENV.toLowerCase() !== 'paper') {
     throw new Error('The VPS kit only accepts ALPACA_ENV=paper.');
   }
-  if (settings.R2_BACKUP_MAX_BYTES &&
-      (!/^\d+$/.test(settings.R2_BACKUP_MAX_BYTES) || Number(settings.R2_BACKUP_MAX_BYTES) <= 0 ||
-       Number(settings.R2_BACKUP_MAX_BYTES) >= 10_000_000_000)) {
-    throw new Error('R2_BACKUP_MAX_BYTES must be positive and below 10000000000.');
-  }
+  byteLimit(settings, 'R2_BACKUP_MAX_BYTES', MAX_R2_CAP_BYTES);
+  byteLimit(settings, 'R2_BACKUP_NIGHT_BYTES', MAX_R2_NIGHT_BYTES);
+  const guardBytes = byteLimit(settings, 'VPS_MONTH_TX_BYTES', MAX_GUARD_BYTES);
   const extra = Object.keys(settings).filter((name) => EXTRA_DISCORD_TOKEN.test(name));
   const values = Object.fromEntries([...SERVER_SETTINGS, ...extra].filter((name) => settings[name])
     .map((name) => [name, settings[name]]));
@@ -230,10 +273,11 @@ function serverEnv(settings) {
     const host = settings.M24D_PUBLIC_HOST.replace(/^https?:\/\//, '').split('/')[0];
     values.M24D_HOSTS = `127.0.0.1:${DESK_PORT},localhost:${DESK_PORT},${host}`;
   }
-  return Object.entries(values).map(([name, value]) => {
+  const service = Object.entries(values).map(([name, value]) => {
     if (/[\x00-\x1f\x7f]/.test(value)) throw new Error(`Unsupported control character in ${name}.`);
     return `${name}="${value.replace(/[\\"$`]/g, '\\$&')}"`;
   }).join('\n');
+  return { service, guard: guardBytes ? `M24GUARD_MONTH_TX_BYTES=${guardBytes}` : '', r2: r2Count > 0 };
 }
 
 function dataFolder(settings) {
@@ -244,6 +288,12 @@ function dataFolder(settings) {
   const folder = settings.VPS_DATA_DIR ? resolve(ROOT, settings.VPS_DATA_DIR) : join(base, DATA_DIR);
   if (!existsSync(folder) || !lstatSync(folder).isDirectory()) throw new Error('Local Money24 data folder is missing or is a symlink.');
   return folder;
+}
+
+function pullFolder(settings) {
+  if (settings.VPS_PULL_DIR) return resolve(ROOT, settings.VPS_PULL_DIR);
+  const base = IS_WINDOWS ? process.env.APPDATA : homedir();
+  return join(base, PULL_DIR);
 }
 
 function checkDataTree(folder) {
@@ -267,52 +317,104 @@ async function assertPCStopped() {
   if (ports.some(Boolean)) throw new Error(`Stop the PC services before cutover. Run ${PC_UNINSTALL} and then ${PC_STOP}.`);
 }
 
-async function main() {
-  const [action, ...flags] = process.argv.slice(2);
-  const dry = flags.includes('--dry-run');
-  const force = flags.includes('--force');
-  if (!Object.hasOwn(DRY_RUN, action) || flags.some((flag) => !['--dry-run', '--force'].includes(flag)) ||
-      (force && action !== 'move-data')) {
-    throw new Error('Usage: node scripts/vps.js <build|setup|env|deploy|move-data|status|logs|rollback> [--dry-run] [--force for move-data]');
+/** Refuses to go on while the project holds anything billable besides the kit's own machine. */
+function audit(gcloud, s) {
+  const inventory = {};
+  for (const [key, args] of Object.entries(AUDIT_LISTS)) inventory[key] = gcloud.json(args, []);
+  const problems = auditProblems(inventory, s.instance);
+  if (problems.length) {
+    throw new Error(`The project holds resources Google bills. Delete them in the console first:\n  ${problems.join('\n  ')}`);
   }
-  if (dry) {
-    console.log(`[dry-run] ${action} — ${DRY_RUN[action]}`);
+}
+
+/** Confirms the running machine is the free one: e2-micro, free zone, one standard disk of 30 GB or less, no IPv4. */
+function verifyMachine(gcloud, s) {
+  const instance = gcloud.json(['compute', 'instances', 'describe', s.instance, `--zone=${s.zone}`], null);
+  if (gcloud.dry) {
+    console.log('  [dry-run] then check machine type, zone, provisioning, external IPv4 and every disk');
     return;
+  }
+  const disks = (instance.disks ?? []).map((disk) => gcloud.json(['compute', 'disks', 'describe',
+    disk.source.split('/').pop(), `--zone=${s.zone}`], {}));
+  const problems = instanceProblems(instance, disks);
+  if (problems.length) throw new Error(`The machine is not free: ${problems.join('; ')}. Fix it in the console before going on.`);
+  console.log(`Verified free tier: ${s.instance} is an e2-micro in ${s.zone} with one standard disk and no external IPv4.`);
+}
+
+function setup(gcloud, vm, s) {
+  assertKillswitchVerified(RUN_DIR, s, gcloud.dry);
+  audit(gcloud, s);
+  for (const step of machinePlan(s)) gcloud.ensure(step);
+  verifyMachine(gcloud, s);
+  vm.admin('setup', { units: true });
+}
+
+async function moveOrDeploy(vm, action, env, force) {
+  const move = action === 'move-data';
+  const source = move ? dataFolder(env) : RELEASE;
+  if (move && !vm.dry) {
+    await assertPCStopped();
+    checkDataTree(source);
+  } else if (!move && !vm.dry && !existsSync(join(RELEASE, 'web', 'home.html'))) {
+    throw new Error('Run node scripts/vps.js build first.');
+  }
+  if (move && vm.dry) console.log(`  [dry-run] require the PC services stopped: ${PC_UNINSTALL}, then ${PC_STOP}`);
+  const { staging, args } = vm.transfer(action, source, force);
+  try {
+    if (move && !vm.dry) await assertPCStopped();
+    vm.admin(action, { args });
+  } finally {
+    if (!vm.dry) vm.clean(staging);
+  }
+  if (move) console.log(`Keep PC autostart disabled: ${PC_UNINSTALL}`);
+}
+
+async function main() {
+  const [action, ...rest] = process.argv.slice(2);
+  const dry = rest.includes('--dry-run');
+  const force = rest.includes('--force');
+  const words = rest.filter((arg) => !arg.startsWith('--'));
+  const testing = action === 'killswitch' && words[0] === 'test';
+  const flagsOk = rest.every((arg) => ['--dry-run', '--force'].includes(arg) || (testing && arg === 'test'));
+  if (!COMMANDS.includes(action) || !flagsOk || (force && action !== 'move-data') || (words.length && !testing)) {
+    throw new Error(USAGE);
   }
   if (action === 'build') {
-    build();
+    build(dry);
     return;
   }
-  const settings = readEnv();
-  const vm = new VM(settings);
+  const env = readEnv();
+  const s = cloudSettings(env, dry);
+  const gcloud = new Gcloud({ dry, project: s.project });
+  gcloud.ready();
+  const vm = new VM(gcloud, s, env);
   switch (action) {
+    case 'killswitch':
+      if (testing) {
+        await testKillswitch(gcloud, s, RUN_DIR);
+      } else {
+        setupKillswitch(gcloud, s);
+      }
+      break;
     case 'setup':
-      vm.admin(action, { units: true });
+      setup(gcloud, vm, s);
+      break;
+    case 'warp':
+      vm.admin('warp');
+      // A fresh SSH session proves IAP still reaches the machine; it cancels the dead-man timer.
+      vm.admin('warp-confirm');
       break;
     case 'env':
-      vm.admin(action, { settings: serverEnv(settings), show: false });
-      console.log('Server settings installed at /etc/money24.env (0600).');
+      vm.admin(action, { settings: dry ? { service: '', guard: '', r2: false } : serverEnv(env), show: false });
+      console.log('Server settings installed at /etc/money24.env (0600), the guard limit at /etc/money24-guard.env.');
       break;
     case 'deploy':
-    case 'move-data': {
-      const move = action === 'move-data';
-      const source = move ? dataFolder(settings) : RELEASE;
-      if (move) {
-        await assertPCStopped();
-        checkDataTree(source);
-      } else if (!existsSync(join(RELEASE, 'web', 'home.html'))) {
-        throw new Error('Run node scripts/vps.js build first.');
-      }
-      const { staging, args } = vm.transfer(action, source, force);
-      try {
-        if (move) await assertPCStopped();
-        vm.admin(action, { args });
-      } finally {
-        vm.clean(staging);
-      }
-      if (move) console.log(`Keep PC autostart disabled: ${PC_UNINSTALL}`);
+    case 'move-data':
+      await moveOrDeploy(vm, action, env, force);
       break;
-    }
+    case 'pull-backup':
+      pullBackup(vm, pullFolder(env), RUN_DIR);
+      break;
     default:
       vm.admin(action);
   }

@@ -16,6 +16,16 @@ readonly SERVICES=(newsd.service m24d.service "$TUNNEL")
 readonly CHECKS=(http://127.0.0.1:8024/healthz http://127.0.0.1:8025/healthz http://127.0.0.1:8026/ready)
 readonly HEALTH_ATTEMPTS=20
 readonly HEALTH_WAIT=2
+readonly GUARD=$APP/current/m24guard
+readonly GUARD_TIMER=m24guard.timer
+readonly GATE=money24-gate.service
+readonly WARP_DEADMAN=money24-warp-deadman
+readonly WARP_DEADMAN_SECONDS=180
+readonly WARP_KEYRING=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+# Google's IAP source range must bypass WARP or SSH stops answering. Public IPv6 stays direct;
+# only IPv4, which this machine has no address for, goes through WARP.
+readonly WARP_BYPASS=(35.235.240.0/20 2000::/3)
+readonly NEWS_DB=news/news.db
 
 die() {
     printf '%s\n' "$*" >&2
@@ -27,7 +37,7 @@ setup() {
     [[ $ID == debian && $VERSION_ID == 12 && $(uname -m) == x86_64 ]] ||
         die 'The VPS kit needs Debian 12 amd64.'
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl sqlite3 vnstat
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl sqlite3 gnupg
     install -d -m 0755 /usr/share/keyrings
     curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg -o /usr/share/keyrings/cloudflare-main.gpg
     chmod 0644 /usr/share/keyrings/cloudflare-main.gpg
@@ -61,7 +71,97 @@ setup() {
     systemctl restart systemd-journald
     systemctl daemon-reload
     systemctl enable "${SERVICES[@]}" "$TIMER"
-    systemctl enable --now vnstat.service
+    # The guard meters from the first boot; it waits for its binary, which deploy installs.
+    systemctl enable --now "$GUARD_TIMER"
+}
+
+# The machine has no public IPv4 (Google bills one hourly), so IPv4-only services go through
+# Cloudflare WARP's free tunnel, which rides on IPv6. A dead-man timer turns WARP off again
+# unless vps.js confirms over a fresh IAP SSH session that the machine is still reachable.
+warp() {
+    install -d -m 0755 /usr/share/keyrings
+    curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor -o "$WARP_KEYRING"
+    chmod 0644 "$WARP_KEYRING"
+    printf 'deb [signed-by=%s] https://pkg.cloudflareclient.com/ bookworm main\n' "$WARP_KEYRING" |
+        install -m 0644 /dev/stdin /etc/apt/sources.list.d/cloudflare-client.list
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y cloudflare-warp
+    warp-cli --accept-tos registration show >/dev/null 2>&1 || warp-cli --accept-tos registration new
+    local range
+    for range in "${WARP_BYPASS[@]}"; do
+        warp-cli --accept-tos tunnel ip add "$range" >/dev/null 2>&1 || true
+    done
+    warp-cli --accept-tos mode warp
+    systemctl stop "$WARP_DEADMAN.timer" 2>/dev/null || true
+    systemd-run --unit="$WARP_DEADMAN" --on-active="$WARP_DEADMAN_SECONDS" /usr/bin/warp-cli --accept-tos disconnect
+    warp-cli --accept-tos connect
+    sleep 5
+    warp-cli --accept-tos status
+}
+
+# Which services answer, over IPv4 and over IPv6. Without WARP, IPv4 fails everywhere.
+netcheck() {
+    local hosts=(
+        api.elections.kalshi.com api.exchange.coinbase.com api.dexscreener.com pumpportal.fun
+        frontend-api-v3.pump.fun api.rugcheck.xyz api.telegram.org query1.finance.yahoo.com
+        paper-api.alpaca.markets data.alpaca.markets discord.com gateway.discord.gg
+        api.anthropic.com api.openai.com api.x.ai generativelanguage.googleapis.com
+        r2.cloudflarestorage.com region1.v2.argotunnel.com deb.debian.org pkg.cloudflare.com
+    )
+    local host family code
+    printf '%-36s %-6s %-6s\n' host IPv4 IPv6
+    for host in "${hosts[@]}"; do
+        printf '%-36s' "$host"
+        for family in -4 -6; do
+            code=$(curl "$family" -s -o /dev/null --max-time 8 -w '%{http_code}' "https://$host/" 2>/dev/null) || code=fail
+            [[ $code == 000 ]] && code=fail
+            printf ' %-6s' "$code"
+        done
+        printf '\n'
+    done
+    printf '%-36s' 'Telegram MTProto 149.154.167.50:443'
+    if timeout 6 bash -c '</dev/tcp/149.154.167.50/443' 2>/dev/null; then printf ' ok\n'; else printf ' fail\n'; fi
+    printf '%s\n' 'Any HTTP code means the host answered; fail means it is unreachable on that family.'
+}
+
+# Lists data files for the PC's pull-backup: size, modification time, path. SQLite side files
+# are skipped; pull-pack snapshots the database itself.
+pull_manifest() {
+    local room
+    room=$("$GUARD" status 2>/dev/null | sed -n 's/.*"backup_room_bytes": *\([0-9]*\).*/\1/p' | head -n 1)
+    printf 'ROOM\t%s\n' "${room:-0}"
+    find "$DATA" -type f ! -name '*-wal' ! -name '*-shm' ! -name '*-journal' -printf 'F\t%s\t%T@\t%P\n'
+}
+
+# vps.js writes the requested paths here, one per line.
+pull_list() {
+    # PULL_LIST
+    :
+}
+
+# Packs the requested files into a private archive the SSH user can download.
+pull_pack() {
+    local stage rel list
+    stage=$(mktemp -d /tmp/money24.XXXXXXXXXX)
+    trap "rm -rf -- '$stage'" ERR
+    list=$stage/files
+    mkdir "$stage/tree"
+    while IFS= read -r rel; do
+        [[ $rel =~ ^[A-Za-z0-9._/-]+$ && $rel != *..* ]] || die "Refusing pull path: $rel"
+        [[ -f $DATA/$rel ]] || continue # removed since the manifest
+        mkdir -p "$stage/tree/$(dirname -- "$rel")"
+        if [[ $rel == "$NEWS_DB" ]]; then
+            sqlite3 -batch -bail -readonly -cmd '.timeout 10000' "$DATA/$rel" ".backup '$stage/tree/$rel'"
+        else
+            cp -p -- "$DATA/$rel" "$stage/tree/$rel"
+        fi
+        printf '%s\n' "$rel" >> "$list"
+    done < <(pull_list)
+    [[ -s $list ]] || { rm -rf -- "$stage"; die 'Nothing to pack.'; }
+    tar -czf "$stage/pull.tar.gz" -C "$stage/tree" -T "$list"
+    rm -rf -- "$stage/tree" "$list"
+    chown -R "${SUDO_USER:-root}" "$stage"
+    printf 'PACK\t%s\t%s\n' "$stage" "$(stat -c %s "$stage/pull.tar.gz")"
 }
 
 check_health() {
@@ -111,7 +211,7 @@ deploy() {
     [[ -s $ENV_FILE ]] || die 'Run vps.js env first.'
     dir=$(mktemp -d "$APP/releases/release.XXXXXXXXXX")
     tar -xf "$archive" --no-same-owner --no-same-permissions -C "$dir"
-    chmod 0755 "$dir" "$dir/m24d" "$dir/newsd" "$dir/m24backup"
+    chmod 0755 "$dir" "$dir/m24d" "$dir/newsd" "$dir/m24backup" "$dir/m24guard"
     chmod -R a+rX "$dir/web"
     test -f "$dir/web/home.html"
     old=$(readlink "$APP/current" || true)
@@ -176,18 +276,27 @@ move_data() {
 
 case "${1:-}" in
     status)
-        systemctl show "${SERVICES[@]}" "$BACKUP" "$TIMER" --no-pager \
+        systemctl show "$GATE" "${SERVICES[@]}" "$BACKUP" "$TIMER" "$GUARD_TIMER" --no-pager \
             -p Id -p ActiveState -p SubState -p NRestarts -p MemoryCurrent -p Result -p NextElapseUSecRealtime
         free -h
         df -h "$STATE"
         du -sh "$DATA" "$APP/releases"
         journalctl --disk-usage
-        printf '\n%s\n' 'Monthly interface traffic (TX includes all outbound traffic, use Cloud Billing for billable egress):'
-        vnstat --months --limit 1 || true
+        printf '\n%s\n' 'Egress guard (bytes sent this month on the network card; Money 24 stops at the limit):'
+        "$GUARD" status || printf '%s\n' 'Guard binary not installed yet. Run vps.js deploy.'
+        warp-cli --accept-tos status 2>/dev/null || true
         exit
         ;;
     logs)
-        journalctl --no-pager -n 100 -u newsd -u m24d -u "$TUNNEL" -u "$BACKUP" -u "$TIMER"
+        journalctl --no-pager -n 100 -u newsd -u m24d -u "$TUNNEL" -u "$BACKUP" -u "$TIMER" -u m24guard -u "$GATE"
+        exit
+        ;;
+    netcheck) netcheck; exit ;;
+    pull-manifest) pull_manifest; exit ;;
+    pull-pack) pull_pack; exit ;;
+    pull-clean)
+        [[ ${2:-} =~ ^/tmp/money24\.[A-Za-z0-9]{10}$ ]] || die 'Missing pull staging directory.'
+        rm -rf -- "$2"
         exit
         ;;
 esac
@@ -212,6 +321,11 @@ case "${1:-}" in
         ;;
     env)
         # INSTALL_ENV
+        ;;
+    warp) warp ;;
+    warp-confirm)
+        systemctl stop "$WARP_DEADMAN.timer" 2>/dev/null || true
+        printf '%s\n' 'WARP stays on: SSH still answers through IAP.'
         ;;
     *) die 'Unknown VPS operation.' ;;
 esac
