@@ -21,6 +21,8 @@ const (
 	LIVE_MAX_AGE_SLOW   = 45 * 24 * time.Hour // monthly releases (macro, central banks, filings) may be quiet for weeks
 	LIVE_REVALIDATE_ENV = "M24D_REVALIDATE"   // ask each feed a second time at once: does it answer 304, and what does that cost
 	LIVE_MIN_ITEMS      = 1
+	LIVE_NEWS_KIND      = "news"
+	LIVE_RATE_LIMIT     = "HTTP 429"        // a throttled source is not a broken one: check it again later
 	LIVE_NEEDS_UA       = "sec.gov bls.gov" // hosts that refuse the default User-Agent
 )
 
@@ -77,6 +79,9 @@ func checkLiveSource(t *testing.T, src Source, fetcher *Fetcher, monitor *Monito
 	started := time.Now()
 	batch, err := POLLERS[src.Type](ctx, src, fetcher, tagger)
 	if err != nil {
+		if strings.Contains(err.Error(), LIVE_RATE_LIMIT) {
+			t.Skipf("%s is rate limited: %v", src.ID, err)
+		}
 		t.Errorf("FAIL %s: %v", src.ID, err)
 		return
 	}
@@ -117,7 +122,7 @@ func checkLiveSource(t *testing.T, src Source, fetcher *Fetcher, monitor *Monito
 		return
 	}
 	limit := LIVE_MAX_AGE
-	if src.Kind != "news" {
+	if src.Kind != LIVE_NEWS_KIND {
 		limit = LIVE_MAX_AGE_SLOW
 	}
 	verdict := "ok"

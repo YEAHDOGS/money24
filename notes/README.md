@@ -73,3 +73,4 @@ exchange-grade API or liquidity).
 - [meme-coins.md](meme-coins.md) — Solana meme coins: base rates, who wins and
   who loses, scam checks, paper strategies, costs and legal risk.
 - [research-leads.md](research-leads.md) — open research leads on file.
+- [news-sources.md](news-sources.md) — the 313 newsd news sources by group, how Reuters, AP and CNN are covered, what was dropped and why, and the request and byte cost.
