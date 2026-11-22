@@ -1,11 +1,11 @@
 package meme
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -26,23 +26,29 @@ func TestLiveRecorder(t *testing.T) {
 	recorder.Run(ctx)
 	t.Logf("one-minute status: %+v", recorder.Status())
 
-	files, err := filepath.Glob(filepath.Join(recorder.Dir, "*", RECORD_PATTERN))
+	files, err := RecordFiles(recorder.Dir, recorder.Status().Day)
 	if err != nil {
 		t.Fatal(err)
 	}
 	counts := make(map[string]int)
 	samples := make(map[string]string)
 	priced, safetyReports := 0, 0
-	for _, path := range files {
-		f, err := os.Open(path)
+	for _, name := range files {
+		f, err := OpenRecords(recorder.Dir, name)
 		if err != nil {
 			t.Fatal(err)
 		}
-		scanner := bufio.NewScanner(f)
-		scanner.Buffer(make([]byte, RESTORE_BUFFER), MAX_LOOKUP_BYTES)
-		for scanner.Scan() {
+		for {
+			line, _, err := f.Next()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				f.Close()
+				t.Fatal(err)
+			}
 			var row Record
-			if err := json.Unmarshal(scanner.Bytes(), &row); err != nil {
+			if err := json.Unmarshal(line, &row); err != nil {
 				f.Close()
 				t.Fatal(err)
 			}
@@ -52,7 +58,7 @@ func TestLiveRecorder(t *testing.T) {
 				if row.Market != nil && row.Market.PriceUSD != nil {
 					priced++
 					if samples[KIND_SNAPSHOT] == "" {
-						samples[KIND_SNAPSHOT] = scanner.Text()
+						samples[KIND_SNAPSHOT] = string(line)
 					}
 				}
 			case KIND_SAFETY:
@@ -61,14 +67,11 @@ func TestLiveRecorder(t *testing.T) {
 				}
 			case KIND_LAUNCH, KIND_GRADUATION:
 				if samples[row.Kind] == "" {
-					samples[row.Kind] = scanner.Text()
+					samples[row.Kind] = string(line)
 				}
 			}
 		}
 		f.Close()
-		if err := scanner.Err(); err != nil {
-			t.Fatal(err)
-		}
 	}
 	t.Logf("disk counts: %v, priced snapshots: %d, safety reports: %d", counts, priced, safetyReports)
 	for _, kind := range []string{KIND_LAUNCH, KIND_GRADUATION, KIND_SNAPSHOT} {

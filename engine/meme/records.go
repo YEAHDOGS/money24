@@ -1,12 +1,6 @@
 package meme
 
-import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-)
+import "time"
 
 const (
 	KIND_LAUNCH       = "launch"
@@ -68,42 +62,4 @@ type Graduation struct {
 	SameBlock      *bool  `json:"same_block,omitempty"`
 	CreatorSold    *bool  `json:"creator_sold,omitempty"`
 	DeployerFunded *bool  `json:"deployer_funded,omitempty"`
-}
-
-type recordWriter struct {
-	dir  string
-	day  string
-	file *os.File
-}
-
-func (w *recordWriter) write(row Record) error {
-	day := row.At.UTC().Format(DAY_LAYOUT)
-	if w.file == nil || w.day != day {
-		if w.file != nil {
-			err := w.file.Close()
-			w.file = nil
-			if err != nil {
-				return err
-			}
-		}
-		dir := filepath.Join(w.dir, day)
-		if err := os.MkdirAll(dir, DIRECTORY_MODE); err != nil {
-			return err
-		}
-		file, err := os.CreateTemp(dir, FILE_PREFIX+time.Now().UTC().Format(FILE_CLOCK_LAYOUT)+"-*"+FILE_SUFFIX)
-		if err != nil {
-			return err
-		}
-		w.file, w.day = file, day
-	}
-	if err := json.NewEncoder(w.file).Encode(row); err != nil {
-		// A partial write can affect this file's final line only.
-		closeErr := w.file.Close()
-		w.file = nil
-		if closeErr != nil {
-			return fmt.Errorf("write %w (close: %v)", err, closeErr)
-		}
-		return err
-	}
-	return nil
 }

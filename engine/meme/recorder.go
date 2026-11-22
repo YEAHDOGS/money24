@@ -23,6 +23,7 @@ type Status struct {
 	Running        bool      `json:"running"`
 	Connected      bool      `json:"connected"`
 	Day            string    `json:"day"`
+	BytesToday     int64     `json:"bytes_today"`
 	SeenToday      int       `json:"seen_today"`
 	TrackedNow     int       `json:"tracked_now"`
 	Graduated      int       `json:"graduated"`
@@ -41,7 +42,7 @@ type Recorder struct {
 	Dir string
 	// OnRecord receives each new observation after it is written, in file order.
 	// Set it before Run. The callback runs on the recorder loop and must not mutate the record.
-	OnRecord func(Record)
+	OnRecord func(Record, Position)
 
 	client    *http.Client
 	pumpURL   string
@@ -77,10 +78,11 @@ type recording struct {
 // Status returns a thread-safe copy of the desk counters.
 func (r *Recorder) Status() Status {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	status := r.state
+	r.mu.Unlock()
 	status.Dir = r.Dir
 	status.setDay(time.Now())
+	status.BytesToday = dayBytes(r.Dir, status.Day)
 	return status
 }
 
@@ -150,14 +152,18 @@ func (run *recording) apply(row Record) {
 }
 
 func (run *recording) save(row Record) {
-	run.status.setDay(time.Now())
-	if err := run.writer.write(row); err != nil {
+	now := time.Now().UTC()
+	run.status.setDay(now)
+	day := row.At.UTC().Format(DAY_LAYOUT)
+	run.report(run.writer.sealExpired(now, day))
+	pos, err := run.writer.write(row, now, day)
+	if err != nil {
 		run.report(fmt.Errorf("meme dataset: %w", err))
 		return
 	}
 	run.apply(row)
 	if observe := run.recorder.OnRecord; observe != nil {
-		observe(row)
+		observe(row, pos)
 	}
 }
 
@@ -239,9 +245,7 @@ func (r *Recorder) Run(ctx context.Context) {
 	if run.status.Connected {
 		run.stream(streamUpdate{})
 	}
-	if run.writer.file != nil {
-		run.report(run.writer.file.Close())
-	}
+	run.report(run.writer.seal())
 	run.status.Running, run.status.Connected = false, false
 	run.publish()
 }
@@ -286,6 +290,7 @@ func (run *recording) loop(ctx context.Context) {
 		default:
 		}
 	}()
+	run.report(Compact(run.writer.dir))
 	run.report(run.restore(ctx, time.Now().UTC()))
 	run.publish()
 	ticker := time.NewTicker(SCHEDULER_TICK)
@@ -314,6 +319,7 @@ func (run *recording) loop(ctx context.Context) {
 			}
 		case <-ticker.C:
 			now := time.Now().UTC()
+			run.report(run.writer.sealExpired(now, now.Format(DAY_LAYOUT)))
 			run.tracking.prune(now)
 			if !marketBusy && !now.Before(nextMarket) {
 				tokens := run.tracking.marketDue(now)
