@@ -192,7 +192,8 @@ export class HomeClient {
    */
   watchScout(/** @type {boolean} */ on) {
     clearTimeout(this.#timers.scout);
-    if (!on || this.status === STATUS.demo) return;
+    // A public page never asks 127.0.0.1: that is what makes a browser ask for local-network access.
+    if (!on || this.status === STATUS.demo || demoFirst()) return;
     const read = async () => {
       if (!document.hidden) this.scout = await getJSON(`${this.#base}/api/plays/scout`).catch(() => this.scout);
       this.#timers.scout = setTimeout(read, SCOUT_MS);
@@ -203,7 +204,8 @@ export class HomeClient {
   /** Reads the prediction desk while its tab is open and the page is on screen. Closing the tab stops it. */
   watchPredict(/** @type {boolean} */ on) {
     clearTimeout(this.#timers.predict);
-    if (!on || this.status === STATUS.demo) return;
+    // A public page never asks 127.0.0.1: that is what makes a browser ask for local-network access.
+    if (!on || this.status === STATUS.demo || demoFirst()) return;
     const read = async () => {
       if (!document.hidden) this.predict = await getJSON(`${this.#base}/api/predict`).catch(() => this.predict);
       this.#timers.predict = setTimeout(read, PREDICT_MS);

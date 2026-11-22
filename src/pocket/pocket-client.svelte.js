@@ -2,7 +2,8 @@
 // ten seconds while the pocket is on screen, and at once each time the tray shows it. Each route is
 // asked on its own, so one that is missing or slow (an older runner, a desk turned off) never holds
 // up the rest. The pocket only reads; Stop goes through the app (src/tauri/src/supervisor.rs).
-import { STORE_RUNNER, stored } from '../lib/demo.js';
+import { STORE_RUNNER, demoFirst, stored } from '../lib/demo.js';
+import { native } from './native.js';
 import { Poller } from '../home/poller.js';
 import { deskRows, overall, playRows, problems, recorderRows, serviceRows } from './pocket-model.js';
 
@@ -63,7 +64,16 @@ export class PocketClient {
   #base = stored(STORE_RUNNER, DEFAULT_RUNNER).replace(/\/+$/, '');
   #poller = new Poller(() => this.#load(), () => REFRESH_MS);
 
+  /** True on a public website: the pocket belongs to the desktop app and asks nothing there. */
+  publicPage = (false);
+
   start() {
+    // Outside the desktop app and the runner's own pages, never ask 127.0.0.1: a public website that does
+    // makes the browser ask the visitor for local-network access.
+    if (!native && demoFirst()) {
+      this.publicPage = true;
+      return;
+    }
     window.addEventListener(SHOWN_EVENT, this.#onShown);
     this.#poller.start();
   }
