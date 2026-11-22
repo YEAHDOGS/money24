@@ -23,6 +23,7 @@ const PAGES = {
   markets: 'markets.html',
   plays: 'plays.html',
   wallet: 'wallet.html',
+  pocket: 'pocket.html', // the desktop app's status window over the tray (src/pocket/, src/tauri/src/pocket.rs)
   terms: 'terms.html',
 }
 // The path the pages are served under. "/" everywhere except the build the runner serves itself, which

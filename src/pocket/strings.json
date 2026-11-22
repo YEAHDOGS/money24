@@ -1,0 +1,123 @@
+{
+  "heading": "Status",
+  "paper": "Paper",
+  "paperNote": "Paper trading only: nothing here places a real order.",
+  "loading": "Reading the services…",
+  "updated": "as of {time}",
+  "overall": {
+    "ok": "All running",
+    "one": "1 thing to look at",
+    "many": "{n} things to look at",
+    "down": "Runner not answering",
+    "loading": "Checking…"
+  },
+  "mode": {
+    "attached": "Watching the services the supervisor runs",
+    "own": "Running its own services: Quit stops them",
+    "browser": "Open in a browser"
+  },
+  "sections": {
+    "problems": "Problems",
+    "services": "Services",
+    "recorders": "Recorders",
+    "desks": "Desks",
+    "plays": "Active plays"
+  },
+  "names": {
+    "supervisor": "Supervisor",
+    "newsd": "News",
+    "m24d": "Runner",
+    "tunnel": "Tunnel",
+    "kalshi": "Kalshi tape",
+    "meme": "Meme recorder",
+    "tape": "Options tape",
+    "telegram": "Telegram",
+    "predict": "Prediction desk",
+    "memedesk": "Meme desk",
+    "scout": "Options scout"
+  },
+  "states": {
+    "running": "running",
+    "down": "down",
+    "unknown": "not reported",
+    "stale": "not checking in",
+    "missing": "not running",
+    "recording": "recording",
+    "idle": "idle",
+    "connecting": "connecting",
+    "quiet": "quiet",
+    "on": "on",
+    "off": "off",
+    "stopped": "stopped for today",
+    "looking": "looking",
+    "closed": "closed",
+    "error": "error",
+    "answering": "answering",
+    "silent": "not answering"
+  },
+  "service": {
+    "up": "up {span}",
+    "restarts": "{n} restarts",
+    "restart": "1 restart",
+    "noRestarts": "no restarts",
+    "exited": "last stop: {how}",
+    "missed": "{n} health checks missed in a row",
+    "noSupervisor": "Not reported by the runner: started without the supervisor, or an older runner",
+    "beat": "last checked in {ago} ago",
+    "direct": "its health check answers"
+  },
+  "recorder": {
+    "kalshi": "{snapshots} snapshots · {results} results today",
+    "kalshiLast": "last pass {ago} ago",
+    "meme": "{seen} launches · {snapshots} snapshots today · {tracked} tracked",
+    "tape": "{today} snapshots today",
+    "tapeLast": "last snapshot {ago} ago",
+    "telegram": "{today} posts today · {sources} channels",
+    "telegramLast": "newest post {ago} ago",
+    "telegramNone": "no channels in the source list",
+    "signedIn": "signed in",
+    "public": "public pages"
+  },
+  "desk": {
+    "predict": "{open} open · {won} of {settled} won",
+    "predictToday": "lost today {lost} of {limit}",
+    "memedesk": "{open} open · cash {cash}",
+    "scout": "{open} open · {closed} closed",
+    "total": "paper P&L",
+    "today": "today"
+  },
+  "plays": {
+    "empty": "Nothing open right now.",
+    "closesIn": "closes in {time}",
+    "closing": "closing now",
+    "mark": "mark",
+    "desk": {
+      "predict": "Odds",
+      "memedesk": "Meme",
+      "scout": "Scout"
+    }
+  },
+  "problems": {
+    "runner": "The runner is not answering on 127.0.0.1:8025.",
+    "news": "The news service is not answering on 127.0.0.1:8024.",
+    "stale": "The supervisor has not checked in for {ago}.",
+    "down": "{name} is down ({how}).",
+    "missed": "{name} missed {n} health checks in a row.",
+    "error": "{name}: {error}",
+    "strategy": "{name}, {strategy}: {error}",
+    "rulebook": "{name}'s rulebook: {error}",
+    "follow": "Telegram could not read {source}: {error}",
+    "notConnected": "The meme recorder is not connected to its feed."
+  },
+  "openDesk": "Open the desk",
+  "stop": {
+    "title": "Stop Money 24?",
+    "body": "Every service stops: the runner, the news, the recorders and the tunnel. Recording and paper trading pause until Money 24 starts again (at the next logon, or Restart from the tray).",
+    "yes": "Stop everything",
+    "no": "Cancel",
+    "stopping": "Stopping…",
+    "failed": "Could not stop: {error}"
+  },
+  "brand": "MONEY",
+  "brandAccent": "24"
+}
