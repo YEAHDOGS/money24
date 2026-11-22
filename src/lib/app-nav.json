@@ -26,6 +26,12 @@
       "section": "MARKETS"
     },
     {
+      "id": "scoreboard",
+      "href": "scoreboard.html",
+      "label": "Scores",
+      "section": "SCORES"
+    },
+    {
       "id": "news",
       "href": "feed.html",
       "label": "News",
