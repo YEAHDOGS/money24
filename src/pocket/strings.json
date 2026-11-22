@@ -12,7 +12,7 @@
     "loading": "Checking…"
   },
   "mode": {
-    "attached": "Watching the services the supervisor runs",
+    "attached": "Attached to the services already running",
     "own": "Running its own services: Quit stops them",
     "browser": "Open in a browser"
   },
