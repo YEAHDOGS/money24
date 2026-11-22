@@ -112,7 +112,7 @@ func (store r2Store) request(method, key string, query url.Values, body io.Reade
 func (store r2Store) list() ([]object, error) {
 	query := url.Values{"list-type": {"2"}, "prefix": {OBJECT_PREFIX}}
 	var objects []object
-	for {
+	for pages := 1; ; pages++ {
 		body, err := store.request(http.MethodGet, "", query, nil, 0, EMPTY_HASH)
 		if err != nil {
 			return nil, err
@@ -131,6 +131,9 @@ func (store r2Store) list() ([]object, error) {
 		objects = append(objects, page.Contents...)
 		if !page.IsTruncated {
 			return objects, nil
+		}
+		if pages >= MAX_LIST_PAGES {
+			return nil, fmt.Errorf("R2 listing is longer than %d pages", MAX_LIST_PAGES)
 		}
 		token := page.NextContinuationToken
 		if token == "" || token == query.Get("continuation-token") {

@@ -16,22 +16,48 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/YEAHDOGS/money24/engine/cloudguard"
 )
 
 const (
 	OBJECT_PREFIX   = "money24/v1/"
 	DAILY_KIND      = "days"
 	ARCHIVE_SUFFIX  = ".tar.gz"
-	DEFAULT_CAP     = 9_000_000_000
-	FREE_TIER_BYTES = 10_000_000_000
 	SINGLE_PUT_MAX  = 5_000_000_000
 	HTTP_TIMEOUT    = 30 * time.Minute
 	DEFAULT_DATA    = "/var/lib/money24/data"
 	ACCOUNT_PATTERN = "^[a-f0-9]{32}$"
 	BUCKET_PATTERN  = "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+	// R2's free tier stores 10 GB and R2 has no spending cap, so the kit keeps 2 GB of headroom.
+	DEFAULT_CAP = 8_000_000_000
+	MAX_CAP     = 8_000_000_000
+	// R2 bills writes past 1 million a month. A night makes at most MAX_LIST_PAGES + MAX_UPLOADS
+	// writes (listing is a write-class operation; deletes are free).
+	MAX_UPLOADS    = 4
+	MAX_LIST_PAGES = 5
+	// Every byte sent to R2 leaves Google, whose free tier allows 1 GB a month in all.
+	DEFAULT_NIGHT_BYTES = 15_000_000
+	MAX_NIGHT_BYTES     = 50_000_000
+	DEFAULT_GUARD_STATE = "/var/lib/m24guard/state.json"
+	CAP_ENV             = "R2_BACKUP_MAX_BYTES"
+	NIGHT_ENV           = "R2_BACKUP_NIGHT_BYTES"
+	MARKET_ZONE         = "America/New_York" // a day's partition is complete after New York midnight
 )
 
-var ERR_NO_ROOM = errors.New("object does not fit in the retention cap")
+var (
+	ERR_NO_ROOM   = errors.New("object does not fit in the retention cap")
+	ERR_NO_BUDGET = errors.New("tonight's write or egress budget is spent")
+	ERR_TOO_BIG   = errors.New("archive is larger than a whole night's egress allowance")
+)
+
+// limits bound one night's run: bytes kept in the bucket, uploads made and bytes sent.
+type limits struct {
+	capBytes int64 // most bytes kept in the bucket
+	uploads  int   // uploads left tonight
+	bytes    int64 // bytes left to send tonight
+	night    int64 // tonight's full allowance
+}
 
 type backupStore interface {
 	list() ([]object, error)
@@ -131,7 +157,10 @@ func makeRoom(store backupStore, objects []object, incoming object, capBytes int
 	return kept, nil
 }
 
-func upload(store backupStore, objects []object, root, key string, files []string, capBytes int64) ([]object, error) {
+func upload(store backupStore, objects []object, root, key string, files []string, budget *limits) ([]object, error) {
+	if budget.uploads <= 0 {
+		return objects, ERR_NO_BUDGET
+	}
 	scratch, err := os.MkdirTemp("", "m24backup-")
 	if err != nil {
 		return objects, err
@@ -153,22 +182,32 @@ func upload(store backupStore, objects []object, root, key string, files []strin
 	if size > SINGLE_PUT_MAX {
 		return objects, fmt.Errorf("archive exceeds the single-upload size limit")
 	}
+	if size > budget.night {
+		return objects, fmt.Errorf("%w: %s is %d bytes, a night allows %d", ERR_TOO_BIG, key, size, budget.night)
+	}
+	if size > budget.bytes {
+		return objects, fmt.Errorf("%w: %s is %d bytes, %d left", ERR_NO_BUDGET, key, size, budget.bytes)
+	}
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return objects, err
 	}
 	item := object{Key: key, Size: size}
-	objects, err = makeRoom(store, objects, item, capBytes)
+	objects, err = makeRoom(store, objects, item, budget.capBytes)
 	if err != nil {
 		return objects, err
 	}
 	if err := store.put(key, file, size, hex.EncodeToString(digest.Sum(nil))); err != nil {
 		return objects, err
 	}
+	budget.uploads--
+	budget.bytes -= size
 	fmt.Printf("uploaded %s (%d bytes)\n", item.Key, item.Size)
 	return append(objects, item), nil
 }
 
-func backup(store backupStore, root, today, cutoff string, capBytes int64) error {
+// backup sends the current state first, then the newest unsent days, until a limit is
+// reached. What does not fit tonight goes on a later night.
+func backup(store backupStore, root, today, cutoff string, budget limits) error {
 	groups, err := archiveGroups(root, cutoff)
 	if err != nil {
 		return err
@@ -178,7 +217,7 @@ func backup(store backupStore, root, today, cutoff string, capBytes int64) error
 		return err
 	}
 	// With no incoming object, this also applies a lower cap on the next run.
-	objects, err = makeRoom(store, objects, object{}, capBytes)
+	objects, err = makeRoom(store, objects, object{}, budget.capBytes)
 	if err != nil {
 		return err
 	}
@@ -188,7 +227,7 @@ func backup(store backupStore, root, today, cutoff string, capBytes int64) error
 	}
 	stateKey := OBJECT_PREFIX + STATE_GROUP + "/" + today + ARCHIVE_SUFFIX
 	if len(groups[STATE_GROUP]) > 0 && !existing[stateKey] {
-		objects, err = upload(store, objects, root, stateKey, groups[STATE_GROUP], capBytes)
+		objects, err = upload(store, objects, root, stateKey, groups[STATE_GROUP], &budget)
 		if err != nil {
 			return fmt.Errorf("current state: %w", err)
 		}
@@ -204,9 +243,18 @@ func backup(store backupStore, root, today, cutoff string, capBytes int64) error
 		if existing[key] {
 			continue
 		}
-		objects, err = upload(store, objects, root, key, groups[day], capBytes)
+		objects, err = upload(store, objects, root, key, groups[day], &budget)
 		if errors.Is(err, ERR_NO_ROOM) {
 			fmt.Printf("retention cap reached at %s\n", day)
+			return nil
+		}
+		if errors.Is(err, ERR_TOO_BIG) {
+			// Skip it rather than hold every older day behind it.
+			fmt.Printf("skipping %s: %v\n", day, err)
+			continue
+		}
+		if errors.Is(err, ERR_NO_BUDGET) {
+			fmt.Printf("stopping at %s for tonight: %v\n", day, err)
 			return nil
 		}
 		if err != nil {
@@ -257,7 +305,7 @@ func restore(store backupStore, target string) error {
 	return nil
 }
 
-func run(data string, restoring bool) error {
+func run(data string, restoring bool, guardFile string) error {
 	account, bucket := os.Getenv("R2_ACCOUNT_ID"), os.Getenv("R2_BUCKET")
 	access, secret := os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY")
 	if !regexp.MustCompile(ACCOUNT_PATTERN).MatchString(account) ||
@@ -275,26 +323,64 @@ func run(data string, restoring bool) error {
 	if restoring {
 		return restore(store, data)
 	}
-	capBytes := int64(DEFAULT_CAP)
-	if raw := os.Getenv("R2_BACKUP_MAX_BYTES"); raw != "" {
-		capBytes, err = strconv.ParseInt(raw, 10, 64)
-		if err != nil || capBytes <= 0 || capBytes >= FREE_TIER_BYTES {
-			return fmt.Errorf("R2_BACKUP_MAX_BYTES must be positive and below 10000000000")
-		}
-	}
-	location, err := time.LoadLocation("America/New_York")
+	now := time.Now()
+	budget, err := nightLimits(os.Getenv, guardFile, now)
 	if err != nil {
 		return err
 	}
-	now := time.Now()
-	return backup(store, data, now.UTC().Format(DAY_FORMAT), now.In(location).Format(DAY_FORMAT), capBytes)
+	location, err := time.LoadLocation(MARKET_ZONE)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("tonight: up to %d uploads, %d bytes; bucket cap %d bytes\n", budget.uploads, budget.bytes, budget.capBytes)
+	return backup(store, data, now.UTC().Format(DAY_FORMAT), now.In(location).Format(DAY_FORMAT), budget)
+}
+
+func byteSetting(getenv func(string) string, name string, fallback, most int64) (int64, error) {
+	raw := getenv(name)
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || value <= 0 || value > most {
+		return 0, fmt.Errorf("%s must be a whole number of bytes from 1 to %d", name, most)
+	}
+	return value, nil
+}
+
+// nightLimits combines the settings with what the egress guard says is left this month.
+// No guard ledger means no proof of room, so nothing is sent.
+func nightLimits(getenv func(string) string, guardFile string, now time.Time) (limits, error) {
+	capBytes, err := byteSetting(getenv, CAP_ENV, DEFAULT_CAP, MAX_CAP)
+	if err != nil {
+		return limits{}, err
+	}
+	night, err := byteSetting(getenv, NIGHT_ENV, DEFAULT_NIGHT_BYTES, MAX_NIGHT_BYTES)
+	if err != nil {
+		return limits{}, err
+	}
+	budget := limits{capBytes: capBytes, uploads: MAX_UPLOADS, bytes: night, night: night}
+	if guardFile == "" {
+		return budget, nil
+	}
+	state, err := cloudguard.LoadState(guardFile)
+	if err != nil {
+		return limits{}, err
+	}
+	room, err := cloudguard.BackupRoom(state, now)
+	if err != nil {
+		return limits{}, err
+	}
+	budget.bytes = min(budget.bytes, room)
+	return budget, nil
 }
 
 func main() {
 	data := flag.String("data", DEFAULT_DATA, "Money 24 data folder, or fresh destination for restore")
 	restoring := flag.Bool("restore", false, "restore the latest state and all retained days")
+	guardFile := flag.String("guard-state", DEFAULT_GUARD_STATE, "egress guard ledger; empty off Google Cloud")
 	flag.Parse()
-	if err := run(*data, *restoring); err != nil {
+	if err := run(*data, *restoring, *guardFile); err != nil {
 		fmt.Fprintln(os.Stderr, "m24backup:", err)
 		os.Exit(1)
 	}

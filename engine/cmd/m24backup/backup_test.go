@@ -14,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/YEAHDOGS/money24/engine/cloudguard"
 )
 
 const (
@@ -115,7 +117,7 @@ func TestBackupPackingAndRestore(t *testing.T) {
 	}
 	writeFixture(t, root, excluded, "day still recording")
 	store := memoryStore{make(map[string][]byte)}
-	if err := backup(store, root, TEST_DAY3, TEST_DAY3, DEFAULT_CAP); err != nil {
+	if err := backup(store, root, TEST_DAY3, TEST_DAY3, testLimits()); err != nil {
 		t.Fatal(err)
 	}
 	if len(store.files) != 3 {
@@ -123,10 +125,10 @@ func TestBackupPackingAndRestore(t *testing.T) {
 	}
 	present["trading/paper-journal.jsonl"] = "new journal"
 	writeFixture(t, root, "trading/paper-journal.jsonl", "new journal")
-	if err := backup(store, root, TEST_DAY3, TEST_DAY3, DEFAULT_CAP); err != nil {
+	if err := backup(store, root, TEST_DAY3, TEST_DAY3, testLimits()); err != nil {
 		t.Fatal(err) // No same-day duplicate uploads.
 	}
-	if err := backup(store, root, TEST_DAY4, TEST_DAY3, DEFAULT_CAP); err != nil {
+	if err := backup(store, root, TEST_DAY4, TEST_DAY3, testLimits()); err != nil {
 		t.Fatal(err)
 	}
 	target := filepath.Join(t.TempDir(), "fresh")
@@ -200,5 +202,75 @@ func TestRestoreRejectsUnsafeArchive(t *testing.T) {
 	}
 	if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("failed restore created its destination")
+	}
+}
+
+func testLimits() limits {
+	return limits{capBytes: DEFAULT_CAP, uploads: MAX_UPLOADS, bytes: DEFAULT_NIGHT_BYTES, night: DEFAULT_NIGHT_BYTES}
+}
+
+func TestBackupStaysInsideTonightsLimits(t *testing.T) {
+	root := t.TempDir()
+	writeFixture(t, root, "trading/paper-journal.jsonl", "state")
+	days := []string{"2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15"}
+	for _, day := range days {
+		writeFixture(t, root, "trading/meme/"+day+"/records.jsonl", day)
+	}
+	store := memoryStore{make(map[string][]byte)}
+	if err := backup(store, root, TEST_DAY3, TEST_DAY3, testLimits()); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.files) != MAX_UPLOADS {
+		t.Fatalf("one night made %d uploads, the limit is %d", len(store.files), MAX_UPLOADS)
+	}
+	if _, ok := store.files[OBJECT_PREFIX+DAILY_KIND+"/2026-11-15"+ARCHIVE_SUFFIX]; !ok {
+		t.Fatal("the newest day goes first")
+	}
+	if err := backup(store, root, TEST_DAY4, TEST_DAY3, testLimits()); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.files) != MAX_UPLOADS+MAX_UPLOADS {
+		t.Fatalf("the next night continues the backlog, %d archives", len(store.files))
+	}
+
+	tight := memoryStore{make(map[string][]byte)}
+	small := testLimits()
+	small.bytes = 1 // under any gzip archive
+	if err := backup(tight, root, TEST_DAY3, TEST_DAY3, small); !errors.Is(err, ERR_NO_BUDGET) {
+		t.Fatalf("state that does not fit tonight must fail loudly, got %v", err)
+	}
+	if len(tight.files) != 0 {
+		t.Fatal("nothing is sent past the budget")
+	}
+	small.night = 1
+	if err := backup(tight, root, TEST_DAY3, TEST_DAY3, small); !errors.Is(err, ERR_TOO_BIG) {
+		t.Fatalf("state larger than any night is an error, got %v", err)
+	}
+}
+
+func TestNightLimitsFollowTheEgressGuard(t *testing.T) {
+	now := time.Date(2026, 11, 20, 20, 0, 0, 0, time.UTC)
+	settings := map[string]string{}
+	getenv := func(name string) string { return settings[name] }
+	guard := filepath.Join(t.TempDir(), "state.json")
+	if _, err := nightLimits(getenv, guard, now); err == nil {
+		t.Fatal("no guard ledger, no uploads")
+	}
+	ledger := cloudguard.State{Month: "2026-11", TxBytes: 590_000_000, LimitBytes: cloudguard.DEFAULT_LIMIT_BYTES}
+	if err := cloudguard.SaveState(guard, ledger); err != nil {
+		t.Fatal(err)
+	}
+	budget, err := nightLimits(getenv, guard, now)
+	if err != nil || budget.bytes != 10_000_000 || budget.night != DEFAULT_NIGHT_BYTES || budget.capBytes != MAX_CAP {
+		t.Fatalf("the guard's room bounds tonight: %+v %v", budget, err)
+	}
+	settings[CAP_ENV] = "9000000000"
+	if _, err := nightLimits(getenv, guard, now); err == nil {
+		t.Fatal("a bucket cap over 8 GB is refused")
+	}
+	settings[CAP_ENV] = ""
+	settings[NIGHT_ENV] = "60000000"
+	if _, err := nightLimits(getenv, guard, now); err == nil {
+		t.Fatal("a night over 50 MB is refused")
 	}
 }
