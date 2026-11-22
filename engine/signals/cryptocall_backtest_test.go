@@ -103,7 +103,7 @@ func TestCryptoCallsRouteUsesFirstRecordedVersion(t *testing.T) {
 	}
 	defer rec.Close()
 	seen := time.Now().UTC().Add(-CRYPTO_ENTRY_WINDOW).Truncate(CRYPTO_FINE_BAR).Add(7 * time.Minute)
-	original := Signal{SourceID: "fixture", PostID: "valid", Raw: CRYPTO_FIXTURE_CALL, SeenAt: seen, PostedAt: seen.Add(-time.Hour)}
+	original := Signal{SourceID: "fixture", PostID: "valid", Raw: CRYPTO_FIXTURE_CALL, SeenAt: seen, PostedAt: seen.Add(-time.Minute)} // recorded live
 	edited := original
 	edited.Raw, edited.SeenAt = "$BTC long | Entry 200 | TP 230 | SL 190", seen.Add(time.Hour)
 	recap := original
@@ -237,5 +237,37 @@ func TestCryptoBacktestLive(t *testing.T) {
 			t.Logf("%s-%s %s: %s, entry %.4f, %d targets, %.4fR, followable=%t",
 				call.Base, call.Quote, call.Direction, got.Status, got.Entry, got.TargetsHit, *got.R, got.Followable)
 		})
+	}
+}
+
+func TestImportedCallsReplayFromPublicationAndStayOutOfLive(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "posts.jsonl")
+	rec, err := OpenRecorder(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rec.Close()
+	posted := time.Now().UTC().Add(-3 * CRYPTO_ENTRY_WINDOW).Truncate(CRYPTO_FINE_BAR)
+	imported := Signal{SourceID: "fixture", PostID: "old", Raw: CRYPTO_FIXTURE_CALL, SeenAt: time.Now().UTC(), PostedAt: posted}
+	if err := rec.Record(imported); err != nil {
+		t.Fatal(err)
+	}
+	b := NewCryptoBacktester(path, CRYPTO_FIXTURE_FEE)
+	var asked time.Time
+	b.history = func(_ context.Context, _ string, step time.Duration, from, _ time.Time) ([]coinbase.Candle, error) {
+		if asked.IsZero() {
+			asked = from
+		}
+		return nil, nil
+	}
+	record, err := b.source(context.Background(), "fixture", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(record.Outcomes) != 1 || !record.Outcomes[0].Call.Imported || asked.After(posted.Add(CRYPTO_FINE_BAR)) {
+		t.Fatalf("imported call replayed from %s, want from its publication %s: %+v", asked, posted, record.Outcomes)
+	}
+	if record.Live.Calls != 0 {
+		t.Fatalf("an imported call counted in the live-recorded record: %+v", record.Live)
 	}
 }

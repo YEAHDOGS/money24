@@ -51,7 +51,9 @@ var (
 	cryptoDerivative  = regexp.MustCompile(`(?i)\b(?:perps?|perpetuals?|futures?|margin|isolated|cross[ -]margin)\b`)
 	cryptoNonCall     = regexp.MustCompile(`(?i)\b(?:recap|(?:all[ \t]+)?(?:tp\d*|targets?|stop(?:[ -]loss)?|sl)[ \t]+(?:(?:was|is)[ \t]+)?(?:hit|reached|achieved|triggered|filled|secured|done)|(?:hit|reached)\s+(?:all\s+)?(?:tp\d*|targets?|stop|sl)\b|(?:trade|position)\s+closed|stopped\s+out|(?:move|moved|moving|raise|raised|raising|trail|trailed|trailing|adjust|adjusted|update|updated|new)\s+(?:(?:your|the|our)\s+)?(?:stop(?:[ -]loss)?|sl|tp\d*|targets?|entry)|(?:vip\s+(?:access|membership|signals)|join\s+(?:our|my|vip)|subscribe\s+now|referral\s+(?:code|link)|past\s+performance)|(?:potential|possible)\s+(?:long|short|setup)|if\s+.{0,50}\b(?:then|looking)\b)\b|\+\d+(?:\.\d+)?\s*%[ \t]*(?:roi|pnl|profit|gain|booked|banked)\b`)
 	cryptoUpdate      = regexp.MustCompile(`(?im)\b(?:update|result|closed|edited)[ \t]*[:|]|\b(?:tp[ \t]*[0-9]+|tps)[ \t]*(?:✅|🎯|hit\b|done\b)`)
-	cryptoNormalize   = strings.NewReplacer("–", "-", "—", "-", "−", "-", "×", "x", "\r\n", "\n", "\r", "\n", "*", "", "`", "", "_", "")
+	// "Take Profit (TP): 78.37" and "Stop Loss (SL): 80.11" name the field twice; the abbreviation in brackets goes.
+	cryptoLabelAlias = regexp.MustCompile(`(?i)[ \t]*\((?:tps?|sl|s/l|stop)\)`)
+	cryptoNormalize  = strings.NewReplacer("–", "-", "—", "-", "−", "-", "×", "x", "\r\n", "\n", "\r", "\n", "*", "", "`", "", "_", "")
 )
 
 // CryptoCall preserves the quoted levels and original publication time. SeenAt is the replay clock.
@@ -69,6 +71,9 @@ type CryptoCall struct {
 	PostedAt   time.Time `json:"posted_at,omitzero"`
 	SeenAt     time.Time `json:"seen_at"`
 	Confidence float64   `json:"confidence"`
+	// Imported is a call read from a channel's history rather than recorded as it was posted. It is
+	// replayed from its publication time, but the channel may have edited or deleted posts since.
+	Imported bool `json:"imported,omitempty"`
 }
 
 // ParseCryptoCall accepts complete, directional setups. Uncertain or contradictory levels fail closed.
@@ -76,7 +81,7 @@ func ParseCryptoCall(post RawPost) (CryptoCall, bool) {
 	if len(post.Text) > CRYPTO_MAX_POST_BYTES {
 		return CryptoCall{}, false
 	}
-	body := cryptoNormalize.Replace(post.Text)
+	body := cryptoLabelAlias.ReplaceAllString(cryptoNormalize.Replace(post.Text), "")
 	fields := cryptoFields.FindAllStringIndex(body, -1)
 	if len(fields) == 0 || cryptoNonCall.MatchString(body) || cryptoUpdate.MatchString(body) || RECAP_WORDS.MatchString(body) {
 		return CryptoCall{}, false
@@ -123,6 +128,9 @@ func ParseCryptoCall(post RawPost) (CryptoCall, bool) {
 		label := body[field[0]:field[1]]
 		value := strings.TrimSpace(cryptoPrefix.ReplaceAllString(body[field[1]:end], ""))
 		if cryptoTargets.MatchString(label) {
+			if value == "" {
+				continue // a "Targets:" heading over TP1, TP2 ... lines
+			}
 			values := cryptoTargetPrices(value)
 			if len(values) == 0 {
 				return CryptoCall{}, false

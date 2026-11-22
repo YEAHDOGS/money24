@@ -34,12 +34,14 @@ const (
 	CRYPTO_TARGETS_HIT  = "targets_hit"
 	CRYPTO_TIMED_OUT    = "time_limit"
 	CRYPTO_SMALL_SAMPLE = "Too few resolved calls to judge this source. At least 30 are required."
-	CRYPTO_ORIGIN_RULE  = "Only the first recorded version is eligible. Replay starts at its recorded time, including for imported posts. Recaps and updates do not count."
-	CRYPTO_PRICE_RULE   = "Coinbase USD candles proxy USDT/USDC and derivative prices. Full candles only. After roughly six days of 15-minute candles, replay switches to hourly candles. Gaps halt scoring."
-	CRYPTO_FILL_RULE    = "Entry fills on a touch within 24 hours. Stops take priority on ambiguous bars. Intrabar entries earn no targets on their fill bar. Targets split the position equally and the first target moves the stop to entry. Remaining size exits at the last full close within seven days of the fill bar's open."
-	CRYPTO_FEE_RULE     = "Alpaca tier-one taker fees apply to both entry and each exit. R uses the initial entry-to-stop distance. Funding, borrowing, spread, liquidity, and liquidation are outside the model."
-	CRYPTO_STATS_RULE   = "Win rate and average R use resolved fills. Expectancy includes zero-R unfilled calls. Pending and unavailable calls are excluded from those rates. Drawdown books each call's net P&L at its final exit in fixed dollar risk units, without capital constraints on overlapping positions."
-	CRYPTO_BROKER_RULE  = "Followable means long, spot and a confirmed Coinbase USD product. Check Alpaca pair availability before execution."
+	CRYPTO_ORIGIN_RULE  = "Only the first recorded version is eligible. A call recorded as it was posted replays from its recorded time. A call imported from history replays from its publication time and is counted apart: channels can edit or delete old posts, so imported records can flatter them. Recaps and updates do not count."
+	// A post first recorded this long after it was published was imported from history, not seen live.
+	CRYPTO_IMPORT_LAG  = 10 * time.Minute
+	CRYPTO_PRICE_RULE  = "Coinbase USD candles proxy USDT/USDC and derivative prices. Full candles only. After roughly six days of 15-minute candles, replay switches to hourly candles. Gaps halt scoring."
+	CRYPTO_FILL_RULE   = "Entry fills on a touch within 24 hours. Stops take priority on ambiguous bars. Intrabar entries earn no targets on their fill bar. Targets split the position equally and the first target moves the stop to entry. Remaining size exits at the last full close within seven days of the fill bar's open."
+	CRYPTO_FEE_RULE    = "Alpaca tier-one taker fees apply to both entry and each exit. R uses the initial entry-to-stop distance. Funding, borrowing, spread, liquidity, and liquidation are outside the model."
+	CRYPTO_STATS_RULE  = "Win rate and average R use resolved fills. Expectancy includes zero-R unfilled calls. Pending and unavailable calls are excluded from those rates. Drawdown books each call's net P&L at its final exit in fixed dollar risk units, without capital constraints on overlapping positions."
+	CRYPTO_BROKER_RULE = "Followable means long, spot and a confirmed Coinbase USD product. Check Alpaca pair availability before execution."
 
 	CRYPTO_NOTE_UNLISTED       = "Coinbase USD product not found"
 	CRYPTO_NOTE_REQUEST        = "Coinbase candle request failed"
@@ -94,6 +96,7 @@ type CryptoCallRecord struct {
 	SourceID       string              `json:"source_id"`
 	All            CryptoCallStats     `json:"all"`
 	Followable     CryptoCallStats     `json:"followable_on_alpaca"`
+	Live           CryptoCallStats     `json:"live_recorded"` // only calls recorded as they were posted: the honest test
 	Outcomes       []CryptoCallOutcome `json:"outcomes"`
 	FeePctPerSide  float64             `json:"taker_fee_pct_per_side"`
 	StartingEquity float64             `json:"starting_equity_dollars"`
@@ -183,6 +186,9 @@ func (b *CryptoBacktester) source(ctx context.Context, id string, now time.Time)
 		}
 		seen[key] = struct{}{} // Mark rejected first versions before looking at their text.
 		if call, ok := ParseCryptoCall(post); ok {
+			if !call.PostedAt.IsZero() && call.SeenAt.Sub(call.PostedAt) > CRYPTO_IMPORT_LAG {
+				call.Imported, call.SeenAt = true, call.PostedAt
+			}
 			calls = append(calls, recordedCall{post, call})
 		}
 	})
@@ -207,6 +213,13 @@ func (b *CryptoBacktester) source(ctx context.Context, id string, now time.Time)
 	}
 	record.All = cryptoCallStats(record.Outcomes, false)
 	record.Followable = cryptoCallStats(record.Outcomes, true)
+	live := []CryptoCallOutcome{}
+	for _, o := range record.Outcomes {
+		if !o.Call.Imported {
+			live = append(live, o)
+		}
+	}
+	record.Live = cryptoCallStats(live, false)
 	slices.SortStableFunc(record.Outcomes, func(a, b CryptoCallOutcome) int {
 		return b.Call.SeenAt.Compare(a.Call.SeenAt)
 	})
