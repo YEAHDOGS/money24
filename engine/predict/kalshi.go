@@ -208,7 +208,7 @@ func (w wireMarket) market() Market {
 		m.Cap = *w.CapStrike
 	}
 	switch {
-	case w.StrikeType == STRIKE_GREATER && w.FloorStrike == nil,
+	case (w.StrikeType == STRIKE_GREATER || w.StrikeType == STRIKE_GREATER_OR_EQUAL) && w.FloorStrike == nil,
 		w.StrikeType == STRIKE_LESS && w.CapStrike == nil,
 		w.StrikeType == STRIKE_BETWEEN && (w.FloorStrike == nil || w.CapStrike == nil):
 		m.Strike = ""

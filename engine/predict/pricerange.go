@@ -213,7 +213,7 @@ func (r *priceRange) Evaluate(m Market, now time.Time) (Opinion, bool) {
 	r.mu.Lock()
 	st := r.coins[coin]
 	var price, vol float64
-	if st != nil {
+	if st != nil && now.Sub(st.priceAt) < TICKER_EVERY && now.Sub(st.volAt) < VOL_EVERY {
 		price, vol = st.price, st.minuteVol
 	}
 	r.mu.Unlock()
@@ -233,7 +233,7 @@ func (r *priceRange) Evaluate(m Market, now time.Time) (Opinion, bool) {
 	if r.p.FarOnly {
 		reasons = append(reasons, fmt.Sprintf(PRICE_REASON_FAR, nearestZ(price, lo, hi, spread)))
 	}
-	return Opinion{Side: side, Prob: prob, Reasons: reasons}, true
+	return Opinion{Side: side, Prob: prob, HasProb: true, Reasons: reasons}, true
 }
 
 // spread is the spread of the log price at the close: the minute volatility, made fatter, over the
@@ -276,7 +276,12 @@ func far(price, lo, hi, spread, z float64) bool { return nearestZ(price, lo, hi,
 
 // trimPrice shows a price to a sensible number of digits: 59,180 for bitcoin, 0.9199 for XRP.
 func trimPrice(p float64) string {
-	return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.*f", max(0, PRICE_DIGITS_SHOW-int(math.Floor(math.Log10(p)))-1), p), "0"), ".")
+	digits := max(0, PRICE_DIGITS_SHOW-int(math.Floor(math.Log10(p)))-1)
+	text := fmt.Sprintf("%.*f", digits, p)
+	if digits == 0 {
+		return text
+	}
+	return strings.TrimRight(strings.TrimRight(text, "0"), ".")
 }
 
 func priceParams(farOnly bool, maxMinutes float64) json.RawMessage {

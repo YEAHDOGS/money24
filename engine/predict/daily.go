@@ -318,12 +318,12 @@ func (d *dailyCounts) Evaluate(m Market, now time.Time) (Opinion, bool) {
 	reasons := []string{fmt.Sprintf(DAILY_REASON_P, prob*PERCENT)}
 	if est.known {
 		reasons = append(reasons, fmt.Sprintf(DAILY_REASON_KNOWN, formatValue(info, est.knownValue), target.Format(DAILY_DATE_FORMAT)))
-		return Opinion{Side: side, Prob: prob, Reasons: reasons}, true
+		return Opinion{Side: side, Prob: prob, HasProb: true, Reasons: reasons}, true
 	}
 	reasons = append(reasons, fmt.Sprintf(DAILY_REASON_LATEST, formatValue(info, est.latest.Value), est.latest.Date.Format(DAILY_DATE_FORMAT)))
 	perDay := est.sigma / math.Sqrt(float64(est.gapDays))
 	reasons = append(reasons, fmt.Sprintf(DAILY_REASON_SIGMA, formatValue(info, perDay), est.gapDays))
-	return Opinion{Side: side, Prob: prob, Reasons: reasons}, true
+	return Opinion{Side: side, Prob: prob, HasProb: true, Reasons: reasons}, true
 }
 
 // dailyParams builds the settings; only lists the series traded, empty for all.

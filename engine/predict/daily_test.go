@@ -78,6 +78,10 @@ func TestDailyYesProbUsesExactThresholds(t *testing.T) {
 	if _, ok := yesProb(at, Market{Strike: "sideways", Floor: 1}); ok {
 		t.Fatal("an unknown strike got a chance")
 	}
+	if _, ok := yesProb(dailyEstimate{known: true, knownValue: 2900000},
+		(wireMarket{StrikeType: STRIKE_GREATER_OR_EQUAL}).market()); ok {
+		t.Fatal("a missing at-least strike was interpreted as a zero threshold")
+	}
 }
 
 func TestDailyKnownValueDecidesExactly(t *testing.T) {
@@ -176,7 +180,7 @@ func TestDailyEvaluateKnownAndForecast(t *testing.T) {
 	below := published
 	below.Floor = 3000000
 	op, ok = known.Evaluate(below, now)
-	if !ok || op.Side != SIDE_NO || op.Prob != 0 {
+	if !ok || op.Side != SIDE_NO || op.Prob != 0 || !op.HasProb {
 		t.Fatalf("published-below market got %+v %v, want NO with YES at 0%%", op, ok)
 	}
 	// A market about a day not yet published is no business of the known strategy.

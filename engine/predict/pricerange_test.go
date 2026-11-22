@@ -46,7 +46,7 @@ func TestPriceRangeFarAndContinuousRange(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := s.(*priceRange)
-	r.coins["BTC"] = &coinState{price: 60000, minuteVol: 0.0005}
+	r.coins["BTC"] = &coinState{price: 60000, minuteVol: 0.0005, priceAt: testNow, volAt: testNow}
 	near := Market{Event: "KXBTCD-26NOV2123", Strike: STRIKE_GREATER, Floor: 60050, CloseAt: testNow.Add(10 * time.Minute), YesAsk: 0.4, NoAsk: 0.62}
 	if _, ok := r.Evaluate(near, testNow); ok {
 		t.Fatal("far-only took a line $50 away with 10 minutes left")
@@ -64,6 +64,23 @@ func TestPriceRangeFarAndContinuousRange(t *testing.T) {
 	late.CloseAt = testNow.Add(2 * time.Hour)
 	if _, ok := r.Evaluate(late, testNow); ok {
 		t.Fatal("took a market past max_minutes")
+	}
+	away.Floor = 90000
+	if op, ok := r.Evaluate(away, testNow); !ok || op.Prob != 0 || !op.HasProb {
+		t.Errorf("probability that saturated at zero lost its model status: %+v", op)
+	}
+	if _, ok := r.Evaluate(away, testNow.Add(TICKER_EVERY)); ok {
+		t.Error("formed an opinion after the exchange quote expired")
+	}
+	r.coins["BTC"].priceAt = testNow.Add(VOL_EVERY)
+	if _, ok := r.Evaluate(away, testNow.Add(VOL_EVERY)); ok {
+		t.Error("formed an opinion after volatility expired")
+	}
+}
+
+func TestTrimPricePreservesIntegerZeros(t *testing.T) {
+	if got := trimPrice(600000); got != "600000" {
+		t.Fatalf("displayed price %q, want 600000", got)
 	}
 }
 
