@@ -9,7 +9,6 @@
     { "id": "boe-news", "country": "GB", "label": "Bank of England", "type": "rss", "kind": "central_bank", "url": "https://www.bankofengland.co.uk/rss/news" },
     { "id": "bls-latest", "country": "US", "label": "BLS", "type": "rss", "kind": "macro", "url": "https://www.bls.gov/feed/bls_latest.rss" },
     { "id": "marketwatch-top", "country": "US", "label": "MarketWatch", "type": "rss", "kind": "news", "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
-    { "id": "marketwatch-pulse", "country": "US", "label": "MarketWatch Pulse", "type": "rss", "kind": "news", "url": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse" },
     { "id": "cnbc-top", "country": "US", "label": "CNBC", "type": "rss", "kind": "news", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114" },
     { "id": "yahoo-sp500", "country": "US", "label": "Yahoo Finance", "type": "rss", "kind": "news", "url": "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC&region=US&lang=en-US" },
     { "id": "nyt-business", "country": "US", "label": "NYT Business", "type": "rss", "kind": "news", "url": "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml" },
