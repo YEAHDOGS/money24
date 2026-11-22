@@ -50,6 +50,7 @@ const RUNNER_FLAGS = ['--web', WEB_DIR, '--base', DESK_PATH, '--keep-awake'];
 const ENV_RUNNER_ARGS = 'M24D_ARGS'; // replaces RUNNER_FLAGS, space-separated
 const ENV_PUBLIC_HOST = 'M24D_PUBLIC_HOST'; // a tunnel's hostname, added to the hosts the runner answers to
 const ENV_HOSTS = 'M24D_HOSTS';
+const ENV_SUPERVISOR_STATE = 'M24D_SUPERVISOR_STATE'; // the state file, which the runner serves at /api/supervisor
 // The Cloudflare Tunnel runs as a third service when .env holds its token (docs/RUNNING.md). cloudflared
 // reads the token from TUNNEL_TOKEN, so it never shows on a command line.
 const TUNNEL = 'tunnel';
@@ -81,13 +82,25 @@ const WAIT_STEP_MS = 250;
 const TASK_NAME = 'Money24';
 const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'; // the fallback when Task Scheduler refuses
 const HEADLESS = '--headless'; // conhost runs a console program with no window at all
-// On Windows the supervisor always shows an icon in the system tray while it runs (scripts/tray.ps1), so
-// nothing of Money 24 runs out of sight. Windows PowerShell is built in; nothing to install.
+// On Windows the supervisor always shows an icon in the system tray while it runs, so nothing of Money 24
+// runs out of sight. When the desktop app is built (src/tauri), the app is the tray: it attaches to these
+// services, its icon opens a status window, and it opens the desk in its own window. Otherwise, and after
+// the app's Quit, the icon is scripts/tray.ps1 (Windows PowerShell is built in; nothing to install).
 const TRAY_SCRIPT = join(ROOT, 'scripts', 'tray.ps1');
 const TRAY_ICON = join(ROOT, 'public', 'favicon.ico');
 const TRAY_SHELL = 'powershell.exe';
 const TRAY_RESPAWN_MS = 5000; // a tray that dies while the supervisor runs comes back after this long
 const TRAY = 'tray'; // the tray's own log name
+// The desktop app, newest first of: the path in M24_DESKTOP_APP, an installed copy, the release build.
+const ENV_DESKTOP_APP = 'M24_DESKTOP_APP';
+const APP_INSTALL_DIR = join(process.env.LOCALAPPDATA ?? '', 'Money 24');
+const APP_CANDIDATES = [join(APP_INSTALL_DIR, 'money24.exe'), join(APP_INSTALL_DIR, 'Money 24.exe'), join(ROOT, 'src', 'tauri', 'target', 'release', 'money24.exe')];
+const APP_TRAY_FLAG = '--tray'; // only the tray icon, no window
+const APP_FLAGS = ['--attach', '--root', ROOT]; // use these services, never its own; and where Restart and Stop are
+const APP_QUIT_CODE = 0; // the app's Quit: closed on purpose, so it is not brought back
+const TRAY_OPEN_APP_CODE = 10; // tray.ps1's "Open the desk" with the app built: the supervisor opens the app
+const APP_FAILS_MAX = 3; // quick crashes in a row before the supervisor falls back to tray.ps1
+const APP_QUICK_MS = 30000; // an app that dies sooner than this counts as a quick crash
 const ENV_LINE = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/i;
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
@@ -107,8 +120,10 @@ let services = [];
 let serviceEnv = process.env;
 let startedAt = 0;
 let stopping = false;
-/** @type {import('node:child_process').ChildProcess | null} */
+/** @type {import('node:child_process').ChildProcess | null} the tray: the desktop app or tray.ps1 */
 let trayChild = null;
+let appQuit = false; // the app was closed with Quit: tray.ps1 shows the icon until the app is asked for again
+let appFails = 0;
 /** @type {Record<string, number>} bytes in each log file, so rotating needs no stat per line */
 const logSizes = {};
 
@@ -270,7 +285,7 @@ function build() {
 
 /** The environment the services run in: this shell's, then .env, then the full host list for a tunnel. */
 function buildServiceEnv() {
-  const env = { ...process.env, ...readEnv() };
+  const env = { ...process.env, ...readEnv(), [ENV_SUPERVISOR_STATE]: STATE_FILE };
   const publicHost = (env[ENV_PUBLIC_HOST] ?? '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   // --hosts replaces the runner's localhost defaults, so they are listed again beside the tunnel's host.
   if (publicHost && !env[ENV_HOSTS]) env[ENV_HOSTS] = [...LOCAL_HOSTS, publicHost].join(',');
@@ -330,17 +345,70 @@ async function checkHealth(/** @type {Service} */ svc) {
   child.kill();
 }
 
-/** Shows the tray icon (Windows), and brings it back if it dies while the supervisor runs. */
-function startTray() {
-  if (!IS_WINDOWS || stopping || process.argv.includes(FLAG.noTray) || !existsSync(TRAY_SCRIPT)) return;
+/** The desktop app to run as the tray: the newest that exists, or '' when it is not built. */
+function desktopApp() {
+  const found = [serviceEnv[ENV_DESKTOP_APP], ...APP_CANDIDATES].filter((path) => path && existsSync(path));
+  return found.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0] ?? '';
+}
+
+/**
+ * Shows the tray icon (Windows), and brings it back if it dies while the supervisor runs. The desktop
+ * app when it is built, unless it was quit or keeps crashing; tray.ps1 otherwise. openDesk: the app
+ * opens the desk at once (tray.ps1's "Open the desk" asked for it).
+ */
+function startTray(openDesk = false) {
+  if (!IS_WINDOWS || stopping || process.argv.includes(FLAG.noTray)) return;
+  const app = desktopApp();
+  if (app && !appQuit && appFails < APP_FAILS_MAX) {
+    startApp(app, openDesk);
+    return;
+  }
+  if (existsSync(TRAY_SCRIPT)) startPowerShellTray(app);
+}
+
+/** The desktop app as the tray. Quit is respected; a crash brings it back, and crashes in a row give up on it. */
+function startApp(/** @type {string} */ app, /** @type {boolean} */ openDesk) {
+  const started = Date.now();
+  const args = openDesk ? APP_FLAGS : [APP_TRAY_FLAG, ...APP_FLAGS];
+  const child = spawn(app, args, { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+  trayChild = child;
+  log(SUPERVISOR, `tray: the desktop app ${app} (pid ${child.pid})`);
+  child.stderr?.on('data', (chunk) => log(TRAY, String(chunk).trimEnd()));
+  child.on('error', (err) => log(SUPERVISOR, `tray: the desktop app could not start: ${err.message}`));
+  child.on('exit', (code) => {
+    if (trayChild === child) trayChild = null;
+    if (stopping) return;
+    if (code === APP_QUIT_CODE) {
+      appQuit = true;
+      appFails = 0;
+      log(SUPERVISOR, 'tray: the desktop app was closed with Quit (or handed to a copy already open): tray.ps1 takes over');
+      startTray();
+      return;
+    }
+    appFails = Date.now() - started < APP_QUICK_MS ? appFails + 1 : 0;
+    log(SUPERVISOR, `tray: the desktop app exited (${code})${appFails >= APP_FAILS_MAX ? ': it keeps failing, so tray.ps1 takes over' : ': starting it again'}`);
+    setTimeout(startTray, TRAY_RESPAWN_MS);
+  });
+}
+
+/** tray.ps1 as the tray. Its "Open the desk" hands back to the desktop app when there is one. */
+function startPowerShellTray(/** @type {string} */ app) {
   const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-WindowStyle', 'Hidden', '-File', TRAY_SCRIPT,
     '-Supervisor', String(process.pid), '-Root', ROOT, '-Desk', `http://${HOST}:${RUNNER_PORT}${DESK_PATH}/`,
-    '-Health', `http://${HOST}:${RUNNER_PORT}${HEALTH_PATH}`, '-Logs', LOG_DIR, '-Icon', TRAY_ICON, '-Task', TASK_NAME];
-  trayChild = spawn(TRAY_SHELL, args, { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
-  trayChild.stderr?.on('data', (chunk) => log(TRAY, String(chunk).trimEnd()));
-  trayChild.on('exit', (code) => {
-    trayChild = null;
+    '-Health', `http://${HOST}:${RUNNER_PORT}${HEALTH_PATH}`, '-Logs', LOG_DIR, '-Icon', TRAY_ICON, '-Task', TASK_NAME,
+    ...(app && appFails < APP_FAILS_MAX ? ['-App', app] : [])];
+  const child = spawn(TRAY_SHELL, args, { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+  trayChild = child;
+  child.stderr?.on('data', (chunk) => log(TRAY, String(chunk).trimEnd()));
+  child.on('exit', (code) => {
+    if (trayChild === child) trayChild = null;
     if (stopping) return;
+    if (code === TRAY_OPEN_APP_CODE) {
+      appQuit = false;
+      log(SUPERVISOR, 'tray: tray.ps1 asked for the desktop app');
+      startTray(true);
+      return;
+    }
     log(SUPERVISOR, `tray icon exited (${code}): showing it again`);
     setTimeout(startTray, TRAY_RESPAWN_MS);
   });
