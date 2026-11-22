@@ -32,8 +32,9 @@ const (
 // CryptoRules is the crypto desk's part of the rulebook.
 type CryptoRules struct {
 	On           bool     `json:"on"`
-	Symbols      []string `json:"symbols"`       // US dollar pairs, as Coinbase names them: BTC-USD
-	EveryMinutes int      `json:"every_minutes"` // how often the desk looks
+	Symbols      []string `json:"symbols"`            // US dollar pairs, as Coinbase names them: BTC-USD
+	EveryMinutes int      `json:"every_minutes"`      // how often the desk looks
+	Strategy     string   `json:"strategy,omitempty"` // empty selects breakout
 
 	// The entry: an hourly close above the range, on volume, with the trend, and not already spent.
 	BreakoutHours int     `json:"breakout_hours"`   // the close must clear the highest high of this many hours before it

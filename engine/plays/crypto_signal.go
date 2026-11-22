@@ -18,8 +18,7 @@ const (
 	WHY_BTC_WEAK    = "bitcoin is under its 50-hour average: other coins wait"
 )
 
-// Setup is a coin whose last completed hourly candle earned a play: a close above its range, on
-// volume, with the trend behind it.
+// Setup describes a signal from a coin's last completed hourly candle.
 type Setup struct {
 	Symbol    string  `json:"symbol"`
 	At        int64   `json:"at"` // the breakout candle's opening time, Unix seconds
@@ -91,13 +90,19 @@ func hourlyVol(closes []float64) float64 {
 // did not earn one, why says so in words. Pure arithmetic: the live desk and the replay share it.
 func cryptoSetup(symbol string, candles, btc []coinbase.Candle, f CryptoRules) (Setup, string) {
 	candles = lastCandles(candles, CRYPTO_WINDOW)
-	need := max(MA_LONG, CRYPTO_VOL_HOURS, f.BreakoutHours, CRYPTO_ATR_HOURS, RSI_PERIOD) + 1
+	need := MA_LONG + 1
+	if f.Strategy == "" || f.Strategy == CRYPTO_BREAKOUT {
+		need = max(need, f.BreakoutHours+1)
+	}
 	if len(candles) < need {
 		return Setup{}, fmt.Sprintf(WHY_FEW_CANDLES, len(candles), need)
 	}
 	last, closes := candles[len(candles)-1], closesOf(candles)
 	s := Setup{Symbol: symbol, At: last.T, Close: last.C, MA20: sma(closes, MA_SHORT), MA50: sma(closes, MA_LONG),
 		RSI: rsi(closes, RSI_PERIOD), ATR: averageRange(candles, CRYPTO_ATR_HOURS)}
+	if f.Strategy != "" && f.Strategy != CRYPTO_BREAKOUT {
+		return alternativeCryptoSetup(s, candles, closes, btc, f)
+	}
 	before := candles[:len(candles)-1]
 	for _, c := range lastCandles(before, f.BreakoutHours) {
 		s.PriorHigh = math.Max(s.PriorHigh, c.H)
