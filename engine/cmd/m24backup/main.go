@@ -2,8 +2,6 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -16,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata" // New York time must resolve on a machine with no zoneinfo files
 
 	"github.com/YEAHDOGS/money24/engine/cloudguard"
 )
@@ -34,7 +33,7 @@ const (
 	MAX_CAP     = 8_000_000_000
 	// R2 bills writes past 1 million a month. A night makes at most MAX_LIST_PAGES + MAX_UPLOADS
 	// writes (listing is a write-class operation; deletes are free).
-	MAX_UPLOADS    = 4
+	MAX_UPLOADS    = 8 // the state, a few trading days and news day files; still about 400 writes a month
 	MAX_LIST_PAGES = 5
 	// Every byte sent to R2 leaves Google, whose free tier allows 1 GB a month in all.
 	DEFAULT_NIGHT_BYTES = 15_000_000
@@ -70,16 +69,26 @@ type backupKey struct {
 	kind, day string
 }
 
+// HISTORY_KINDS are the archives named for a day and kept oldest-out; the state is the other kind.
+var HISTORY_KINDS = map[string]bool{DAILY_KIND: true, NEWS_KIND: true}
+
 func parseKey(key string) (backupKey, bool) {
 	if !strings.HasPrefix(key, OBJECT_PREFIX) || !strings.HasSuffix(key, ARCHIVE_SUFFIX) {
 		return backupKey{}, false
 	}
-	kind, day, ok := strings.Cut(strings.TrimSuffix(strings.TrimPrefix(key, OBJECT_PREFIX), ARCHIVE_SUFFIX), "/")
-	if !ok || (kind != STATE_GROUP && kind != DAILY_KIND) {
+	kind, name, ok := strings.Cut(strings.TrimSuffix(strings.TrimPrefix(key, OBJECT_PREFIX), ARCHIVE_SUFFIX), "/")
+	if !ok {
 		return backupKey{}, false
 	}
-	_, err := time.Parse(DAY_FORMAT, day)
-	return backupKey{kind, day}, err == nil
+	switch kind {
+	case NEWS_KIND:
+		file, valid := parseNewsFile(name + NEWS_DAY_SUFFIX)
+		return backupKey{kind, file.day}, valid
+	case STATE_GROUP, DAILY_KIND:
+		_, err := time.Parse(DAY_FORMAT, name)
+		return backupKey{kind, name}, err == nil
+	}
+	return backupKey{}, false
 }
 
 func newestState(objects []object) string {
@@ -109,7 +118,7 @@ func retention(objects []object, incoming object, capBytes int64) ([]object, err
 		}
 		// New daily archives may replace only older history or superseded state.
 		if !managed || item.Key == protected ||
-			(newKey.kind == DAILY_KIND && key.kind == DAILY_KIND && key.day >= newKey.day) {
+			(HISTORY_KINDS[newKey.kind] && HISTORY_KINDS[key.kind] && key.day >= newKey.day) {
 			if item.Size > capBytes-reserved {
 				return nil, ERR_NO_ROOM
 			}
@@ -157,113 +166,6 @@ func makeRoom(store backupStore, objects []object, incoming object, capBytes int
 	return kept, nil
 }
 
-func upload(store backupStore, objects []object, root, key string, files []string, budget *limits) ([]object, error) {
-	if budget.uploads <= 0 {
-		return objects, ERR_NO_BUDGET
-	}
-	scratch, err := os.MkdirTemp("", "m24backup-")
-	if err != nil {
-		return objects, err
-	}
-	defer os.RemoveAll(scratch)
-	file, err := os.CreateTemp(scratch, "archive-")
-	if err != nil {
-		return objects, err
-	}
-	defer file.Close()
-	digest := sha256.New()
-	if err := pack(io.MultiWriter(file, digest), root, files, scratch); err != nil {
-		return objects, err
-	}
-	size, err := file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return objects, err
-	}
-	if size > SINGLE_PUT_MAX {
-		return objects, fmt.Errorf("archive exceeds the single-upload size limit")
-	}
-	if size > budget.night {
-		return objects, fmt.Errorf("%w: %s is %d bytes, a night allows %d", ERR_TOO_BIG, key, size, budget.night)
-	}
-	if size > budget.bytes {
-		return objects, fmt.Errorf("%w: %s is %d bytes, %d left", ERR_NO_BUDGET, key, size, budget.bytes)
-	}
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return objects, err
-	}
-	item := object{Key: key, Size: size}
-	objects, err = makeRoom(store, objects, item, budget.capBytes)
-	if err != nil {
-		return objects, err
-	}
-	if err := store.put(key, file, size, hex.EncodeToString(digest.Sum(nil))); err != nil {
-		return objects, err
-	}
-	budget.uploads--
-	budget.bytes -= size
-	fmt.Printf("uploaded %s (%d bytes)\n", item.Key, item.Size)
-	return append(objects, item), nil
-}
-
-// backup sends the current state first, then the newest unsent days, until a limit is
-// reached. What does not fit tonight goes on a later night.
-func backup(store backupStore, root, today, cutoff string, budget limits) error {
-	groups, err := archiveGroups(root, cutoff)
-	if err != nil {
-		return err
-	}
-	objects, err := store.list()
-	if err != nil {
-		return err
-	}
-	// With no incoming object, this also applies a lower cap on the next run.
-	objects, err = makeRoom(store, objects, object{}, budget.capBytes)
-	if err != nil {
-		return err
-	}
-	existing := make(map[string]bool)
-	for _, item := range objects {
-		existing[item.Key] = true
-	}
-	stateKey := OBJECT_PREFIX + STATE_GROUP + "/" + today + ARCHIVE_SUFFIX
-	if len(groups[STATE_GROUP]) > 0 && !existing[stateKey] {
-		objects, err = upload(store, objects, root, stateKey, groups[STATE_GROUP], &budget)
-		if err != nil {
-			return fmt.Errorf("current state: %w", err)
-		}
-	}
-	delete(groups, STATE_GROUP)
-	days := make([]string, 0, len(groups))
-	for day := range groups {
-		days = append(days, day)
-	}
-	sort.Sort(sort.Reverse(sort.StringSlice(days)))
-	for _, day := range days {
-		key := OBJECT_PREFIX + DAILY_KIND + "/" + day + ARCHIVE_SUFFIX
-		if existing[key] {
-			continue
-		}
-		objects, err = upload(store, objects, root, key, groups[day], &budget)
-		if errors.Is(err, ERR_NO_ROOM) {
-			fmt.Printf("retention cap reached at %s\n", day)
-			return nil
-		}
-		if errors.Is(err, ERR_TOO_BIG) {
-			// Skip it rather than hold every older day behind it.
-			fmt.Printf("skipping %s: %v\n", day, err)
-			continue
-		}
-		if errors.Is(err, ERR_NO_BUDGET) {
-			fmt.Printf("stopping at %s for tonight: %v\n", day, err)
-			return nil
-		}
-		if err != nil {
-			return fmt.Errorf("archive %s: %w", day, err)
-		}
-	}
-	return nil
-}
-
 func restore(store backupStore, target string) error {
 	if _, err := os.Lstat(target); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("restore needs a new data directory with an existing parent")
@@ -298,6 +200,11 @@ func restore(store backupStore, target string) error {
 	if count == 0 {
 		return fmt.Errorf("no Money 24 backups found")
 	}
+	report, err := rebuildNews(staging, true)
+	if err != nil {
+		return fmt.Errorf("rebuild the news database: %w", err)
+	}
+	printRebuild(report)
 	if err := os.Rename(staging, target); err != nil {
 		return err
 	}
@@ -305,7 +212,29 @@ func restore(store backupStore, target string) error {
 	return nil
 }
 
-func run(data string, restoring bool, guardFile string) error {
+// options are the command line: one folder, one mode.
+type options struct {
+	data, guardFile string
+	restoring       bool // download a backup into a new folder
+	exportNews      bool // write the news day files and state next to the data, with no upload
+	rebuildNews     bool // build news/news.db from day files and a state file already in the folder
+}
+
+func run(opts options) error {
+	data, err := filepath.Abs(opts.data)
+	if err != nil {
+		return err
+	}
+	location, err := time.LoadLocation(MARKET_ZONE)
+	if err != nil {
+		return err
+	}
+	switch {
+	case opts.rebuildNews:
+		return rebuildLocal(data)
+	case opts.exportNews:
+		return exportLocal(data, location, time.Now())
+	}
 	account, bucket := os.Getenv("R2_ACCOUNT_ID"), os.Getenv("R2_BUCKET")
 	access, secret := os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY")
 	if !regexp.MustCompile(ACCOUNT_PATTERN).MatchString(account) ||
@@ -316,24 +245,19 @@ func run(data string, restoring bool, guardFile string) error {
 		client: &http.Client{Timeout: HTTP_TIMEOUT, CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			return http.ErrUseLastResponse
 		}}}
-	data, err := filepath.Abs(data)
-	if err != nil {
-		return err
-	}
-	if restoring {
+	if opts.restoring {
 		return restore(store, data)
 	}
 	now := time.Now()
-	budget, err := nightLimits(os.Getenv, guardFile, now)
-	if err != nil {
-		return err
-	}
-	location, err := time.LoadLocation(MARKET_ZONE)
+	budget, err := nightLimits(os.Getenv, opts.guardFile, now)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("tonight: up to %d uploads, %d bytes; bucket cap %d bytes\n", budget.uploads, budget.bytes, budget.capBytes)
-	return backup(store, data, now.UTC().Format(DAY_FORMAT), now.In(location).Format(DAY_FORMAT), budget)
+	night := schedule{today: now.UTC().Format(DAY_FORMAT), cutoff: now.In(location).Format(DAY_FORMAT), zone: location}
+	report, err := backup(store, data, night, budget)
+	report.print()
+	return err
 }
 
 func byteSetting(getenv func(string) string, name string, fallback, most int64) (int64, error) {
@@ -376,11 +300,14 @@ func nightLimits(getenv func(string) string, guardFile string, now time.Time) (l
 }
 
 func main() {
-	data := flag.String("data", DEFAULT_DATA, "Money 24 data folder, or fresh destination for restore")
-	restoring := flag.Bool("restore", false, "restore the latest state and all retained days")
-	guardFile := flag.String("guard-state", DEFAULT_GUARD_STATE, "egress guard ledger; empty off Google Cloud")
+	opts := options{}
+	flag.StringVar(&opts.data, "data", DEFAULT_DATA, "Money 24 data folder, or fresh destination for restore")
+	flag.BoolVar(&opts.restoring, "restore", false, "restore the latest state and every retained day, news database included")
+	flag.StringVar(&opts.guardFile, "guard-state", DEFAULT_GUARD_STATE, "egress guard ledger; empty off Google Cloud")
+	flag.BoolVar(&opts.exportNews, "export-news", false, "write the news day files and state into the data folder; no upload")
+	flag.BoolVar(&opts.rebuildNews, "rebuild-news", false, "build news/news.db in the data folder from its day files and state")
 	flag.Parse()
-	if err := run(*data, *restoring, *guardFile); err != nil {
+	if err := run(opts); err != nil {
 		fmt.Fprintln(os.Stderr, "m24backup:", err)
 		os.Exit(1)
 	}

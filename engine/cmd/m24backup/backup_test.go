@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -117,7 +118,7 @@ func TestBackupPackingAndRestore(t *testing.T) {
 	}
 	writeFixture(t, root, excluded, "day still recording")
 	store := memoryStore{make(map[string][]byte)}
-	if err := backup(store, root, TEST_DAY3, TEST_DAY3, testLimits()); err != nil {
+	if _, err := backup(store, root, testNight(t, TEST_DAY3), testLimits()); err != nil {
 		t.Fatal(err)
 	}
 	if len(store.files) != 3 {
@@ -125,10 +126,10 @@ func TestBackupPackingAndRestore(t *testing.T) {
 	}
 	present["trading/paper-journal.jsonl"] = "new journal"
 	writeFixture(t, root, "trading/paper-journal.jsonl", "new journal")
-	if err := backup(store, root, TEST_DAY3, TEST_DAY3, testLimits()); err != nil {
+	if _, err := backup(store, root, testNight(t, TEST_DAY3), testLimits()); err != nil {
 		t.Fatal(err) // No same-day duplicate uploads.
 	}
-	if err := backup(store, root, TEST_DAY4, TEST_DAY3, testLimits()); err != nil {
+	if _, err := backup(store, root, testNight(t, TEST_DAY4, TEST_DAY3), testLimits()); err != nil {
 		t.Fatal(err)
 	}
 	target := filepath.Join(t.TempDir(), "fresh")
@@ -209,42 +210,45 @@ func testLimits() limits {
 	return limits{capBytes: DEFAULT_CAP, uploads: MAX_UPLOADS, bytes: DEFAULT_NIGHT_BYTES, night: DEFAULT_NIGHT_BYTES}
 }
 
+// testNight is a night whose state archive is dated today and whose finished days end before cutoff
+// (the same day unless given).
+func testNight(t *testing.T, today string, cutoff ...string) schedule {
+	t.Helper()
+	zone, err := time.LoadLocation(MARKET_ZONE)
+	if err != nil {
+		t.Fatal(err)
+	}
+	night := schedule{today: today, cutoff: today, zone: zone}
+	if len(cutoff) > 0 {
+		night.cutoff = cutoff[0]
+	}
+	return night
+}
+
 func TestBackupStaysInsideTonightsLimits(t *testing.T) {
 	root := t.TempDir()
 	writeFixture(t, root, "trading/paper-journal.jsonl", "state")
-	days := []string{"2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15"}
-	for _, day := range days {
-		writeFixture(t, root, "trading/meme/"+day+"/records.jsonl", day)
+	var days []string
+	for day := 1; day <= MAX_UPLOADS+2; day++ {
+		days = append(days, fmt.Sprintf("2026-11-%02d", day))
+		writeFixture(t, root, "trading/meme/"+days[day-1]+"/records.jsonl", days[day-1])
 	}
 	store := memoryStore{make(map[string][]byte)}
-	if err := backup(store, root, TEST_DAY3, TEST_DAY3, testLimits()); err != nil {
+	if _, err := backup(store, root, testNight(t, TEST_DAY3), testLimits()); err != nil {
 		t.Fatal(err)
 	}
 	if len(store.files) != MAX_UPLOADS {
 		t.Fatalf("one night made %d uploads, the limit is %d", len(store.files), MAX_UPLOADS)
 	}
-	if _, ok := store.files[OBJECT_PREFIX+DAILY_KIND+"/2026-11-15"+ARCHIVE_SUFFIX]; !ok {
+	if _, ok := store.files[OBJECT_PREFIX+DAILY_KIND+"/"+days[len(days)-1]+ARCHIVE_SUFFIX]; !ok {
 		t.Fatal("the newest day goes first")
 	}
-	if err := backup(store, root, TEST_DAY4, TEST_DAY3, testLimits()); err != nil {
+	report, err := backup(store, root, testNight(t, TEST_DAY4, TEST_DAY3), testLimits())
+	if err != nil {
 		t.Fatal(err)
 	}
-	if len(store.files) != MAX_UPLOADS+MAX_UPLOADS {
-		t.Fatalf("the next night continues the backlog, %d archives", len(store.files))
-	}
-
-	tight := memoryStore{make(map[string][]byte)}
-	small := testLimits()
-	small.bytes = 1 // under any gzip archive
-	if err := backup(tight, root, TEST_DAY3, TEST_DAY3, small); !errors.Is(err, ERR_NO_BUDGET) {
-		t.Fatalf("state that does not fit tonight must fail loudly, got %v", err)
-	}
-	if len(tight.files) != 0 {
-		t.Fatal("nothing is sent past the budget")
-	}
-	small.night = 1
-	if err := backup(tight, root, TEST_DAY3, TEST_DAY3, small); !errors.Is(err, ERR_TOO_BIG) {
-		t.Fatalf("state larger than any night is an error, got %v", err)
+	if want := MAX_UPLOADS + 1 + (len(days) - (MAX_UPLOADS - 1)); len(store.files) != want || len(report.waiting) != 0 {
+		t.Fatalf("the next night continues the backlog: %d archives, want %d, waiting %v", len(store.files), want, report.waiting)
 	}
 }
 

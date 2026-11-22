@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -19,12 +18,12 @@ const (
 	DAY_LENGTH  = len(DAY_FORMAT)
 	STATE_GROUP = "state"
 	NEWS_DB     = "news/news.db"
-	SQLITE_COPY = "news.db"
 	FILE_MODE   = 0600
 	DIR_MODE    = 0700
 )
 
-// archiveGroups separates immutable date partitions from changing, undated state.
+// archiveGroups separates immutable date partitions from changing, undated state. The news
+// database never goes into an archive: its day files and its generated state file travel instead.
 func archiveGroups(root, cutoff string) (map[string][]string, error) {
 	groups := make(map[string][]string)
 	err := filepath.WalkDir(root, func(file string, entry fs.DirEntry, err error) error {
@@ -40,8 +39,11 @@ func archiveGroups(root, cutoff string) (map[string][]string, error) {
 		}
 		name := filepath.ToSlash(rel)
 		switch name {
-		case NEWS_DB + "-wal", NEWS_DB + "-shm", NEWS_DB + "-journal":
-			return nil // SQLite's online backup includes committed WAL changes.
+		case NEWS_DB, NEWS_DB + "-wal", NEWS_DB + "-shm", NEWS_DB + "-journal", NEWS_STATE_FILE:
+			return nil
+		}
+		if strings.HasPrefix(name, NEWS_DAYS_DIR) {
+			return nil
 		}
 		group := STATE_GROUP
 		for _, part := range strings.Split(name, "/") {
@@ -85,24 +87,20 @@ func writeEntry(archive *tar.Writer, file, name string) error {
 	return err
 }
 
-// pack streams files into tar.gz, taking a consistent SQLite snapshot for newsd.
-func pack(dst io.Writer, root string, files []string, scratch string) error {
+// packEntry is one file for an archive: its name inside, and where it is on disk.
+type packEntry struct {
+	name, path string
+}
+
+// pack streams files into tar.gz.
+func pack(dst io.Writer, entries []packEntry) error {
 	compressed, err := gzip.NewWriterLevel(dst, gzip.BestSpeed)
 	if err != nil {
 		return err
 	}
 	archive := tar.NewWriter(compressed)
-	for _, name := range files {
-		file := filepath.Join(root, filepath.FromSlash(name))
-		if name == NEWS_DB {
-			cmd := exec.Command("sqlite3", "-batch", "-bail", "-readonly", "-cmd", ".timeout 10000", file, ".backup "+SQLITE_COPY)
-			cmd.Dir = scratch
-			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("snapshot news SQLite database: %w", err)
-			}
-			file = filepath.Join(scratch, SQLITE_COPY)
-		}
-		if err := writeEntry(archive, file, name); err != nil {
+	for _, entry := range entries {
+		if err := writeEntry(archive, entry.path, entry.name); err != nil {
 			return err
 		}
 	}
