@@ -65,6 +65,8 @@ type ScoutRules struct {
 	RiskPct        float64  `json:"risk_pct"`         // of the account at the stop, for the suggested size
 	MaxPositionPct float64  `json:"max_position_pct"` // the most of the account one play may cost; at least one contract when it fits
 	MaxSharePct    float64  `json:"max_share_pct"`    // of the strike's volume or open interest one play may take
+	// Trade is how the scout trades its best play each pass. Nil in an older rulebook: the defaults apply.
+	Trade *ScoutTrade `json:"trade,omitempty"`
 }
 
 // DefaultScout is how the scout runs until the rulebook says otherwise.
@@ -72,7 +74,7 @@ func DefaultScout() *ScoutRules {
 	return &ScoutRules{On: true, Indexes: []string{"SPY", "QQQ", "IWM"},
 		Stocks: []string{"NVDA", "TSLA", "AAPL", "AMD", "META", "AMZN", "MSFT", "GOOGL", "PLTR"}, StocksPerPass: 3,
 		StopPct: 35, Target1Pct: 40, Target2Pct: 100, FlatMinutes: 10, MaxSpreadPct: 12, MinVolume: 100, MinRelVolume: 1.2,
-		RiskPct: 10, MaxPositionPct: 25, MaxSharePct: 5}
+		RiskPct: 10, MaxPositionPct: 25, MaxSharePct: 5, Trade: DefaultScoutTrade()}
 }
 
 // Candidate is one play the scout found: everything needed to make it, and how it ended.
@@ -115,6 +117,8 @@ type Candidate struct {
 	MarkBy    string    `json:"mark_by,omitempty"` // chain or model
 	ResultPct float64   `json:"result_pct"`
 	ClosedAt  time.Time `json:"closed_at,omitzero"`
+	PlayID    string    `json:"play_id,omitempty"` // the play it became, when the scout traded it
+	Traded    string    `json:"traded,omitempty"`  // why a pick was not traded, when it was tried
 }
 
 // SetupStats is one setup's record so far.
@@ -422,7 +426,7 @@ func (s *Service) ScanAt(ctx context.Context, now, asOf time.Time) ScoutStatus {
 	if s.Funds != nil {
 		funds = s.Funds(now)
 	}
-	spots, quotes := map[string]float64{}, map[string]float64{}
+	spots, quotes, fresh := map[string]float64{}, map[string]float64{}, []int{}
 	for _, symbol := range names {
 		sess, chain, err := s.readName(ctx, symbol, day.Opens, asOf)
 		if err != nil {
@@ -494,6 +498,7 @@ func (s *Service) ScanAt(ctx context.Context, now, asOf time.Time) ScoutStatus {
 				continue
 			}
 			s.scout.all = append(s.scout.all, c)
+			fresh = append(fresh, len(s.scout.all)-1)
 			s.saveScout(c)
 			log.Printf(SCOUT_LOG+"%s %s %s %g%s %s: entry %.2f, stop %.2f, target %.2f, out by %s, odds %.0f%%",
 				hit.Setup, symbol, c.Direction, c.Contract.Strike, c.Contract.Right, c.Contract.Expiry, c.Entry, c.Stop, c.Target1,
@@ -502,6 +507,13 @@ func (s *Service) ScanAt(ctx context.Context, now, asOf time.Time) ScoutStatus {
 		time.Sleep(SCOUT_GAP)
 	}
 	s.follow(asOf, spots, quotes)
+	if !s.ScoutDry {
+		trade := f.Trade
+		if trade == nil {
+			trade = DefaultScoutTrade()
+		}
+		st.Why = s.tradeBest(fresh, trade, now)
+	}
 	if len(s.scout.all) > SCOUT_KEPT {
 		s.scout.all = s.scout.all[len(s.scout.all)-SCOUT_KEPT:]
 	}

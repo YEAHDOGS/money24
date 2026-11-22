@@ -32,7 +32,7 @@ const (
 	STOPS_SHOWN      = 3 // stop-loss 1, 2, 3
 	EVENT_ENTRY      = "entry"
 	EVENT_EXIT       = "exit%d"
-	CURVE_MAX_POINTS = 240 // the page draws this many at most; longer timelines are thinned
+	CURVE_MAX_POINTS = 240        // the page draws this many at most; longer timelines are thinned
 	SOURCE_CONTRACT  = "contract" // replayed over the contract's own traded prices, one candle a day
 	SOURCE_MODEL     = "model"    // replayed over prices worked out from the stock's candles
 	BACKTEST_LAYOUT  = "2006-01-02"

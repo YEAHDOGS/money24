@@ -143,6 +143,7 @@
                 <span class="font-mono">{c.symbol} {c.contract.strike}{c.contract.right} {c.contract.expiry.slice(5)}</span>
                 <span class={c.direction === BULLISH ? 'text-ok' : 'text-bad'}>{c.direction === BULLISH ? '▲' : '▼'}</span>
                 <span class="text-white/60">{strings.desk.setups[c.setup] ?? c.setup}</span>
+                {#if c.play_id}<a href={pageLink(PLAYS_PAGE, { [PLAY_PARAM]: c.play_id })} class="spring ml-1 rounded-sm border border-paper px-1 text-[0.58rem] font-bold tracking-wider text-paper uppercase hover:bg-paper/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-neon-red">{strings.desk.scoutTraded}</a>{/if}
               </span>
               <span class="block font-mono text-[0.68rem] leading-snug text-muted tabular-nums tv:text-sm">
                 {fill(strings.desk.scoutPlan, { entry: price(c.entry), by: nyTime(c.entry_by), stop: price(c.stop), t1: price(c.target1), t2: price(c.target2), out: nyTime(c.exit_by), hold: c.hold_min })}

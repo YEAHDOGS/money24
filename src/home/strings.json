@@ -92,6 +92,7 @@
     "scoutPlan": "entry {entry} by {by} · stop {stop} · targets {t1} / {t2} · out by {out} ({hold}m)",
     "scoutSize": "{qty} × ${cost} · spread {spread}% · {vol} traded · market takes {max} · odds {odds}%",
     "scoutScore": "score {score}",
+    "scoutTraded": "Traded",
     "scoutStat": "{found} found · {closed} closed · {won}% won · {avg} avg",
     "scoutStatNote": "Every play the scout finds is followed to its stop, first target or time exit, traded or not.",
     "scoutOutcomes": { "target": "target", "stop": "stopped", "time": "time exit" },
