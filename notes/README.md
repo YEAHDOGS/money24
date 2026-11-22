@@ -70,4 +70,6 @@ exchange-grade API or liquidity).
   earnings put-buying backtest: full results and verdict.
 - [strategy-evals.md](strategy-evals.md) — evaluations of strategies and
   claims found in the wild. Verified before believed.
+- [meme-coins.md](meme-coins.md) — Solana meme coins: base rates, who wins and
+  who loses, scam checks, paper strategies, costs and legal risk.
 - [research-leads.md](research-leads.md) — open research leads on file.
