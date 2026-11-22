@@ -44,6 +44,18 @@
     { "type": "x", "handle": "ToneVays", "markets": ["crypto"], "role": "levels", "note": "Derivatives trader" },
     { "type": "x", "handle": "RagheeHorner", "markets": ["forex", "futures"], "role": "levels" },
     { "type": "x", "handle": "Forex_Analytix", "markets": ["forex"], "role": "levels" },
+    { "type": "telegram", "handle": "mudrexinsights", "markets": ["crypto"], "role": "callouts", "note": "Full entry/TP/SL alerts about 1.5 a day, weekly results incl. losses. Win rate excludes expired signals; run by an exchange that runs volume contests; includes NVDA/XAU/CL perps. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "mycryptopedia", "markets": ["crypto"], "role": "callouts", "note": "MYC Signals. Bot-format futures calls, 50x leverage, small caps. Public outcome feed is wins-heavy and VIP is sold via a support bot; score from the calls only. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "CryptoSignalFarmers", "markets": ["crypto"], "role": "callouts", "note": "Entry/SL/TP on small coins. Same call is reposted days later (dedupe on first timestamp); claims 90% weekly win rate; silent since 2026-10-25. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "binancekillers", "markets": ["crypto"], "role": "callouts", "note": "227K subs; calls are VIP only, public posts show occasional full signals on micro caps with open-ended target ladders. Claimed 'zero losses' and '1 loser' for the same month; 90%+ accuracy claim unaudited. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "btctradingclub", "markets": ["crypto"], "role": "callouts", "note": "Free Crypto Signals (Profitable Zone). Red flag: a full BTC call and 'completed all targets' posted 23 seconds apart (2026-11-19), $35 lifetime VIP upsell, entry-only calls otherwise. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "binancefuturesignal", "markets": ["crypto"], "role": "callouts", "note": "Entry-only free calls with 5x-50x leverage range, targets and stops withheld for a paid group; same template and contact as btctradingclub's results channel. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "WhaleCryptoSignals", "markets": ["crypto"], "role": "callouts", "note": "Full calls dumped in bursts of 5-15 within seconds, Binance referral link, 253 subs, silent since 2026-10-07. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "CryptoInnerCircle", "markets": ["crypto"], "role": "callouts", "note": "Entry-only spot calls with after-the-fact 'UP 45%' follow-ups, BingX invite link, no stop; silent since 2026-10-05. Opened 2026-11-21" },
+    { "type": "telegram", "handle": "wolfoftrading", "markets": ["crypto"], "role": "callouts", "note": "Natural-language ideas, entry implied, stop sometimes stated; free-VIP funnel in the pinned post; no loss posts seen. Opened 2026-11-21" },
+    { "type": "x", "handle": "CryptoKaleo", "markets": ["crypto"], "role": "callouts", "note": "Direction-only takes ('Looks good. Send it.'), no entry or stop; token-promotion tone. Opened 2026-11-21 (via fxtwitter mirror)" },
+    { "type": "x", "handle": "AltcoinSherpa", "markets": ["crypto"], "role": "callouts", "note": "Mostly commentary; bio carries a gambling-site sponsor tag. Opened 2026-11-21 (via fxtwitter mirror)" },
+    { "type": "x", "handle": "TedPillows", "markets": ["crypto"], "role": "callouts", "note": "Chart and exchange-flow commentary, no entries or stops. Opened 2026-11-21 (via fxtwitter mirror)" },
     { "type": "x", "handle": "PolymarketTrade", "markets": ["prediction"], "role": "callouts", "note": "Community account surfacing top traders" },
     { "type": "x", "handle": "predictingtop", "markets": ["prediction"], "role": "wallets", "note": "Leaderboard tool; posts sharp wallets" },
     { "type": "x", "handle": "CarOnPolymarket", "markets": ["prediction"], "role": "wallets" },
@@ -65,6 +77,7 @@
     { "type": "webhook", "markets": ["all"], "role": "callouts", "note": "POST /signals with a shared secret: TradingView alerts, bots, our own scripts" }
   ],
   "blocklist": [
-    { "type": "x", "handle": "MrZackMorris", "reason": "Charged by the SEC and DOJ in the Dec 2022 Atlas Trading pump-and-dump case" }
+    { "type": "x", "handle": "MrZackMorris", "reason": "Charged by the SEC and DOJ in the Dec 2022 Atlas Trading pump-and-dump case" },
+    { "type": "telegram", "handle": "crypto_pumps_p", "reason": "Crypto Pump Club: runs announced, timed pumps with buying guides and 50% slippage settings (posts 2026-09-02 to 2026-09-10); see notes/crypto-signal-sources.md" }
   ]
 }
