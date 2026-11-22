@@ -205,21 +205,92 @@ a source is picked in the rail; `trading.html?source=x:Handle` links straight to
 |---|---|
 | `GET /api/trust` | every source with posts on record, most trusted first |
 | `GET /api/trust/source?id=x:Handle` | one source's record and each entry with its outcome |
-| `POST /api/trust/load?id=` | records a public sample for an X, Telegram or Reddit source ID |
+| `POST /api/trust/load?id=` | records a history sample for an X, Telegram, Discord or Reddit source ID |
 
-To follow a Telegram channel or Reddit listing, add an entry to the `sources` array in the catalog
-passed to `m24d --sources FILE`. A Telegram entry uses
-`{"type":"telegram","handle":"channelname","markets":["crypto"]}`. For Reddit, use type `reddit`
-with handle `u/name` for a user's submissions and comments or `r/sub` for a subreddit's new posts.
-The corresponding history IDs are `telegram:channelname`, `reddit:u/name` and `reddit:r/sub`.
+Add entries to the `sources` array in the catalog passed to `m24d --sources FILE`.
 
-History loads record up to 200 Telegram or Reddit posts from the last 30 days, capped at 12
-pages per listing. Telegram only exposes posts present in the channel's public web preview.
-Reddit only exposes posts returned by its listings. The runner checks the newest page of each
-listing at least a minute apart. It records the initial snapshot and queues only previously
-unrecorded posts published after startup and within `max_signal_age_sec` (two minutes by default).
-A busy source can publish more than one page between checks. Queue overflow leaves posts in the
-record for replay.
+```json
+[
+  {"type":"telegram","handle":"channelname","markets":["crypto"]},
+  {"type":"discord","handle":"123456789012345678","label":"Alert desk","token_env":"DISCORD_ALERTS_BOT_TOKEN","markets":["crypto"]}
+]
+```
+
+Use `telegram:channelname` or `discord:123456789012345678` to load history. For Reddit, use type
+`reddit` with handle `u/name` for a user's submissions and comments or `r/sub` for a subreddit's
+new posts (history IDs `reddit:u/name` and `reddit:r/sub`).
+
+Telegram, Discord and Reddit history loads record up to 200 posts from the last 30 days and at most
+12 pages per listing. History loads never queue trades. Live readers record the initial snapshot
+and queue only previously unrecorded posts published after startup and within `max_signal_age_sec`
+(two minutes by default). Set `M24D_PUBLIC_FOLLOW=off` to disable the live public-page readers.
+Each live pass is bounded. A sufficiently busy channel can outpace the reader. Queue overflow
+leaves posts in the record for replay.
+
+### Telegram user API
+
+Use the channel's username. The signed-in account must be able to read it. The reader resolves the
+username once per process, polls about once a minute, and waits on Telegram's FLOOD_WAIT responses.
+It reads text and media captions by username. Without the API ID, API hash or saved session it
+uses the public web preview, which only exposes the posts Telegram includes on that page.
+
+Create app credentials at [my.telegram.org](https://my.telegram.org) under **API development tools**.
+Set `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` and `TELEGRAM_PHONE` (international format) in the root
+`.env`. The phone is needed for login. The runner uses the API ID, hash and session after login.
+This reader adds `github.com/gotd/td v0.166.1` (22.2 MiB module download). It provides the pure Go
+MTProto client because Go's standard library has no MTProto implementation. It adds about 9.4 MiB
+to the stripped Windows amd64 runner with CGO disabled.
+
+From the repository root in PowerShell, build a separate binary and create a private folder for the
+one-time input files. Node 20.6 or newer can supply the environment from `.env`.
+
+```powershell
+$env:CGO_ENABLED = '0'
+New-Item -ItemType Directory -Force -Path .\engine\dist | Out-Null
+go -C engine build -buildvcs=false -o dist/m24d.exe ./cmd/m24d
+$loginDir = Join-Path $env:LOCALAPPDATA ('m24-telegram-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $loginDir | Out-Null
+$codeFile = Join-Path $loginDir 'code.txt'
+$passwordFile = Join-Path $loginDir 'password.txt'
+$codeFile
+$passwordFile
+node --env-file=.env -e "const r = require('node:child_process').spawnSync(process.argv[1], process.argv.slice(2), {stdio:'inherit'}); if (r.error) throw r.error; process.exitCode = r.status ?? 1" -- .\engine\dist\m24d.exe --telegram-login --telegram-code-file $codeFile --telegram-password-file $passwordFile
+```
+
+If the runner uses a custom location, append `--data "PATH"` with that same data directory.
+When prompted, use a second terminal and `notepad "<printed code path>"` to save just the code
+as UTF-8 text. Do the same for the password path if prompted for two-step verification. The login
+command waits up to ten minutes and saves `telegram.session` in the runner's data directory with
+owner-only access. Remove the input files after the login command exits.
+
+```powershell
+Remove-Item -LiteralPath $codeFile,$passwordFile -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $loginDir
+```
+
+### Discord bot API
+
+Create a bot in the [Discord Developer Portal](https://discord.com/developers/applications), switch
+on **Message Content Intent**, and invite the bot to the server. Give it **View Channel** and
+**Read Message History** in the target channel. In Discord, enable Developer Mode and copy the
+channel ID. `label` is optional. `token_env` defaults to `DISCORD_BOT_TOKEN` and can name a
+different variable for each bot. Put all bot tokens in `.env`.
+
+The reader uses Discord's REST API for text and embed text, and records the author, time and
+message jump link. Requests are at least 15 seconds apart per channel and pause for longer
+when rate-limit headers or a 429 require it. If Discord strips message content, check the bot's
+Message Content Intent and any required approval. For an eligible announcement channel on a
+server you do not run, use **Follow** into a server channel your bot can read. This delivers only
+future announcements published by the source server.
+
+Authenticated live tests require `M24D_LIVE=1`. Telegram also needs the saved session directory in
+`M24D_LIVE_TELEGRAM_DATA`, a username in `M24D_LIVE_TELEGRAM_CHANNEL` and the API credentials.
+Discord needs `M24D_LIVE_DISCORD_CHANNEL` and `DISCORD_BOT_TOKEN`.
+
+### Reddit listings
+
+The public reader checks the newest page at least a minute apart and only reads posts returned
+by Reddit's listings.
 
 Reddit's unauthenticated JSON routes may return HTTP 403. On HTTP 429, the readers pause Reddit
 requests for at least a minute and honor a longer `Retry-After`. Reddit's Data API requires approval
