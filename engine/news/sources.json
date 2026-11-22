@@ -201,6 +201,10 @@
     { "id": "verge", "country": "US", "label": "The Verge", "type": "rss", "kind": "news", "min_every": "30m", "url": "https://www.theverge.com/rss/index.xml" },
     { "id": "wired", "country": "US", "label": "Wired", "type": "rss", "kind": "news", "min_every": "30m", "url": "https://www.wired.com/feed/rss" },
     { "id": "wired-business", "country": "US", "label": "Wired Business", "type": "rss", "kind": "news", "min_every": "30m", "url": "https://www.wired.com/feed/category/business/latest/rss" },
+    { "id": "theblock", "country": "US", "label": "The Block", "type": "rss", "kind": "news", "min_every": "15m", "url": "https://www.theblock.co/rss.xml" },
+    { "id": "cryptoslate", "country": "US", "label": "CryptoSlate", "type": "rss", "kind": "news", "min_every": "15m", "url": "https://cryptoslate.com/feed/" },
+    { "id": "beincrypto", "country": "US", "label": "BeInCrypto", "type": "rss", "kind": "news", "min_every": "15m", "url": "https://beincrypto.com/feed/" },
+    { "id": "bitcoinmagazine", "country": "US", "label": "Bitcoin Magazine", "type": "rss", "kind": "news", "min_every": "30m", "url": "https://bitcoinmagazine.com/.rss/full/" },
     { "id": "polymarket", "label": "Polymarket", "type": "polymarket", "kind": "market", "min_every": "60s", "url": "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=200&order=volume24hr&ascending=false" }
   ]
 }
