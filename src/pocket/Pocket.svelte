@@ -99,7 +99,7 @@
     <div id="pocket-panel" role="tabpanel" aria-labelledby="pocket-tab-{tab}" class="list-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
       {#key `${tab}|${client.shown}`}
         {#if !client.snap}
-          <p class="px-3 py-4 text-sm text-muted">{strings.loading}</p>
+          <p class="px-3 py-4 text-sm text-muted">{client.publicPage ? strings.publicPage : strings.loading}</p>
         {:else if tab === TAB.services}
           {#if client.problems.length}
             <Section id="pocket-problems" title={strings.sections.problems} count={client.problems.length} tone="text-bad">

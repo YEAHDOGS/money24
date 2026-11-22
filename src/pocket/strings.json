@@ -1,4 +1,5 @@
 {
+  "publicPage": "The pocket is part of the Money 24 desktop app. It shows the services running on your own computer.",
   "tabsLabel": "What the pocket shows",
   "tabs": { "services": "Services", "recorders": "Recorders", "desks": "Desks", "plays": "Plays" },
   "heading": "Status",
