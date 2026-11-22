@@ -235,5 +235,7 @@ func DefaultRulebook() Rulebook {
 		defaultFavorites(),
 		defaultWeatherKnown(),
 		defaultWeatherForecast(),
+		defaultDailyKnown(),
+		defaultDailyForecast(),
 	}}
 }
