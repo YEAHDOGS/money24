@@ -107,10 +107,12 @@ type Desk struct {
 	RulebookPath string
 	MayWrite     func(*http.Request) bool
 
+	rulebookMu  sync.Mutex // serializes rulebook file reads and PUT writes
 	mu          sync.Mutex
 	rulebook    Rulebook
 	strategies  []running
 	loadedMod   time.Time
+	ruleVersion uint64
 	rulebookErr string
 	runs        map[string]*runState
 	settledAt   time.Time
@@ -130,11 +132,18 @@ type candidate struct {
 
 // Reload reads the rulebook when its file changed. A broken file keeps the last good rulebook running.
 func (d *Desk) Reload() error {
+	d.rulebookMu.Lock()
+	defer d.rulebookMu.Unlock()
+	return d.reload(false)
+}
+
+// reload reads a rulebook while the caller holds rulebookMu.
+func (d *Desk) reload(force bool) error {
 	d.mu.Lock()
 	loaded, ready := d.loadedMod, d.strategies != nil
 	d.mu.Unlock()
-	info, err := os.Stat(d.RulebookPath)
-	if err == nil && !info.ModTime().After(loaded) && ready {
+	info, statErr := os.Stat(d.RulebookPath)
+	if !force && statErr == nil && info.ModTime().Equal(loaded) && ready {
 		return nil
 	}
 	rb, err := LoadRulebook(d.RulebookPath)
@@ -147,7 +156,7 @@ func (d *Desk) Reload() error {
 	if err != nil {
 		d.rulebookErr = err.Error()
 	}
-	if info, statErr := os.Stat(d.RulebookPath); statErr == nil {
+	if statErr == nil {
 		d.loadedMod = info.ModTime()
 	}
 	return err
@@ -162,6 +171,7 @@ func (d *Desk) apply(rb Rulebook) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.rulebook, d.strategies = rb, built
+	d.ruleVersion++
 	d.Book.SetCapital(rb.CapitalUSD)
 	if d.runs == nil {
 		d.runs = map[string]*runState{}
@@ -200,6 +210,7 @@ func (d *Desk) Run(ctx context.Context) {
 // tick runs the strategies that are due, then settles.
 func (d *Desk) tick(ctx context.Context, now time.Time) {
 	d.mu.Lock()
+	version := d.ruleVersion
 	due := []running{}
 	for _, r := range d.strategies {
 		st := d.runs[r.cfg.ID]
@@ -216,9 +227,13 @@ func (d *Desk) tick(ctx context.Context, now time.Time) {
 	cache := &marketCache{kalshi: d.Kalshi, series: map[string][]Market{}}
 	for _, r := range due {
 		markets, err := cache.scope(ctx, r.strategy.Scope(), now)
-		pass, state, why, runErr := d.runOne(ctx, r, markets, now)
+		pass, state, why, runErr := d.runOne(ctx, r, markets, now, version)
 		err = errors.Join(err, runErr)
 		d.mu.Lock()
+		if version != d.ruleVersion {
+			d.mu.Unlock()
+			break
+		}
 		st := d.runs[r.cfg.ID]
 		st.lastAt, st.nextAt, st.pass, st.state, st.why, st.lastError = now.UTC(), now.Add(time.Duration(r.cfg.EveryMinutes)*time.Minute).UTC(), pass, state, why, ""
 		if err != nil {
@@ -299,7 +314,7 @@ func (c *marketCache) scope(ctx context.Context, s Scope, now time.Time) ([]Mark
 
 // runOne is one strategy's pass: its opinion on every market, its rules on every opinion, a watch line
 // for every new candidate, and buys within its limits and the desk's.
-func (d *Desk) runOne(ctx context.Context, r running, markets []Market, now time.Time) (Pass, string, string, error) {
+func (d *Desk) runOne(ctx context.Context, r running, markets []Market, now time.Time, version uint64) (Pass, string, string, error) {
 	pass := Pass{Markets: len(markets)}
 	prepErr := r.strategy.Prepare(ctx, d.Env, markets, now)
 	picks := []candidate{}
@@ -318,6 +333,10 @@ func (d *Desk) runOne(ctx context.Context, r running, markets []Market, now time
 	pass.Candidates = len(picks)
 
 	d.mu.Lock()
+	if version != d.ruleVersion {
+		d.mu.Unlock()
+		return pass, "", "", nil
+	}
 	for _, m := range markets {
 		if p := d.Book.Holding(m.Ticker); p != nil {
 			d.Book.Mark(m.Ticker, m.Bid(p.Buy.Side))
@@ -338,7 +357,7 @@ func (d *Desk) runOne(ctx context.Context, r running, markets []Market, now time
 	if state != STATE_LOOKING {
 		return pass, state, why, prepErr
 	}
-	bought, err := d.buy(ctx, r.cfg, picks, now)
+	bought, err := d.buy(ctx, r.cfg, picks, version)
 	pass.Bought = bought
 	d.mu.Lock()
 	state, why = d.limits(r.cfg, now)
@@ -457,14 +476,14 @@ func priceLimit(c Config, pick candidate) float64 {
 }
 
 // buy fills a strategy's best candidates against the real order book, within every limit.
-func (d *Desk) buy(ctx context.Context, c Config, picks []candidate, now time.Time) (int, error) {
+func (d *Desk) buy(ctx context.Context, c Config, picks []candidate, version uint64) (int, error) {
 	bought := 0
 	for _, p := range picks {
 		d.mu.Lock()
-		state, _ := d.limits(c, now)
+		state, _ := d.limits(c, time.Now())
 		account := d.Book.Account("")
 		skip := d.Book.Holding(p.market.Ticker) != nil || d.Book.OpenEvents()[p.market.Event] > 0
-		stop := state != STATE_LOOKING || bought >= c.Limits.NewPerPass || d.Book.OpenBy(c.ID) >= c.Limits.MaxOpen || account.CashUSD < c.Limits.StakeUSD
+		stop := version != d.ruleVersion || state != STATE_LOOKING || bought >= c.Limits.NewPerPass || d.Book.OpenBy(c.ID) >= c.Limits.MaxOpen || account.CashUSD < c.Limits.StakeUSD
 		d.mu.Unlock()
 		if stop {
 			return bought, nil
@@ -480,10 +499,16 @@ func (d *Desk) buy(ctx context.Context, c Config, picks []candidate, now time.Ti
 		if qty <= 0 || cost/qty < c.Entry.MinPrice-CENT/2 {
 			continue
 		}
-		line := p.line(c.ID, KIND_BUY, time.Now())
+		d.mu.Lock()
+		at := time.Now()
+		state, _ = d.limits(c, at)
+		if version != d.ruleVersion || state != STATE_LOOKING {
+			d.mu.Unlock()
+			return bought, nil
+		}
+		line := p.line(c.ID, KIND_BUY, at)
 		line.Price, line.Qty, line.CostUSD, line.FeeUSD = round(cost/qty, PRICE_DIGITS), qty, cost, fee
 		line.Note = fmt.Sprintf(NOTE_FILL, levels, asks[0].Price) + REASONS_JOIN + line.Note
-		d.mu.Lock()
 		_, err = d.Book.Append(line)
 		d.mu.Unlock()
 		if err != nil {
@@ -549,6 +574,9 @@ func (d *Desk) Status() Status {
 		st := d.runs[r.cfg.ID]
 		ss := StrategyStatus{Config: r.cfg, State: st.state, Why: st.why, LastAt: st.lastAt, NextAt: st.nextAt, LastError: st.lastError,
 			Pass: st.pass, Record: d.Book.Record(r.cfg.ID, r.cfg.Bands), Account: d.Book.Account(r.cfg.ID)}
+		if !r.cfg.On {
+			ss.State, ss.Why = STATE_OFF, WHY_OFF
+		}
 		if d.off {
 			ss.State, ss.Why = STATE_OFF, WHY_DESK_OFF
 		}
@@ -584,11 +612,13 @@ func (d *Desk) putRulebook(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	if err := SaveRulebook(d.RulebookPath, rb); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
+	d.rulebookMu.Lock()
+	err := SaveRulebook(d.RulebookPath, rb)
+	if err == nil {
+		err = d.reload(true)
 	}
-	if err := d.Reload(); err != nil {
+	d.rulebookMu.Unlock()
+	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
