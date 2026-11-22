@@ -37,6 +37,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
+	"github.com/YEAHDOGS/money24/engine/kalshitape"
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/meme"
 	"github.com/YEAHDOGS/money24/engine/memedesk"
@@ -50,44 +51,46 @@ import (
 const (
 	DEFAULT_ADDR = "127.0.0.1:8025"
 	// Tauri WebView origins (Windows, then macOS/Linux) and the Vite dev server: same list as newsd.
-	DEFAULT_ORIGINS   = "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:5173,http://127.0.0.1:5173"
-	APP_DIR           = "Money24"
-	DATA_SUBDIR       = "trading"
-	JOURNAL_FILE      = "paper-journal.jsonl"
-	POSTS_FILE        = "posts.jsonl"
-	SECRET_FILE       = "webhook-secret"
-	SECRET_BYTES      = 24
-	QUEUE_SIZE        = 256
-	DIR_PERMS         = 0o755
-	SECRET_PERMS      = 0o600
-	HEADER_TIMEOUT    = 10 * time.Second
-	SHUTDOWN_TIMEOUT  = 5 * time.Second
-	WATCH_INTERVAL    = 30 * time.Second // how often open positions are priced; one quote request each
-	ENV_SECRET        = "M24D_WEBHOOK_SECRET"
-	PLACEHOLDER       = "change-me" // the value old copies of .env.example shipped with
-	SECRET_MIN_CHARS  = 16
-	LOOPBACK_NAME     = "localhost"
-	MAX_TICKER_CHARS  = 6 // longer than this is a full option symbol, not a ticker
-	BEARER            = "Bearer "
-	PLAYS_SUBDIR      = "plays"
-	ENV_NEWSD         = "M24D_NEWSD" // newsd base URL, for headlines on a play
-	DEFAULT_NEWSD     = "http://127.0.0.1:8024"
-	ENV_WEB           = "M24D_WEB"           // folder of built pages to serve, same as --web
-	ENV_BASE          = "M24D_BASE"          // the path the pages were built for, same as --base
-	ENV_PUBLIC_FOLLOW = "M24D_PUBLIC_FOLLOW" // "off" stops reading Telegram and Reddit from public pages
-	SWITCH_OFF        = "off"
-	ROUTE_ACCOUNT     = "GET /api/account"
-	ROUTE_TAPE        = "GET /api/tape"
-	ROUTE_MEME        = "GET /api/meme"
-	ROUTE_BROKER      = "GET /api/broker"
-	MIRROR_FILE       = "alpaca-mirror.json" // the last journal line placed at the broker
-	TAPE_SUBDIR       = "tape"               // every minute's 0DTE and weekly chains, for backtests
-	MEME_SUBDIR       = "meme"
-	MEME_REPLAY_FLAG  = "meme-replay"
-	PREDICT_FILE      = "predict-journal.jsonl" // the prediction desk's paper book
-	PREDICT_TIMEOUT   = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
-	SCOUT_AT_LAYOUT   = "2006-01-02 15:04"
-	BACKTEST_TIMEOUT  = 10 * time.Minute // a replay pages months of hourly candles for every coin
+	DEFAULT_ORIGINS    = "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:5173,http://127.0.0.1:5173"
+	APP_DIR            = "Money24"
+	DATA_SUBDIR        = "trading"
+	JOURNAL_FILE       = "paper-journal.jsonl"
+	POSTS_FILE         = "posts.jsonl"
+	SECRET_FILE        = "webhook-secret"
+	SECRET_BYTES       = 24
+	QUEUE_SIZE         = 256
+	DIR_PERMS          = 0o755
+	SECRET_PERMS       = 0o600
+	HEADER_TIMEOUT     = 10 * time.Second
+	SHUTDOWN_TIMEOUT   = 5 * time.Second
+	WATCH_INTERVAL     = 30 * time.Second // how often open positions are priced; one quote request each
+	ENV_SECRET         = "M24D_WEBHOOK_SECRET"
+	PLACEHOLDER        = "change-me" // the value old copies of .env.example shipped with
+	SECRET_MIN_CHARS   = 16
+	LOOPBACK_NAME      = "localhost"
+	MAX_TICKER_CHARS   = 6 // longer than this is a full option symbol, not a ticker
+	BEARER             = "Bearer "
+	PLAYS_SUBDIR       = "plays"
+	ENV_NEWSD          = "M24D_NEWSD" // newsd base URL, for headlines on a play
+	DEFAULT_NEWSD      = "http://127.0.0.1:8024"
+	ENV_WEB            = "M24D_WEB"           // folder of built pages to serve, same as --web
+	ENV_BASE           = "M24D_BASE"          // the path the pages were built for, same as --base
+	ENV_PUBLIC_FOLLOW  = "M24D_PUBLIC_FOLLOW" // "off" stops reading Telegram and Reddit from public pages
+	SWITCH_OFF         = "off"
+	ROUTE_ACCOUNT      = "GET /api/account"
+	ROUTE_TAPE         = "GET /api/tape"
+	ROUTE_KALSHI_TAPE  = "GET /api/kalshitape"
+	KALSHI_TAPE_SUBDIR = "kalshi" // every market closing within two days, every 30 minutes, and every result
+	ROUTE_MEME         = "GET /api/meme"
+	ROUTE_BROKER       = "GET /api/broker"
+	MIRROR_FILE        = "alpaca-mirror.json" // the last journal line placed at the broker
+	TAPE_SUBDIR        = "tape"               // every minute's 0DTE and weekly chains, for backtests
+	MEME_SUBDIR        = "meme"
+	MEME_REPLAY_FLAG   = "meme-replay"
+	PREDICT_FILE       = "predict-journal.jsonl" // the prediction desk's paper book
+	PREDICT_TIMEOUT    = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
+	SCOUT_AT_LAYOUT    = "2006-01-02 15:04"
+	BACKTEST_TIMEOUT   = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
 
 const (
@@ -506,6 +509,14 @@ func main() {
 	opts.Mount[ROUTE_TAPE] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tapeRecorder.Status(time.Now()))
+	})
+	// The Kalshi tape records every market closing within two days, every 30 minutes, and every
+	// settlement: the history prediction strategies are backtested on.
+	kalshiTape := &kalshitape.Recorder{Dir: filepath.Join(*dataDir, KALSHI_TAPE_SUBDIR), Kalshi: &predict.Kalshi{HTTP: &http.Client{Timeout: PREDICT_TIMEOUT}}}
+	go kalshiTape.Run(ctx)
+	opts.Mount[ROUTE_KALSHI_TAPE] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(kalshiTape.Status())
 	})
 	memeRecorder := &meme.Recorder{Dir: filepath.Join(*dataDir, MEME_SUBDIR)}
 	memeDesk, err := memedesk.Open(*dataDir)

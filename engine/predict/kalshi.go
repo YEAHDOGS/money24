@@ -21,27 +21,28 @@ import (
 )
 
 const (
-	KALSHI_URL        = "https://api.elections.kalshi.com/trade-api/v2" // public market data for every Kalshi market
-	KALSHI_USER_AGENT = "Money24/0.1"
-	KALSHI_PAGE       = 1000 // markets per page, Kalshi's maximum
-	KALSHI_PAGES_MAX  = 20   // a scan never reads more pages than this
-	KALSHI_TICKERS    = 50   // markets looked up by ticker in one request
-	KALSHI_BODY_MAX   = 32 << 20
-	REQUEST_GAP       = 200 * time.Millisecond // Kalshi's basic tier allows 20 reads a second; stay well under
-	KALSHI_TRIES      = 4
-	KALSHI_BACKOFF    = 2 * time.Second
-	STATUS_OPEN_QUERY = "open"
-	MVE_EXCLUDE       = "exclude" // multivariate combos (parlays) are left out: thin, and priced as bundles
-	MARKET_BINARY     = "binary"
-	STATUS_FINALIZED  = "finalized"
-	STATUS_SETTLED    = "settled"
-	RESULT_YES        = "yes"
-	RESULT_NO         = "no"
-	RESULT_SCALAR     = "scalar"
-	SIDE_YES          = "yes"
-	SIDE_NO           = "no"
-	DOLLAR            = 1.0
-	EVENT_SEPARATOR   = "-"
+	KALSHI_URL           = "https://api.elections.kalshi.com/trade-api/v2" // public market data for every Kalshi market
+	KALSHI_USER_AGENT    = "Money24/0.1"
+	KALSHI_PAGE          = 1000 // markets per page, Kalshi's maximum
+	KALSHI_PAGES_MAX     = 20   // a scan never reads more pages than this
+	KALSHI_TICKERS       = 50   // markets looked up by ticker in one request
+	KALSHI_BODY_MAX      = 32 << 20
+	REQUEST_GAP          = 200 * time.Millisecond // Kalshi's basic tier allows 20 reads a second; stay well under
+	KALSHI_TRIES         = 4
+	KALSHI_BACKOFF       = 2 * time.Second
+	STATUS_OPEN_QUERY    = "open"
+	STATUS_SETTLED_QUERY = "settled"
+	MVE_EXCLUDE          = "exclude" // multivariate combos (parlays) are left out: thin, and priced as bundles
+	MARKET_BINARY        = "binary"
+	STATUS_FINALIZED     = "finalized"
+	STATUS_SETTLED       = "settled"
+	RESULT_YES           = "yes"
+	RESULT_NO            = "no"
+	RESULT_SCALAR        = "scalar"
+	SIDE_YES             = "yes"
+	SIDE_NO              = "no"
+	DOLLAR               = 1.0
+	EVENT_SEPARATOR      = "-"
 
 	// Keys for Kalshi's authenticated API (demo orders, later). Market data needs none of them.
 	ENV_KALSHI_KEY_ID = "KALSHI_KEY_ID"
@@ -272,6 +273,12 @@ func (k *Kalshi) Closing(ctx context.Context, from, to time.Time) ([]Market, err
 		"min_close_ts": {strconv.FormatInt(from.Unix(), 10)}, "max_close_ts": {strconv.FormatInt(to.Unix(), 10)}})
 }
 
+// Settled returns the markets that closed since from and have settled, combos left out.
+func (k *Kalshi) Settled(ctx context.Context, from time.Time) ([]Market, error) {
+	return k.markets(ctx, url.Values{"status": {STATUS_SETTLED_QUERY}, "mve_filter": {MVE_EXCLUDE},
+		"min_close_ts": {strconv.FormatInt(from.Unix(), 10)}})
+}
+
 // InSeries returns the open markets of one series, only those closing by to when to is set.
 func (k *Kalshi) InSeries(ctx context.Context, series string, to time.Time) ([]Market, error) {
 	query := url.Values{"series_ticker": {series}}
@@ -284,7 +291,9 @@ func (k *Kalshi) InSeries(ctx context.Context, series string, to time.Time) ([]M
 // markets pages through the open markets a query matches.
 func (k *Kalshi) markets(ctx context.Context, query url.Values) ([]Market, error) {
 	query.Set("limit", strconv.Itoa(KALSHI_PAGE))
-	query.Set("status", STATUS_OPEN_QUERY)
+	if query.Get("status") == "" {
+		query.Set("status", STATUS_OPEN_QUERY)
+	}
 	out := []Market{}
 	for page := 0; page < KALSHI_PAGES_MAX; page++ {
 		var doc struct {
