@@ -95,6 +95,9 @@ const TRAY = 'tray'; // the tray's own log name
 const ENV_DESKTOP_APP = 'M24_DESKTOP_APP';
 const APP_INSTALL_DIR = join(process.env.LOCALAPPDATA ?? '', 'Money 24');
 const APP_CANDIDATES = [join(APP_INSTALL_DIR, 'money24.exe'), join(APP_INSTALL_DIR, 'Money 24.exe'), join(ROOT, 'src', 'tauri', 'target', 'release', 'money24.exe')];
+// The app's tray id (src/tauri/src/tray.rs), found in every build that can be the tray. An older build lacks it:
+// launched with --tray it would open a window and try to start its own services, so it is passed over.
+const APP_TRAY_MARK = Buffer.from('m24-desktop-tray-1');
 const APP_TRAY_FLAG = '--tray'; // only the tray icon, no window
 const APP_FLAGS = ['--attach', '--root', ROOT]; // use these services, never its own; and where Restart and Stop are
 const APP_QUIT_CODE = 0; // the app's Quit: closed on purpose, so it is not brought back
@@ -124,6 +127,8 @@ let stopping = false;
 let trayChild = null;
 let appQuit = false; // the app was closed with Quit: tray.ps1 shows the icon until the app is asked for again
 let appFails = 0;
+/** @type {Map<string, boolean>} by path and modified time: whether that build can be the tray */
+const appCanTray = new Map();
 /** @type {Record<string, number>} bytes in each log file, so rotating needs no stat per line */
 const logSizes = {};
 
@@ -345,9 +350,16 @@ async function checkHealth(/** @type {Service} */ svc) {
   child.kill();
 }
 
-/** The desktop app to run as the tray: the newest that exists, or '' when it is not built. */
+/** Whether a build of the app can be the tray: it carries the tray's mark. Read once per build. */
+function canTray(/** @type {string} */ path) {
+  const key = `${path}|${statSync(path).mtimeMs}`;
+  if (!appCanTray.has(key)) appCanTray.set(key, readFileSync(path).includes(APP_TRAY_MARK));
+  return appCanTray.get(key);
+}
+
+/** The desktop app to run as the tray: the newest build that can be one, or '' when there is none. */
 function desktopApp() {
-  const found = [serviceEnv[ENV_DESKTOP_APP], ...APP_CANDIDATES].filter((path) => path && existsSync(path));
+  const found = [serviceEnv[ENV_DESKTOP_APP], ...APP_CANDIDATES].filter((path) => path && existsSync(path) && canTray(path));
   return found.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0] ?? '';
 }
 

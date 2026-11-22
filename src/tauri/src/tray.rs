@@ -16,7 +16,9 @@ use tauri_plugin_opener::OpenerExt;
 use crate::engines::{Mode, NEWS_PORT, RUNNER_PORT};
 use crate::{local_http, pocket, supervisor::Supervisor, Shell};
 
-const TRAY_ID: &str = "money24";
+// Also the mark scripts/forever.js looks for inside the exe: a build without it predates the tray (and
+// would open a window and start its own engines), so the supervisor never launches it as the tray.
+const TRAY_ID: &str = "m24-desktop-tray-1";
 const MENU_OPEN: &str = "open";
 const MENU_STATUS: &str = "status";
 const MENU_LOGS: &str = "logs";

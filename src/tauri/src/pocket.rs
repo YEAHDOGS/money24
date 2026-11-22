@@ -12,6 +12,7 @@ const POCKET_PAGE: &str = "pocket.html";
 // The page shows its stop question when its address ends in this.
 const CONFIRM_STOP_HASH: &str = "#stop";
 const POCKET_TITLE: &str = "Money 24 status";
+const SHOWN_SCRIPT: &str = "window.dispatchEvent(new Event('pocket-shown'))";
 const POCKET_SIZE: (f64, f64) = (380.0, 520.0);
 // Logical pixels between the pocket and the edges of the work area (the screen less the taskbar).
 const POCKET_GAP: f64 = 12.0;
@@ -69,6 +70,8 @@ pub fn show(app: &AppHandle, confirm_stop: bool) {
     }
     let _ = window.show();
     let _ = window.set_focus();
+    // The page reads everything again at once and plays its entrance (src/pocket/pocket-client.svelte.js).
+    let _ = window.eval(SHOWN_SCRIPT);
 }
 
 pub fn hide(app: &AppHandle) {
