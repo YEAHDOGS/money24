@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/coinbase"
@@ -111,6 +112,7 @@ type CryptoBacktester struct {
 	feePct  float64
 	history cryptoCandleHistory
 	done    map[RawPost]CryptoCallOutcome
+	doneMu  sync.RWMutex
 	busy    chan struct{}
 }
 
@@ -203,10 +205,12 @@ func (b *CryptoBacktester) source(ctx context.Context, id string, now time.Time)
 		if !exists {
 			outcome = b.backtest(ctx, c.call, now)
 			if outcome.R != nil {
+				b.doneMu.Lock()
 				if len(b.done) >= CRYPTO_OUTCOME_CACHE {
 					clear(b.done)
 				}
 				b.done[c.post] = outcome
+				b.doneMu.Unlock()
 			}
 		}
 		record.Outcomes = append(record.Outcomes, outcome)

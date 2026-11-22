@@ -40,6 +40,7 @@ type Journal struct {
 	nextID int64
 	subs   map[chan Entry]struct{}
 	ledger *ledger // the cash account, fed every line ever written, not only the recent ones
+	score  paperScore
 }
 
 // OpenJournal opens path for appending and reads back its tail, so a restart keeps history and ids.
@@ -58,6 +59,7 @@ func OpenJournal(path string) (*Journal, error) {
 			}
 			j.nextID = max(j.nextID, e.ID+1)
 			j.ledger.apply(e)
+			j.score.apply(e)
 			j.keep(e)
 		}
 		f.Close()
@@ -88,6 +90,7 @@ func (j *Journal) Append(e Entry) (Entry, error) {
 		return e, err
 	}
 	j.ledger.apply(e)
+	j.score.apply(e)
 	j.keep(e)
 	for ch := range j.subs {
 		select {

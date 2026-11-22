@@ -156,6 +156,8 @@ type scoutDesk struct {
 	storiesAt time.Time
 	loaded    bool
 	lastMu    sync.Mutex // guards last alone, so the board can be read while a pass is running
+	historyMu sync.Mutex
+	history   map[string]scoutObservation // compact, full record for the scoreboard
 }
 
 // ScoutStatus returns the board.
@@ -189,6 +191,7 @@ func (s *Service) loadScout() {
 	}
 	for _, id := range order {
 		s.scout.all = append(s.scout.all, latest[id])
+		s.scout.keepObservation(latest[id])
 	}
 }
 
@@ -331,6 +334,9 @@ func (s *Service) follow(now time.Time, spots map[string]float64, quotes map[str
 		c.ResultPct = math.Round((exit/c.Entry-1)*PERCENT*10) / 10
 		c.ClosedAt = now.UTC()
 		s.saveScout(*c)
+		if !s.ScoutDry {
+			s.scout.keepObservation(*c)
+		}
 	}
 }
 

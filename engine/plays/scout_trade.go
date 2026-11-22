@@ -127,6 +127,9 @@ func (s *Service) tradeBest(fresh []int, f *ScoutTrade, now time.Time) string {
 		}
 		c.PlayID, c.Traded = armed.ID, ""
 		s.saveScout(*c)
+		if !s.ScoutDry {
+			s.scout.keepObservation(*c)
+		}
 		log.Printf(SCOUT_LOG+"traded %s %s: %d at %.2f, stop %.2f, targets %.2f / %.2f, out by %s",
 			c.Setup, armed.Title, c.Qty, c.Entry, c.Stop, c.Target1, c.Target2, c.ExitBy.In(MARKET_TZ).Format("15:04"))
 		return ""

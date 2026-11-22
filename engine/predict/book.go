@@ -77,9 +77,10 @@ type Position struct {
 }
 
 type watch struct {
-	line    Line
-	settled bool
-	payout  float64 // per contract
+	line      Line
+	settled   bool
+	settledAt time.Time
+	payout    float64 // per contract
 }
 
 // Account is the paper cash account of the prediction desk, or one strategy's share of it.
@@ -216,6 +217,7 @@ func (b *Book) settle(l Line) {
 	for _, w := range b.byTicker[l.Ticker] {
 		if !w.settled {
 			w.settled, w.payout = true, payoutFor(w.line.Side, l.Value)
+			w.settledAt = l.At
 		}
 	}
 	p := b.positions[l.Ticker]

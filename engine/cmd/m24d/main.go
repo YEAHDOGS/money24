@@ -43,6 +43,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/memedesk"
 	"github.com/YEAHDOGS/money24/engine/plays"
 	"github.com/YEAHDOGS/money24/engine/predict"
+	"github.com/YEAHDOGS/money24/engine/scoreboard"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/tape"
 	"github.com/YEAHDOGS/money24/engine/webull"
@@ -437,7 +438,8 @@ func main() {
 		return opts.TrustsLocalDesk(r) || r.Header.Get("Authorization") == BEARER+secret
 	}
 	opts.Mount = tracker.Routes(http.DefaultClient, mayLoad)
-	for pattern, handler := range signals.NewCryptoBacktester(postsPath, alpaca.CRYPTO_TAKER_FEE_PCT).Routes(mayLoad) {
+	callBacktester := signals.NewCryptoBacktester(postsPath, alpaca.CRYPTO_TAKER_FEE_PCT)
+	for pattern, handler := range callBacktester.Routes(mayLoad) {
 		opts.Mount[pattern] = handler
 	}
 	opts.Mount[market.ROUTE_PREFIX] = market.Handler(prices)
@@ -522,10 +524,12 @@ func main() {
 	})
 	memeRecorder := &meme.Recorder{Dir: filepath.Join(*dataDir, meme.DATA_SUBDIR)}
 	memeDesk, err := memedesk.Open(*dataDir)
+	var memeScoreboard func() []scoreboard.Strategy
 	if err != nil {
 		log.Printf("meme paper desk unavailable: %v", err)
 	} else {
 		defer memeDesk.Close()
+		memeScoreboard = memeDesk.Scoreboard
 		memeDesk.MayWrite = mayLoad
 		memeRecorder.OnRecord = memeDesk.Observe
 		for pattern, handler := range memeDesk.Routes() {
@@ -554,10 +558,16 @@ func main() {
 	predictHTTP := &http.Client{Timeout: PREDICT_TIMEOUT}
 	predictDesk := &predict.Desk{Book: predictBook, Kalshi: &predict.Kalshi{HTTP: predictHTTP}, Env: &predict.Env{HTTP: predictHTTP},
 		RulebookPath: filepath.Join(*dataDir, predict.RULEBOOK_FILE), MayWrite: mayLoad}
+	if err := predictDesk.Reload(); err != nil {
+		log.Printf("predict rulebook: %v", err)
+	}
 	go predictDesk.Run(ctx)
 	for pattern, h := range predictDesk.Routes() {
 		opts.Mount[pattern] = h
 	}
+	opts.Mount[scoreboard.ROUTE] = scoreboard.Handler(predictDesk.Scoreboard, memeScoreboard, playService.Scoreboard, func() []scoreboard.Strategy {
+		return tracker.Scoreboard(journal, callBacktester, plays.SOURCE_ID)
+	})
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

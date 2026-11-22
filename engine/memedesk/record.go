@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/meme"
+	"github.com/YEAHDOGS/money24/engine/scoreboard"
 )
 
 const (
@@ -99,16 +100,17 @@ type RefusalOutcome struct {
 }
 
 type strategyState struct {
-	config     Config
-	configured bool
-	canBuy     bool
-	record     Record
-	open       map[string]*candidate
-	recent     []*candidate
-	closed     []*candidate
-	entries    []time.Time
-	stakeDay   string
-	stakeUSD   float64
+	config                         Config
+	configured                     bool
+	canBuy                         bool
+	record                         Record
+	open                           map[string]*candidate
+	recent                         []*candidate
+	closed                         []*candidate
+	paperResults, benchmarkResults []scoreboard.Result
+	entries                        []time.Time
+	stakeDay                       string
+	stakeUSD                       float64
 }
 
 func (s *strategyState) add(c *candidate) {
@@ -185,6 +187,9 @@ func (s *strategyState) staked(day string) float64 {
 func (s *strategyState) settleBenchmark(c *candidate) {
 	r := &s.record
 	pnl := c.Benchmark.PnLUSD
+	if c.Benchmark.Buy.NetUSD > 0 {
+		s.benchmarkResults = append(s.benchmarkResults, scoreboard.Result{At: c.Benchmark.ClosedAt, Return: pnl / c.Benchmark.Buy.NetUSD})
+	}
 	r.BenchmarkClosed++
 	r.BenchmarkOpen--
 	r.BenchmarkPnLUSD += pnl
@@ -225,6 +230,9 @@ func (s *strategyState) settlePaper(c *candidate) {
 	s.closed = appendRecent(s.closed, c)
 	s.record.PaperClosed++
 	s.record.PaperPnLUSD += c.Paper.PnLUSD
+	if c.Paper.Buy.NetUSD > 0 {
+		s.paperResults = append(s.paperResults, scoreboard.Result{At: c.Paper.ClosedAt, Return: c.Paper.PnLUSD / c.Paper.Buy.NetUSD})
+	}
 	if c.Paper.PnLUSD > 0 {
 		s.record.PaperWins++
 	}
