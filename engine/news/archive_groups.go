@@ -15,11 +15,13 @@ const (
 	ARCHIVE_GROUPS  = 300    // the most groups one answer lists, biggest first
 )
 
-// GROUP_KEYS are the SQL behind each grouping: the key, the group's name, and the joins they need.
-var GROUP_KEYS = map[string]struct{ key, name, from string }{
-	GROUP_BY_SOURCE: {`e.source`, `e.source`, ` FROM events e`},
+// GROUP_KEYS are the SQL behind each grouping: the key, the group's name, the joins they need, and
+// what sorts a group last whatever its size (articles in no story, which a reader looks at least).
+var GROUP_KEYS = map[string]struct{ key, name, from, last string }{
+	GROUP_BY_SOURCE: {`e.source`, `e.source`, ` FROM events e`, `''`},
 	GROUP_BY_STORY: {`COALESCE(CAST(se.story_id AS TEXT), '` + STORY_NONE + `')`, `COALESCE(s.title, '')`,
-		` FROM events e LEFT JOIN story_events se ON se.event_id = e.id LEFT JOIN stories s ON s.id = se.story_id`},
+		` FROM events e LEFT JOIN story_events se ON se.event_id = e.id LEFT JOIN stories s ON s.id = se.story_id`,
+		`se.story_id IS NULL`},
 }
 
 // ArchiveGroup is one outlet or story of a day: how many articles it has and its newest headline.
@@ -32,8 +34,8 @@ type ArchiveGroup struct {
 	Title  string    `json:"title"`
 }
 
-// archiveGroups lists a query's articles by outlet or story, biggest first, and how many groups
-// there are in all (more than it lists on a busy day).
+// archiveGroups lists a query's articles by outlet or story, biggest first (articles in no story last),
+// and how many groups there are in all (more than it lists on a busy day).
 func (s *Store) archiveGroups(ctx context.Context, q ArchiveQuery, by string) ([]ArchiveGroup, int, error) {
 	sql := GROUP_KEYS[by]
 	where, args := q.filters()
@@ -44,7 +46,7 @@ func (s *Store) archiveGroups(ctx context.Context, q ArchiveQuery, by string) ([
 	}
 	// With a single max(), SQLite takes the bare e.title from the row that holds it: the newest headline.
 	rows, err := s.db.QueryContext(ctx, `SELECT `+sql.key+`, `+sql.name+`, COUNT(*) n, MAX(e.at) latest, e.title`+
-		sql.from+where+` GROUP BY 1 ORDER BY n DESC, latest DESC LIMIT ?`, append(args, ARCHIVE_GROUPS)...)
+		sql.from+where+` GROUP BY 1 ORDER BY `+sql.last+`, n DESC, latest DESC LIMIT ?`, append(args, ARCHIVE_GROUPS)...)
 	if err != nil {
 		return nil, 0, err
 	}
