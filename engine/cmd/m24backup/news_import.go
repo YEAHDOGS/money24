@@ -48,6 +48,9 @@ func rebuildNews(dir string, removeState bool) (rebuildReport, error) {
 	if stateErr != nil && !errors.Is(stateErr, os.ErrNotExist) {
 		return report, stateErr
 	}
+	if err := os.MkdirAll(filepath.Join(dir, NEWS_DIR), DIR_MODE); err != nil {
+		return report, err
+	}
 	ctx := context.Background()
 	store, err := news.OpenStore(ctx, filepath.Join(dir, NEWS_DIR))
 	if err != nil {
@@ -268,16 +271,15 @@ func sqlValue(value any) (any, error) {
 // state's cutoff with no file (an empty day, or one the backup has not uploaded yet), and days
 // whose parts are incomplete.
 func (i *newsImporter) gaps(files []newsFile) (missing, partial []string) {
-	if len(files) == 0 || i.cutoff == "" {
-		return nil, nil
-	}
 	have := map[string]bool{}
 	for _, file := range files {
 		have[file.day] = true
 	}
-	for _, day := range dayRangeLabels(files[0].day, i.cutoff) {
-		if !have[day] {
-			missing = append(missing, day)
+	if len(files) > 0 && i.cutoff != "" {
+		for _, day := range dayRangeLabels(files[0].day, i.cutoff) {
+			if !have[day] {
+				missing = append(missing, day)
+			}
 		}
 	}
 	days := make([]string, 0, len(i.parts))
