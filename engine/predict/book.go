@@ -13,16 +13,18 @@ const (
 	// Kalshi's taker fee on each fill: 7% of contracts × price × (1 − price), rounded up to the cent.
 	// It is largest at 50¢ and small near the ends. A few series charge less; the desk charges every
 	// market the standard rate, so its record is never flattered.
-	FEE_RATE     = 0.07
-	CENT         = 0.01
-	PRICE_DIGITS = 4
-	USD_DIGITS   = 2
-	PERCENT      = 100.0
-	LINE_MAX     = 1 << 20
-	FILE_PERMS   = 0o644
-	DAY_LAYOUT   = "2006-01-02"
-	NEW_YORK     = "America/New_York"
-	KEY_JOIN     = "|"
+	FEE_RATE       = 0.07
+	CENT           = 0.01
+	PRICE_DIGITS   = 4
+	PRICE_SCALE    = 10_000
+	USD_DIGITS     = 2
+	PERCENT        = 100.0
+	TICKS_PER_CENT = PRICE_SCALE / PERCENT
+	LINE_MAX       = 1 << 20
+	FILE_PERMS     = 0o644
+	DAY_LAYOUT     = "2006-01-02"
+	NEW_YORK       = "America/New_York"
+	KEY_JOIN       = "|"
 	// Lines written before strategies had names all came from the favorites rule.
 	LEGACY_STRATEGY = FAVORITES_ID
 
@@ -109,7 +111,9 @@ type Book struct {
 
 // Fee is Kalshi's taker fee for qty contracts bought at price.
 func Fee(qty, price float64) float64 {
-	return math.Ceil(round(FEE_RATE*qty*price*(DOLLAR-price)/CENT, PRICE_DIGITS)) * CENT
+	ticks := math.Round(price * PRICE_SCALE)
+	rawCents := (FEE_RATE * PERCENT) * qty * ticks * (PRICE_SCALE - ticks) / (PRICE_SCALE * PRICE_SCALE)
+	return math.Ceil(rawCents) / PERCENT
 }
 
 // feeEach is the fee one contract carries in an order of some size, before the cent rounding.

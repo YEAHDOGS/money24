@@ -357,10 +357,11 @@ func consider(r running, m Market, now time.Time) (candidate, bool) {
 		return candidate{}, false
 	}
 	ask, bid := m.Ask(op.Side), m.Bid(op.Side)
-	if ask < e.MinPrice || ask > e.MaxPrice || bid <= 0 || ask-bid > e.MaxSpread+CENT/2 {
+	spread := round(ask-bid, PRICE_DIGITS)
+	if ask < e.MinPrice || ask > e.MaxPrice || bid <= 0 || spread > e.MaxSpread {
 		return candidate{}, false
 	}
-	c := candidate{market: m, side: op.Side, ask: ask, spread: round(ask-bid, PRICE_DIGITS), reasons: op.Reasons}
+	c := candidate{market: m, side: op.Side, ask: ask, spread: spread, reasons: op.Reasons}
 	if op.Prob > 0 {
 		c.prob = op.Prob
 		if op.Side == SIDE_NO {
@@ -397,7 +398,8 @@ func (d *Desk) limits(c Config, now time.Time) (string, string) {
 	if lost := d.Book.LostOn(day); lost >= d.rulebook.DailyLossUSD {
 		return STATE_PAUSED, fmt.Sprintf(WHY_PAUSED, lost)
 	}
-	if d.Book.StakedOn(c.ID, day)+c.Limits.StakeUSD > c.Limits.DailyStakeUSD+CENT/2 {
+	total := round(d.Book.StakedOn(c.ID, day), USD_DIGITS) + c.Limits.StakeUSD
+	if total > math.Nextafter(c.Limits.DailyStakeUSD, math.Inf(1)) {
 		return STATE_FULL, fmt.Sprintf(WHY_FULL, c.Limits.DailyStakeUSD)
 	}
 	return STATE_LOOKING, ""
@@ -406,33 +408,52 @@ func (d *Desk) limits(c Config, now time.Time) (string, string) {
 // fillFrom buys whole contracts from the cheapest asks up to limit, spending at most stakeUSD with the
 // fee. It returns the contracts, their cost, the fee and how many price levels it took.
 func fillFrom(asks []Level, limit, stakeUSD float64) (qty, cost, fee float64, levels int) {
+	costTicks, feeCents := 0.0, 0.0
 	for _, l := range asks {
-		if l.Price > limit+CENT/2 {
+		if l.Price > limit {
 			break
 		}
-		perContract := l.Price + feeEach(l.Price)
-		n := math.Min(math.Floor(l.Qty), math.Floor((stakeUSD-cost-fee)/perContract))
-		for n > 0 && cost+fee+n*l.Price+Fee(n, l.Price) > stakeUSD+CENT/2 {
-			n--
+		whole := math.Floor(l.Qty)
+		if whole <= 0 {
+			continue
+		}
+		priceTicks := math.Round(l.Price * PRICE_SCALE)
+		room := stakeUSD - (costTicks+feeCents*TICKS_PER_CENT)/PRICE_SCALE
+		// Start with an upper bound, then check the fee and the actual amount booked.
+		n := math.Min(whole, math.Floor(room/(l.Price+feeEach(l.Price)))+1)
+		for ; n > 0; n-- {
+			nextCost := costTicks + n*priceTicks
+			nextFee := feeCents + math.Round(Fee(n, l.Price)*PERCENT)
+			raw := (nextCost + nextFee*TICKS_PER_CENT) / PRICE_SCALE
+			booked := (math.Round(nextCost/TICKS_PER_CENT) + nextFee) / PERCENT
+			if raw > stakeUSD || booked > stakeUSD {
+				continue
+			}
+			qty, costTicks, feeCents, levels = qty+n, nextCost, nextFee, levels+1
+			break
 		}
 		if n <= 0 {
 			break
 		}
-		qty, cost, fee, levels = qty+n, cost+n*l.Price, fee+Fee(n, l.Price), levels+1
 	}
-	return qty, round(cost, USD_DIGITS), round(fee, USD_DIGITS), levels
+	return qty, math.Round(costTicks/TICKS_PER_CENT) / PERCENT, feeCents / PERCENT, levels
 }
 
 // priceLimit is the most a strategy pays a contract: its top price, and for a strategy with a chance,
 // no more than keeps its edge.
 func priceLimit(c Config, pick candidate) float64 {
-	limit := c.Entry.MaxPrice
-	if pick.prob > 0 {
-		for limit > pick.ask && pick.prob-limit-feeEach(limit) < c.Entry.MinEdge {
-			limit -= CENT
-		}
+	budget := pick.prob - c.Entry.MinEdge
+	top := c.Entry.MaxPrice
+	if pick.prob <= 0 || top+feeEach(top) <= budget {
+		return top
 	}
-	return limit
+	if budget <= 0 {
+		return 0
+	}
+	// Invert price + feeEach(price) at the budget, then round down to a book price.
+	a := DOLLAR + FEE_RATE
+	limit := 2 * budget / (a + math.Sqrt(a*a-4*FEE_RATE*budget))
+	return math.Floor(limit*PRICE_SCALE) / PRICE_SCALE
 }
 
 // buy fills a strategy's best candidates against the real order book, within every limit.
