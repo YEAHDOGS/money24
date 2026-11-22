@@ -5,6 +5,7 @@
 // calendar and network meter instead (src/lib/demo.js).
 import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
 import { StoryBoard } from './stories-client.svelte.js';
+import { ArchiveDesk } from './archive-client.svelte.js';
 
 const DEFAULT_API = 'http://127.0.0.1:8024';
 const API_BASE = import.meta.env.VITE_NEWS_API || DEFAULT_API;
@@ -64,6 +65,8 @@ export class FeedClient {
   demoTakenAt = $state('');
   /** The stories board and world map: the same articles, grouped and scored by the engine. */
   stories = new StoryBoard();
+  /** The news archive behind the calendar's day view. */
+  archive = new ArchiveDesk();
 
   #es = null;
   #lastId = 0;
@@ -90,6 +93,7 @@ export class FeedClient {
       // The backlog reads best by publish time; live posts then enter at the top as they arrive.
       this.items = [...posts].sort(byPublished);
       this.stories.connect(API_BASE);
+      this.archive.connect(API_BASE);
       this.#connect();
     } catch {
       this.status = STATUS.offline;
@@ -108,6 +112,7 @@ export class FeedClient {
       this.items = [...snap.events].sort(byPublished);
       this.calendar = snap.calendar ?? [];
       this.stories.useDemo();
+      this.archive.useDemo();
       this.calendarLoaded = true;
       this.settings = snap.settings ?? null;
       for (const reading of snap.stats ?? []) this.#applyStats(reading);

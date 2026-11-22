@@ -86,6 +86,15 @@ export function weekDays(now, offset) {
   });
 }
 
+/** How many weeks the week holding `now` is after the week holding a YYYY-MM-DD day.
+ * @param {number} now epoch ms @param {string} key */
+export function weeksSince(now, key) {
+  const monday = (/** @type {Date} */ d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + MONDAY_OFFSET) % DAYS_IN_WEEK));
+  const [y, m, d] = key.split('-').map(Number);
+  // Rounded, so a daylight-saving hour between the two Mondays does not lose a week.
+  return Math.round((monday(new Date(now)).getTime() - monday(new Date(y, m - 1, d)).getTime()) / (DAYS_IN_WEEK * DAY));
+}
+
 /** "Nov 9 – Nov 15" for a week from weekDays. @param {{date: Date}[]} days */
 export function weekRange(days) {
   return `${RANGE_FORMAT.format(days[0].date)} – ${RANGE_FORMAT.format(days[DAYS_IN_WEEK - 1].date)}`;
