@@ -37,6 +37,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/market"
+	"github.com/YEAHDOGS/money24/engine/meme"
 	"github.com/YEAHDOGS/money24/engine/plays"
 	"github.com/YEAHDOGS/money24/engine/predict"
 	"github.com/YEAHDOGS/money24/engine/signals"
@@ -73,9 +74,11 @@ const (
 	ENV_BASE         = "M24D_BASE" // the path the pages were built for, same as --base
 	ROUTE_ACCOUNT    = "GET /api/account"
 	ROUTE_TAPE       = "GET /api/tape"
+	ROUTE_MEME       = "GET /api/meme"
 	ROUTE_BROKER     = "GET /api/broker"
-	MIRROR_FILE      = "alpaca-mirror.json"    // the last journal line placed at the broker
-	TAPE_SUBDIR      = "tape"                  // every minute's 0DTE and weekly chains, for backtests
+	MIRROR_FILE      = "alpaca-mirror.json" // the last journal line placed at the broker
+	TAPE_SUBDIR      = "tape"               // every minute's 0DTE and weekly chains, for backtests
+	MEME_SUBDIR      = "meme"
 	PREDICT_FILE     = "predict-journal.jsonl" // the prediction desk's paper book
 	PREDICT_TIMEOUT  = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
 	SCOUT_AT_LAYOUT  = "2006-01-02 15:04"
@@ -447,6 +450,16 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tapeRecorder.Status(time.Now()))
 	})
+	memeRecorder := &meme.Recorder{Dir: filepath.Join(*dataDir, MEME_SUBDIR)}
+	memeDone := make(chan struct{})
+	go func() {
+		defer close(memeDone)
+		memeRecorder.Run(ctx)
+	}()
+	opts.Mount[ROUTE_MEME] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(memeRecorder.Status())
+	})
 	// The prediction desk: a paper book of Kalshi event contracts at Kalshi's live prices, filled against
 	// the real order book with the real fee and settled at the real result. It places no order anywhere.
 	// Every strategy it runs is in predict-strategies.json in the data folder: edit it to add, retune or
@@ -489,4 +502,9 @@ func main() {
 	<-followDone
 	close(queue)
 	<-done
+	select {
+	case <-memeDone:
+	case <-shutdown.Done():
+		log.Print("meme recorder shutdown timed out")
+	}
 }
