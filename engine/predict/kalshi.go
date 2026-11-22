@@ -88,6 +88,20 @@ func (m Market) EventDate() (time.Time, error) {
 	return time.Parse(EVENT_DATE_LAYOUT, date[:3]+strings.ToLower(date[3:5])+date[5:])
 }
 
+// ContinuousRange is the values that settle YES for a quantity that is not rounded, like a price:
+// greater is above the floor, less is below the cap, between runs from the floor to the cap.
+func (m Market) ContinuousRange() (lo, hi float64, ok bool) {
+	switch m.Strike {
+	case STRIKE_GREATER:
+		return m.Floor, math.Inf(1), true
+	case STRIKE_LESS:
+		return math.Inf(-1), m.Cap, true
+	case STRIKE_BETWEEN:
+		return m.Floor, m.Cap, m.Cap >= m.Floor
+	}
+	return 0, 0, false
+}
+
 // Range is the values that settle YES, as a half-open range of a quantity reported in whole units.
 func (m Market) Range() (lo, hi float64, ok bool) {
 	switch m.Strike {
@@ -243,9 +257,13 @@ func (k *Kalshi) Closing(ctx context.Context, from, to time.Time) ([]Market, err
 		"min_close_ts": {strconv.FormatInt(from.Unix(), 10)}, "max_close_ts": {strconv.FormatInt(to.Unix(), 10)}})
 }
 
-// InSeries returns the open markets of one series.
-func (k *Kalshi) InSeries(ctx context.Context, series string) ([]Market, error) {
-	return k.markets(ctx, url.Values{"series_ticker": {series}})
+// InSeries returns the open markets of one series, only those closing by to when to is set.
+func (k *Kalshi) InSeries(ctx context.Context, series string, to time.Time) ([]Market, error) {
+	query := url.Values{"series_ticker": {series}}
+	if !to.IsZero() {
+		query.Set("max_close_ts", strconv.FormatInt(to.Unix(), 10))
+	}
+	return k.markets(ctx, query)
 }
 
 // markets pages through the open markets a query matches.

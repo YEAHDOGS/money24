@@ -225,7 +225,7 @@ func TestLiveDailyCounts(t *testing.T) {
 	defer cancel()
 	markets := []Market{}
 	for _, series := range d.Scope().Series {
-		found, err := kalshi.InSeries(ctx, series)
+		found, err := kalshi.InSeries(ctx, series, time.Time{})
 		if err != nil {
 			t.Fatalf("%s: %v", series, err)
 		}

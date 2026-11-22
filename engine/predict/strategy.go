@@ -47,7 +47,7 @@ type Strategy interface {
 // Scope is which markets a strategy looks at: named series, or every market closing soon.
 type Scope struct {
 	Series      []string // Kalshi series tickers (KXHIGHNY); empty: every market closing within WithinHours
-	WithinHours float64
+	WithinHours float64  // with Series: only their markets closing this soon; 0: all of them
 }
 
 // Opinion is a strategy's view of one market.
@@ -132,6 +132,9 @@ type Rulebook struct {
 	// and keep their record, but buy nothing.
 	Mode       string   `json:"mode"`
 	Strategies []Config `json:"strategies"`
+	// DefaultsSeen lists the built-in strategies this rulebook has been offered. A built-in strategy
+	// added in a later release joins the rulebook once; one deleted from the rulebook stays deleted.
+	DefaultsSeen []string `json:"defaults_seen"`
 }
 
 // running is a strategy built from its config.
@@ -213,7 +216,34 @@ func LoadRulebook(path string) (Rulebook, error) {
 	if err := json.Unmarshal(body, &rb); err != nil {
 		return Rulebook{}, fmt.Errorf("%w: %v", ErrBadRulebook, err)
 	}
-	return rb, nil
+	if !rb.offerDefaults() {
+		return rb, nil
+	}
+	return rb, SaveRulebook(path, rb)
+}
+
+// offerDefaults adds every built-in strategy the rulebook has not been offered yet, and reports
+// whether it added any. A rulebook from before DefaultsSeen counts the strategies it holds as seen.
+func (rb *Rulebook) offerDefaults() bool {
+	seen, have := map[string]bool{}, map[string]bool{}
+	for _, id := range rb.DefaultsSeen {
+		seen[id] = true
+	}
+	for _, c := range rb.Strategies {
+		have[c.ID] = true
+	}
+	changed := false
+	for _, c := range DefaultRulebook().Strategies {
+		if seen[c.ID] {
+			continue
+		}
+		rb.DefaultsSeen = append(rb.DefaultsSeen, c.ID)
+		changed = true
+		if !have[c.ID] {
+			rb.Strategies = append(rb.Strategies, c)
+		}
+	}
+	return changed
 }
 
 // SaveRulebook writes the rulebook to path, readable and indented, through a temporary file.
@@ -231,11 +261,17 @@ func SaveRulebook(path string, rb Rulebook) error {
 
 // DefaultRulebook is the setup the desk starts with: every built-in strategy, on, in paper.
 func DefaultRulebook() Rulebook {
-	return Rulebook{CapitalUSD: DEFAULT_CAPITAL_USD, DailyLossUSD: DEFAULT_DAILY_LOSS_USD, Mode: RISK_HIGH, Strategies: []Config{
+	rb := Rulebook{CapitalUSD: DEFAULT_CAPITAL_USD, DailyLossUSD: DEFAULT_DAILY_LOSS_USD, Mode: RISK_HIGH, Strategies: []Config{
 		defaultFavorites(),
 		defaultWeatherKnown(),
 		defaultWeatherForecast(),
+		defaultPriceFar(),
+		defaultPriceModel(),
 		defaultDailyKnown(),
 		defaultDailyForecast(),
 	}}
+	for _, c := range rb.Strategies {
+		rb.DefaultsSeen = append(rb.DefaultsSeen, c.ID)
+	}
+	return rb
 }
