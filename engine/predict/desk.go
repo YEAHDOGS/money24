@@ -126,6 +126,7 @@ type candidate struct {
 	ask     float64
 	spread  float64
 	prob    float64 // the chance the side wins; 0 when the strategy gives none
+	hasProb bool
 	edge    float64
 	reasons []string
 }
@@ -381,7 +382,11 @@ func consider(r running, m Market, now time.Time) (candidate, bool) {
 		return candidate{}, false
 	}
 	c := candidate{market: m, side: op.Side, ask: ask, spread: spread, reasons: op.Reasons}
-	if op.Prob > 0 {
+	if op.HasProb || op.Prob != 0 {
+		if !(op.Prob >= 0 && op.Prob <= DOLLAR) {
+			return candidate{}, false
+		}
+		c.hasProb = true
 		c.prob = op.Prob
 		if op.Side == SIDE_NO {
 			c.prob = DOLLAR - op.Prob
@@ -425,8 +430,8 @@ func (d *Desk) limits(c Config, now time.Time) (string, string) {
 }
 
 // fillFrom buys whole contracts from the cheapest asks up to limit, spending at most stakeUSD with the
-// fee. It returns the contracts, their cost, the fee and how many price levels it took.
-func fillFrom(asks []Level, limit, stakeUSD float64) (qty, cost, fee float64, levels int) {
+// fee. It returns the contracts, booked cost, fee, number of levels and average execution price.
+func fillFrom(asks []Level, limit, stakeUSD float64) (qty, cost, fee float64, levels int, average float64) {
 	costTicks, feeCents := 0.0, 0.0
 	for _, l := range asks {
 		if l.Price > limit {
@@ -455,7 +460,10 @@ func fillFrom(asks []Level, limit, stakeUSD float64) (qty, cost, fee float64, le
 			break
 		}
 	}
-	return qty, math.Round(costTicks/TICKS_PER_CENT) / PERCENT, feeCents / PERCENT, levels
+	if qty == 0 {
+		return
+	}
+	return qty, math.Round(costTicks/TICKS_PER_CENT) / PERCENT, feeCents / PERCENT, levels, costTicks / (qty * PRICE_SCALE)
 }
 
 // priceLimit is the most a strategy pays a contract: its top price, and for a strategy with a chance,
@@ -463,7 +471,7 @@ func fillFrom(asks []Level, limit, stakeUSD float64) (qty, cost, fee float64, le
 func priceLimit(c Config, pick candidate) float64 {
 	budget := pick.prob - c.Entry.MinEdge
 	top := c.Entry.MaxPrice
-	if pick.prob <= 0 || top+feeEach(top) <= budget {
+	if (!pick.hasProb && pick.prob == 0) || top+feeEach(top) <= budget {
 		return top
 	}
 	if budget <= 0 {
@@ -495,9 +503,15 @@ func (d *Desk) buy(ctx context.Context, c Config, picks []candidate, version uin
 		if err != nil {
 			return bought, err
 		}
-		qty, cost, fee, levels := fillFrom(asks, priceLimit(c, p), c.Limits.StakeUSD)
-		if qty <= 0 || cost/qty < c.Entry.MinPrice-CENT/2 {
+		qty, cost, fee, levels, average := fillFrom(asks, priceLimit(c, p), c.Limits.StakeUSD)
+		if qty <= 0 || average < c.Entry.MinPrice {
 			continue
+		}
+		if p.hasProb || p.prob != 0 {
+			edge := round(p.prob-(cost+fee)/qty, PRICE_DIGITS)
+			if edge < c.Entry.MinEdge || (c.Entry.MaxEdge > 0 && edge > c.Entry.MaxEdge) {
+				continue
+			}
 		}
 		d.mu.Lock()
 		at := time.Now()
@@ -506,8 +520,13 @@ func (d *Desk) buy(ctx context.Context, c Config, picks []candidate, version uin
 			d.mu.Unlock()
 			return bought, nil
 		}
+		left := p.market.CloseAt.Sub(at)
+		if left <= 0 || left < time.Duration(c.Entry.LeftMinutes)*time.Minute {
+			d.mu.Unlock()
+			continue
+		}
 		line := p.line(c.ID, KIND_BUY, at)
-		line.Price, line.Qty, line.CostUSD, line.FeeUSD = round(cost/qty, PRICE_DIGITS), qty, cost, fee
+		line.Price, line.Qty, line.CostUSD, line.FeeUSD = round(average, PRICE_DIGITS), qty, cost, fee
 		line.Note = fmt.Sprintf(NOTE_FILL, levels, asks[0].Price) + REASONS_JOIN + line.Note
 		_, err = d.Book.Append(line)
 		d.mu.Unlock()

@@ -53,7 +53,8 @@ type Scope struct {
 // Opinion is a strategy's view of one market.
 type Opinion struct {
 	Side    string   // the side to buy
-	Prob    float64  // the chance YES wins, 0 to 1; 0 when the strategy names a side but no chance
+	Prob    float64  // the chance YES wins, 0 to 1
+	HasProb bool     // distinguishes a zero chance from a strategy that only names a side
 	Reasons []string // why, in a few words each, for the desk
 }
 

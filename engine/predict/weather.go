@@ -230,7 +230,7 @@ func (w *weather) Evaluate(m Market, now time.Time) (Opinion, bool) {
 		side = SIDE_NO
 	}
 	reasons = append([]string{fmt.Sprintf(WEATHER_REASON_P, prob*PERCENT, max(1, len(model.runs)))}, reasons...)
-	return Opinion{Side: side, Prob: prob, Reasons: reasons}, true
+	return Opinion{Side: side, Prob: prob, HasProb: true, Reasons: reasons}, true
 }
 
 // dayModel is what is known about a day's high (or low): the value recorded so far, which the final

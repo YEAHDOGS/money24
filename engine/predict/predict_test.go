@@ -29,14 +29,14 @@ func TestFee(t *testing.T) {
 
 func TestFillFromStaysInsideStakeAndPrice(t *testing.T) {
 	asks := []Level{{Price: 0.90, Qty: 5}, {Price: 0.92, Qty: 100}, {Price: 0.97, Qty: 1000}}
-	qty, cost, fee, levels := fillFrom(asks, 0.95, 20)
+	qty, cost, fee, levels, _ := fillFrom(asks, 0.95, 20)
 	if levels != 2 || qty != 21 {
 		t.Fatalf("qty %v over %d levels, want 21 over 2", qty, levels)
 	}
 	if cost+fee > 20 {
 		t.Fatalf("spent $%.2f + $%.2f, over the $20 stake", cost, fee)
 	}
-	if qty, _, _, _ := fillFrom([]Level{{Price: 0.97, Qty: 50}}, 0.95, 20); qty != 0 {
+	if qty, _, _, _, _ := fillFrom([]Level{{Price: 0.97, Qty: 50}}, 0.95, 20); qty != 0 {
 		t.Fatalf("bought %v above the price limit", qty)
 	}
 }

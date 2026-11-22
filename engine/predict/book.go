@@ -14,7 +14,6 @@ const (
 	// It is largest at 50¢ and small near the ends. A few series charge less; the desk charges every
 	// market the standard rate, so its record is never flattered.
 	FEE_RATE       = 0.07
-	CENT           = 0.01
 	PRICE_DIGITS   = 4
 	PRICE_SCALE    = 10_000
 	USD_DIGITS     = 2
