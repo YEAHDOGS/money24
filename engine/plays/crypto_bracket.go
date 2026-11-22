@@ -39,8 +39,14 @@ type cryptoBracket struct {
 // risk above the entry. ask is the raw price; feePct is charged on each side.
 func (f CryptoRules) bracket(ask, atr, feePct float64) cryptoBracket {
 	fee := feePct / PERCENT
+	b := f.bracketAt(ask, atr, ask*(1+fee), 1-fee)
+	return b
+}
+
+// bracketAt takes the cost per credited coin and the fraction of gross exit proceeds kept.
+func (f CryptoRules) bracketAt(ask, atr, entry, netExit float64) cryptoBracket {
 	distance := math.Min(math.Max(f.StopATR*atr, ask*f.MinStopPct/PERCENT), ask*f.MaxStopPct/PERCENT)
-	b := cryptoBracket{Entry: coinPrice(ask * (1 + fee)), Stop: coinPrice((ask - distance) * (1 - fee)), StopPct: distance / ask * PERCENT}
+	b := cryptoBracket{Entry: coinPrice(entry), Stop: coinPrice((ask - distance) * netExit), StopPct: distance / ask * PERCENT}
 	b.R = b.Entry - b.Stop
 	for _, r := range f.LadderR {
 		b.Rungs = append(b.Rungs, coinPrice(b.Entry+r*b.R))
@@ -161,10 +167,24 @@ func (f CryptoRules) draft(s Setup, m Market, b cryptoBracket, qty, feePct float
 	p.Runner = Runner{Qty: runner, Target: b.Runner}
 	p.Failsafes = Failsafes{ExitBy: now.Add(time.Duration(f.HoldHours) * time.Hour).UTC(), SidewaysMinutes: f.SidewaysHours * MINUTES_PER_HR,
 		NoQuoteMinutes: t.NoQuoteMinutes, GapPct: t.GapPct, Calamity: t.Calamity}
-	p.Thesis = fmt.Sprintf(THESIS_CRYPTO, s.Symbol, coinPrice(s.Close), f.BreakoutHours, coinPrice(s.PriorHigh), s.RelVolume, b.StopPct, feePct)
 	line := func(kind, stance, label string, value float64) Evidence {
 		return Evidence{Kind: kind, Label: label, Value: value, Stance: stance, Source: CRYPTO_SOURCE, Verified: true, At: now.UTC()}
 	}
+	switch f.Strategy {
+	case CRYPTO_RSI_REVERSION:
+		p.Thesis = fmt.Sprintf(THESIS_RSI_REVERSION, s.Symbol)
+	case CRYPTO_FOUR_HOUR:
+		p.Thesis = fmt.Sprintf(THESIS_FOUR_HOUR, s.Symbol)
+	case CRYPTO_WEEKEND_FADE:
+		p.Thesis = fmt.Sprintf(THESIS_WEEKEND_FADE, s.Symbol, s.Score)
+	}
+	if p.Thesis != "" {
+		p.Category = f.Strategy
+		p.Evidence = []Evidence{line(EV_TECHNICAL, STANCE_NEUTRAL, p.Thesis, s.Score)}
+		p.Thesis += fmt.Sprintf(THESIS_CRYPTO_STOP, b.StopPct, feePct)
+		return p
+	}
+	p.Thesis = fmt.Sprintf(THESIS_CRYPTO, s.Symbol, coinPrice(s.Close), f.BreakoutHours, coinPrice(s.PriorHigh), s.RelVolume, b.StopPct, feePct)
 	// The trend line is neutral: the odds already read the averages from the snapshot, and it must not count twice.
 	p.Evidence = []Evidence{
 		line(EV_VOLUME, STANCE_FOR, fmt.Sprintf(EVIDENCE_VOLUME, s.RelVolume, CRYPTO_VOL_HOURS), s.RelVolume),

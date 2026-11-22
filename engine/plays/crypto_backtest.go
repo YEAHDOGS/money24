@@ -7,9 +7,11 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"slices"
 	"sort"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/alpaca"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/market"
 )
@@ -22,24 +24,41 @@ const (
 	REPLAY_RETRIES     = 4
 	REPLAY_RETRY_WAIT  = 2 * time.Second
 	REPLAY_LEAD        = CRYPTO_WINDOW * time.Hour // candles before the first day, so its first hour has its indicators
-	REPLAY_TOTAL       = "TOTAL"
-	REPLAY_TIME        = "2006-01-02 15:04 MST"
-	REPLAY_HEAD        = "\nCrypto desk replay: %d days of hourly Coinbase candles to %s, %d coins, $%.2f of cash.\n"
-	REPLAY_WARNING     = "A replay, not a promise. Entries fill at the next hour's open, a candle that touched both the stop and an exit\ncounts as stopped, and no order book is modelled. The rule was set before this was run, not fitted to it.\n"
-	REPLAY_FEE_LINE    = "\nWith a %.2f%% fee on each side, in every price:\n"
-	REPLAY_NO_FEE_LINE = "\nThe same replay with no fee, to show what trading costs:\n"
-	REPLAY_COLUMNS     = "%-10s %6s %5s %5s %7s %10s %8s %9s\n"
-	REPLAY_ROW         = "%-10s %6d %5d %4.0f%% %+7.2f %+10.2f %+7.2f%% %8.1fh\n"
-	REPLAY_DRAWDOWN    = "Deepest fall of the account from a peak, on closed trades: %.1f%%. It ended at $%.2f.\n"
-	REPLAY_EXITS       = "How trades ended: %s.\n"
-	REPLAY_STILL_OPEN  = "Still open at the end: %d, worth %+.2f at the last price (not in the totals).\n"
-	REPLAY_NO_TRADES   = "No trades: the rule never fired inside its limits.\n"
+	REPLAY_TOTAL       = "full"
+	REPLAY_EARLY       = "first-2/3"
+	REPLAY_LATE        = "last-1/3"
+	REPLAY_MARKET      = "market"
+	REPLAY_LIMIT       = "limit"
+	REPLAY_BOTH        = "both"
+	REPLAY_LIMIT_PCT   = 0.10
+	REPLAY_SHORT_DAYS  = 90
+	REPLAY_SPLIT_PARTS = 3
+	REPLAY_EARLY_PARTS = 2
+	REASON_WINDOW      = "window close"
+	REPLAY_HEAD        = "\nCrypto desk replay ending %s (exclusive) with $%.2f initial cash per segment.\n"
+	REPLAY_METHOD      = "Alpaca tier 1: %.2f%% maker, %.2f%% taker. All exits are taker; no order book, spread or extra slippage.\nDrawdown uses hourly equity net of exit fees. Positions left at the boundary are sold at the last close.\n"
+	REPLAY_COVERAGE    = "%-9s %s to %s: %d of %d hourly bars (including warm-up)\n"
+	REPLAY_COLUMNS     = "%-16s %-6s %4s %-10s %6s %6s %8s %8s %11s %9s %9s\n"
+	REPLAY_ROW         = "%-16s %-6s %4d %-10s %6d %6d %7.2f%% %+8.3f %+11.2f %+8.2f%% %8.2f%%\n"
 )
 
 var (
 	errBacktestInput = errors.New("a replay needs at least one day, some cash and a coin to trade")
-	REPLAY_REASONS   = []string{REASON_STOP, REASON_TARGET, REASON_TIME, REASON_TIME_STOP}
 )
+
+// CryptoReplayOptions controls the offline replay without changing the live desk.
+type CryptoReplayOptions struct {
+	Days    int
+	End     time.Time // exclusive UTC hour; zero uses the most recent completed hour
+	Entry   string
+	Compare bool // all strategies and, when Days > 90, the trailing 90-day window
+}
+
+type replayExecution struct {
+	entryFeePct float64
+	exitFeePct  float64
+	limit       bool
+}
 
 // coinTrade is one finished trade of the replay.
 type coinTrade struct {
@@ -68,9 +87,7 @@ type coinPosition struct {
 type coinReplay struct {
 	Trades         []coinTrade
 	MaxDrawdownPct float64
-	EndUSD         float64 // starting cash plus every closed trade
-	StillOpen      int
-	OpenPnLUSD     float64
+	EndUSD         float64
 }
 
 // coinHistory pages a coin's hourly candles between two moments, oldest first, without repeats.
@@ -98,7 +115,7 @@ func coinHistory(ctx context.Context, client *http.Client, symbol string, from, 
 			return nil, err
 		}
 		for _, c := range rows {
-			if !seen[c.T] {
+			if c.T >= start.Unix() && c.T <= end.Unix() && !seen[c.T] {
 				seen[c.T], out = true, append(out, c)
 			}
 		}
@@ -115,20 +132,20 @@ func coinHistory(ctx context.Context, client *http.Client, symbol string, from, 
 // replayCoins walks every coin's candles hour by hour from one moment to another as the live desk
 // would have: the same setup, bracket, size and limits, one cash account. A setup on the hour that
 // just closed is entered at the next hour's open. Pure arithmetic over the candles it is given.
-func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time.Time, capitalUSD, feePct float64) coinReplay {
-	f, fee := *rules.Crypto, feePct/PERCENT
+func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time.Time, capitalUSD float64, execution replayExecution) coinReplay {
+	f := *rules.Crypto
+	netEntry, netExit := 1-execution.entryFeePct/PERCENT, 1-execution.exitFeePct/PERCENT
 	out := coinReplay{EndUSD: capitalUSD}
 	cash, invested, peak := capitalUSD, 0.0, capitalUSD
 	book := cryptoBook{open: map[string]bool{}, lostAt: map[string]time.Time{}}
 	held, cursor, day := map[string]*coinPosition{}, map[string]int{}, ""
+	lastClose := map[string]coinbase.Candle{}
 
 	// sell books one sale: the cash comes back, and the account's closed result moves with it.
 	sell := func(pos *coinPosition, qty, price float64) {
 		gain := (price - pos.play.Entry) * qty
 		pos.left, pos.realized = pos.left-qty, pos.realized+gain
 		cash, invested, out.EndUSD = cash+qty*price, invested-qty*pos.play.Entry, out.EndUSD+gain
-		peak = math.Max(peak, out.EndUSD)
-		out.MaxDrawdownPct = math.Max(out.MaxDrawdownPct, (peak-out.EndUSD)/peak*PERCENT)
 	}
 	finish := func(pos *coinPosition, at int64, price float64, reason string) {
 		symbol := pos.play.Contract.Symbol
@@ -142,7 +159,7 @@ func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time
 		delete(book.open, symbol)
 	}
 
-	for t := from.Truncate(time.Hour).Unix(); t <= to.Unix(); t += HOUR_SECONDS {
+	for t := from.Unix(); t < to.Unix(); t += HOUR_SECONDS {
 		now := time.Unix(t, 0)
 		if today := now.In(MARKET_TZ).Format(market.EXPIRY_LAYOUT); today != day {
 			day, book.today, book.dayPnL = today, 0, 0
@@ -178,15 +195,16 @@ func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time
 				break
 			}
 			candle, _, _ := candleAt(setup.Symbol)
-			if f.MaxChasePct > 0 && (candle.O/setup.Close-1)*PERCENT > f.MaxChasePct {
+			entry, fills := replayEntryPrice(setup, candle, f, execution.limit)
+			if !fills {
 				continue
 			}
-			bracket := f.bracket(candle.O, setup.ATR, feePct)
+			bracket := f.bracketAt(entry, setup.ATR, entry/netEntry, netExit)
 			qty, small := f.size(bracket, Funds{EquityUSD: cash + invested, BuyingPowerUSD: cash}, now)
 			if small != "" {
 				continue
 			}
-			p := f.draft(setup, Market{}, bracket, qty, feePct, rules.Template, now)
+			p := f.draft(setup, Market{}, bracket, qty, execution.exitFeePct, rules.Template, now)
 			pos := &coinPosition{play: p, stops: p.stops(rules), left: qty, riskUSD: qty * bracket.R, enteredAt: t,
 				sidewaysAt: t + int64(f.SidewaysHours)*HOUR_SECONDS}
 			pos.targets = append(pos.targets, p.Ladder...)
@@ -202,10 +220,14 @@ func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time
 		for _, symbol := range f.Symbols {
 			pos := held[symbol]
 			candle, _, ok := candleAt(symbol)
-			if pos == nil || !ok {
+			if !ok {
 				continue
 			}
-			open, low, high := candle.O*(1-fee), candle.L*(1-fee), candle.H*(1-fee)
+			lastClose[symbol] = candle
+			if pos == nil {
+				continue
+			}
+			open, low, high := candle.O*netExit, candle.L*netExit, candle.H*netExit
 			stop := pos.stops[min(pos.next, len(pos.stops)-1)]
 			switch {
 			case !now.Before(pos.play.Failsafes.ExitBy):
@@ -214,6 +236,8 @@ func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time
 				finish(pos, t, open, REASON_TIME_STOP)
 			case low <= stop:
 				finish(pos, t, math.Min(stop, open), REASON_STOP) // a gap through the stop fills at the open, not at the stop
+			case execution.limit && pos.enteredAt == t:
+				// The high may have occurred before the resting buy filled.
 			default:
 				for pos.next < len(pos.targets) && pos.left > QTY_DUST && high >= pos.targets[pos.next].Price {
 					target := pos.targets[pos.next]
@@ -226,88 +250,140 @@ func replayCoins(series map[string][]coinbase.Candle, rules Rules, from, to time
 				}
 			}
 		}
+		equity := cash
+		for _, symbol := range f.Symbols {
+			if pos := held[symbol]; pos != nil {
+				equity += pos.left * lastClose[symbol].C * netExit
+			}
+		}
+		peak = math.Max(peak, equity)
+		out.MaxDrawdownPct = math.Max(out.MaxDrawdownPct, (peak-equity)/peak*PERCENT)
 	}
 
-	for symbol, pos := range held {
-		rows := series[symbol]
-		out.StillOpen++
-		out.OpenPnLUSD += pos.realized + (rows[len(rows)-1].C*(1-fee)-pos.play.Entry)*pos.left
+	for _, symbol := range f.Symbols {
+		if pos := held[symbol]; pos != nil {
+			last := lastClose[symbol]
+			finish(pos, last.T+HOUR_SECONDS, last.C*netExit, REASON_WINDOW)
+		}
 	}
 	return out
 }
 
-// printReplay writes one table: a row a coin, then the total.
-func printReplay(out io.Writer, r coinReplay, symbols []string, capitalUSD float64) {
-	if len(r.Trades) == 0 {
-		fmt.Fprint(out, REPLAY_NO_TRADES)
-		return
+// replayEntryPrice models the next open or a one-hour buy limit that must first rest.
+func replayEntryPrice(setup Setup, candle coinbase.Candle, f CryptoRules, limit bool) (float64, bool) {
+	if limit {
+		price := coinPrice(setup.Close * (1 - REPLAY_LIMIT_PCT/PERCENT))
+		return price, price > 0 && candle.O > price && candle.L < price
 	}
-	fmt.Fprintf(out, REPLAY_COLUMNS, "coin", "trades", "wins", "win%", "avg R", "P&L $", "P&L %", "avg hold")
-	row := func(name string, trades []coinTrade) {
-		if len(trades) == 0 {
-			return
-		}
-		wins, pnl, r, hours := 0, 0.0, 0.0, 0.0
-		for _, t := range trades {
-			if t.PnLUSD > 0 {
-				wins++
-			}
-			pnl, r, hours = pnl+t.PnLUSD, r+t.R, hours+float64(t.ExitAt-t.EntryAt)/float64(HOUR_SECONDS)
-		}
-		n := float64(len(trades))
-		fmt.Fprintf(out, REPLAY_ROW, name, len(trades), wins, float64(wins)/n*PERCENT, r/n, pnl, pnl/capitalUSD*PERCENT, hours/n)
-	}
-	ended := map[string]int{}
-	for _, symbol := range symbols {
-		own := []coinTrade{}
-		for _, t := range r.Trades {
-			if t.Symbol == symbol {
-				own = append(own, t)
-			}
-		}
-		row(symbol, own)
-	}
+	chase := (candle.O/setup.Close - 1) * PERCENT
+	return candle.O, candle.O > 0 && (f.MaxChasePct <= 0 || chase <= f.MaxChasePct)
+}
+
+// printReplay reports aggregate performance for one independently funded segment.
+func printReplay(out io.Writer, r coinReplay, strategy, mode string, days int, segment string, capitalUSD float64) {
+	wins, sumR := 0, 0.0
 	for _, t := range r.Trades {
-		ended[t.Reason]++
+		if t.PnLUSD > 0 {
+			wins++
+		}
+		sumR += t.R
 	}
-	row(REPLAY_TOTAL, r.Trades)
-	fmt.Fprintf(out, REPLAY_DRAWDOWN, r.MaxDrawdownPct, r.EndUSD)
-	how := ""
-	for _, reason := range REPLAY_REASONS {
-		how += fmt.Sprintf(", %d on the %s", ended[reason], reason)
+	pnl := r.EndUSD - capitalUSD
+	n := float64(max(1, len(r.Trades)))
+	fmt.Fprintf(out, REPLAY_ROW, strategy, mode, days, segment, len(r.Trades), wins,
+		float64(wins)/n*PERCENT, sumR/n, pnl, pnl/capitalUSD*PERCENT, r.MaxDrawdownPct)
+}
+
+// replayWindow runs the full window and each of its chronological segments from fresh cash.
+func replayWindow(out io.Writer, series map[string][]coinbase.Candle, rules Rules, mode string, days int, end time.Time, capitalUSD float64) {
+	start := end.AddDate(0, 0, -days)
+	splitHours := int(end.Sub(start)/time.Hour) * REPLAY_EARLY_PARTS / REPLAY_SPLIT_PARTS
+	split := start.Add(time.Duration(splitHours) * time.Hour)
+	execution := replayExecution{entryFeePct: alpaca.CRYPTO_TAKER_FEE_PCT, exitFeePct: alpaca.CRYPTO_TAKER_FEE_PCT}
+	if mode == REPLAY_LIMIT {
+		execution.entryFeePct, execution.limit = alpaca.CRYPTO_MAKER_FEE_PCT, true
 	}
-	fmt.Fprintf(out, REPLAY_EXITS, how[len(", "):])
-	if r.StillOpen > 0 {
-		fmt.Fprintf(out, REPLAY_STILL_OPEN, r.StillOpen, r.OpenPnLUSD)
+	for _, segment := range []struct {
+		label string
+		from  time.Time
+		to    time.Time
+	}{
+		{REPLAY_TOTAL, start, end},
+		{REPLAY_EARLY, start, split},
+		{REPLAY_LATE, split, end},
+	} {
+		r := replayCoins(series, rules, segment.from, segment.to, capitalUSD, execution)
+		printReplay(out, r, rules.Crypto.Strategy, mode, days, segment.label, capitalUSD)
 	}
 }
 
-// BacktestCrypto replays the crypto desk's rulebook over the last days of hourly Coinbase candles and
-// prints what it would have done, coin by coin and in total: once with the fee the desk
-// assumes, once with none. It reads public candles and places nothing.
-func BacktestCrypto(ctx context.Context, client *http.Client, rules Rules, days int, capitalUSD float64, out io.Writer) error {
-	f := rules.Crypto
-	if f == nil || len(f.Symbols) == 0 || days <= 0 || capitalUSD <= 0 {
+// BacktestCrypto reads public candles once and replays the chosen modes and windows entirely offline.
+func BacktestCrypto(ctx context.Context, client *http.Client, rules Rules, options CryptoReplayOptions, capitalUSD float64, out io.Writer) error {
+	if rules.Crypto == nil || len(rules.Crypto.Symbols) == 0 || options.Days <= 0 || capitalUSD <= 0 {
 		return errBacktestInput
 	}
-	to := time.Now().Truncate(time.Hour)
-	from := to.AddDate(0, 0, -days)
+	f := *rules.Crypto
+	modes := []string{options.Entry}
+	switch options.Entry {
+	case "", REPLAY_MARKET:
+		modes[0] = REPLAY_MARKET
+	case REPLAY_LIMIT:
+	case REPLAY_BOTH:
+		modes = []string{REPLAY_MARKET, REPLAY_LIMIT}
+	default:
+		return fmt.Errorf("unknown replay entry %q, want market, limit or both", options.Entry)
+	}
+	if f.Strategy == "" {
+		f.Strategy = CRYPTO_BREAKOUT
+	}
+	strategies := []string{f.Strategy}
+	windows := []int{options.Days}
+	if options.Compare {
+		strategies = CRYPTO_STRATEGIES[:]
+		if options.Days > REPLAY_SHORT_DAYS {
+			windows = append([]int{REPLAY_SHORT_DAYS}, windows...)
+		}
+	} else if !slices.Contains(CRYPTO_STRATEGIES[:], f.Strategy) {
+		return fmt.Errorf(WHY_CRYPTO_STRATEGY, f.Strategy)
+	}
+	end := options.End.UTC()
+	latest := time.Now().UTC().Truncate(time.Hour)
+	if end.IsZero() {
+		end = latest
+	}
+	if !end.Equal(end.Truncate(time.Hour)) || end.After(latest) {
+		return fmt.Errorf("replay end %s must be a completed UTC hour boundary", end.Format(time.RFC3339))
+	}
+	from := end.AddDate(0, 0, -options.Days).Add(-REPLAY_LEAD)
+	expected := int(end.Sub(from) / time.Hour)
+	fmt.Fprintf(out, REPLAY_HEAD, end.Format(time.RFC3339), capitalUSD)
+	fmt.Fprintf(out, REPLAY_METHOD, alpaca.CRYPTO_MAKER_FEE_PCT, alpaca.CRYPTO_TAKER_FEE_PCT)
 	series := map[string][]coinbase.Candle{}
 	for _, symbol := range append([]string{CRYPTO_BTC}, f.Symbols...) {
 		if _, ok := series[symbol]; ok {
 			continue
 		}
-		rows, err := coinHistory(ctx, client, symbol, from.Add(-REPLAY_LEAD), to)
+		rows, err := coinHistory(ctx, client, symbol, from, end)
 		if err != nil {
 			return fmt.Errorf("%s: %w", symbol, err)
 		}
-		series[symbol] = completed(rows, to)
+		rows = completed(rows, end)
+		if len(rows) == 0 {
+			return fmt.Errorf("%s: %w", symbol, errNoCandles)
+		}
+		series[symbol] = rows
+		fmt.Fprintf(out, REPLAY_COVERAGE, symbol, time.Unix(rows[0].T, 0).UTC().Format(time.RFC3339),
+			time.Unix(rows[len(rows)-1].T, 0).UTC().Format(time.RFC3339), len(rows), expected)
 	}
-	fmt.Fprintf(out, REPLAY_HEAD, days, to.UTC().Format(REPLAY_TIME), len(f.Symbols), capitalUSD)
-	fmt.Fprint(out, REPLAY_WARNING)
-	fmt.Fprintf(out, REPLAY_FEE_LINE, coinbase.TAKER_FEE_PCT)
-	printReplay(out, replayCoins(series, rules, from, to, capitalUSD, coinbase.TAKER_FEE_PCT), f.Symbols, capitalUSD)
-	fmt.Fprint(out, REPLAY_NO_FEE_LINE)
-	printReplay(out, replayCoins(series, rules, from, to, capitalUSD, 0), f.Symbols, capitalUSD)
+	rules.Crypto = &f
+	fmt.Fprintf(out, REPLAY_COLUMNS, "strategy", "entry", "days", "segment", "trades", "wins", "win%", "avg R", "P&L $", "P&L %", "drawdown")
+	for _, days := range windows {
+		for _, strategy := range strategies {
+			f.Strategy = strategy
+			for _, mode := range modes {
+				replayWindow(out, series, rules, mode, days, end, capitalUSD)
+			}
+		}
+	}
 	return nil
 }

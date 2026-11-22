@@ -176,14 +176,14 @@ func scoutDryRun(playsDir, at string) error {
 
 // replayCrypto runs the crypto desk's rule over past candles with the rulebook in the data folder
 // and the catalog's starting capital, and prints what it would have done.
-func replayCrypto(playsDir string, days int, capitalUSD float64) error {
+func replayCrypto(playsDir string, options plays.CryptoReplayOptions, capitalUSD float64) error {
 	store, err := plays.OpenStore(playsDir)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), BACKTEST_TIMEOUT)
 	defer cancel()
-	return plays.BacktestCrypto(ctx, &http.Client{Timeout: QUOTE_TIMEOUT}, store.Rules(), days, capitalUSD, os.Stdout)
+	return plays.BacktestCrypto(ctx, &http.Client{Timeout: QUOTE_TIMEOUT}, store.Rules(), options, capitalUSD, os.Stdout)
 }
 
 func main() {
@@ -201,6 +201,9 @@ func main() {
 	awake := flag.Bool("keep-awake", false, "stop this machine from idle-sleeping while the runner runs (Windows)")
 	scoutAt := flag.String("scout-at", "", "show what the scout would have found at a past minute of the latest session (\"2026-11-20 11:00\", New York time) and exit")
 	cryptoBacktest := flag.Int("crypto-backtest", 0, "replay the crypto desk's rule over this many days of hourly candles, print the result and exit")
+	cryptoBacktestEntry := flag.String("crypto-backtest-entry", plays.REPLAY_MARKET, "offline crypto replay entry: market, limit or both")
+	cryptoBacktestCompare := flag.Bool("crypto-backtest-all", false, "compare all crypto strategies and also replay 90 days when the requested window is longer")
+	cryptoBacktestEnd := flag.String("crypto-backtest-end", "", "exclusive end of the offline crypto replay as an RFC3339 hour")
 	flag.Parse()
 
 	if dexscreener.ADDRESS.MatchString(*coin) {
@@ -275,7 +278,14 @@ func main() {
 		return
 	}
 	if *cryptoBacktest > 0 {
-		if err := replayCrypto(filepath.Join(*dataDir, PLAYS_SUBDIR), *cryptoBacktest, catalog.GoLive.PaperCapitalUSD); err != nil {
+		options := plays.CryptoReplayOptions{Days: *cryptoBacktest, Entry: *cryptoBacktestEntry, Compare: *cryptoBacktestCompare}
+		if *cryptoBacktestEnd != "" {
+			options.End, err = time.Parse(time.RFC3339, *cryptoBacktestEnd)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		if err := replayCrypto(filepath.Join(*dataDir, PLAYS_SUBDIR), options, catalog.GoLive.PaperCapitalUSD); err != nil {
 			log.Fatal(err)
 		}
 		return
