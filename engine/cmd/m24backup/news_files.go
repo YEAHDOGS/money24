@@ -25,7 +25,6 @@ const (
 	NEWS_KIND       = "news"
 	NEWS_PART_FMT   = "%s.%03d" + NEWS_DAY_SUFFIX
 	NEWS_PART_BYTES = 6_000_000 // compressed size where a day continues in a new part file
-	NEWS_PART_WIDTH = 3
 	DAY_END_LABEL   = "9999-12-31"
 	NEWS_TEMP_DIR   = ".export-"
 )

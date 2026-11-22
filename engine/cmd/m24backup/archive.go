@@ -42,7 +42,7 @@ func archiveGroups(root, cutoff string) (map[string][]string, error) {
 		case NEWS_DB, NEWS_DB + "-wal", NEWS_DB + "-shm", NEWS_DB + "-journal", NEWS_STATE_FILE:
 			return nil
 		}
-		if strings.HasPrefix(name, NEWS_DAYS_DIR) {
+		if strings.HasPrefix(name, NEWS_DAYS_DIR) || strings.HasPrefix(name, NEWS_DIR+"/"+NEWS_STATE_TEMP) {
 			return nil
 		}
 		group := STATE_GROUP

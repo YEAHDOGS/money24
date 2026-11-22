@@ -15,7 +15,7 @@ import (
 
 const (
 	SCRATCH_PREFIX  = "m24backup-"
-	NEWS_STATE_TEMP = ".state-"
+	NEWS_STATE_TEMP = ".state-" // a folder beside the data, where pull-backup's export builds the state
 )
 
 // schedule names the night being backed up.
