@@ -98,8 +98,8 @@
     }
   },
   "problems": {
-    "runner": "The runner is not answering on 127.0.0.1:8025.",
-    "news": "The news service is not answering on 127.0.0.1:8024.",
+    "runner": "The runner is not answering, so nothing below it can be read.",
+    "news": "The news service is not answering.",
     "stale": "The supervisor has not checked in for {ago}.",
     "down": "{name} is down ({how}).",
     "missed": "{name} missed {n} health checks in a row.",

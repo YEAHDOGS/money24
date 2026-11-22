@@ -78,7 +78,7 @@ export function serviceRows(/** @type {Snapshot} */ snap, /** @type {number} */ 
   const sup = snap.supervisor;
   const known = sup && (sup.state === SUPERVISOR_RUNNING || sup.state === SUPERVISOR_STALE);
   if (!known) {
-    const head = { id: 'supervisor', name: t.names.supervisor, tone: TONE.idle, state: t.states.unknown, detail: t.service.noSupervisor };
+    const head = { id: 'supervisor', name: t.names.supervisor, tone: TONE.idle, state: t.states.unknown, detail: snap.runner ? t.service.noSupervisor : '' };
     return [head, directRow('newsd', snap.news), directRow('m24d', snap.runner)];
   }
   const stale = sup.state === SUPERVISOR_STALE;

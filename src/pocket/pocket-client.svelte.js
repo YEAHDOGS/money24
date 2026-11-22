@@ -80,11 +80,10 @@ export class PocketClient {
 
   async #load() {
     const keys = /** @type {(keyof typeof ROUTES)[]} */ (Object.keys(ROUTES));
-    const [runner, news, ...bodies] = await Promise.all([
-      request(this.#base + HEALTH_PATH).then((res) => Boolean(res?.ok)),
-      request(NEWS_API + HEALTH_PATH).then((res) => Boolean(res?.ok)),
-      ...keys.map((key) => read(this.#base + ROUTES[key])),
-    ]);
+    const newsCheck = request(NEWS_API + HEALTH_PATH).then((res) => Boolean(res?.ok));
+    const runner = Boolean((await request(this.#base + HEALTH_PATH))?.ok);
+    // A runner that does not answer its health check is not asked for anything else until it does.
+    const [news, ...bodies] = await Promise.all([newsCheck, ...keys.map((key) => (runner ? read(this.#base + ROUTES[key]) : null))]);
     this.snap = /** @type {import('./pocket-model.js').Snapshot} */ ({ runner, news, ...Object.fromEntries(keys.map((key, i) => [key, bodies[i]])) });
     this.now = Date.now();
   }
