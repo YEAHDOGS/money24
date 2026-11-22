@@ -124,14 +124,19 @@ netcheck() {
     printf '%s\n' 'Any HTTP code means the host answered; fail means it is unreachable on that family.'
 }
 
-# Lists data files for the PC's pull-backup: size, modification time, path. SQLite side files
-# are skipped; pull-pack snapshots the database itself.
+# Lists data files for the PC's pull-backup: size, modification time, path. The news database is
+# never listed or copied: m24backup writes its finished days into news/days/ (once each) and the
+# open day into news/state.jsonl.gz, as the money24 user so the nightly backup can read them, and
+# those files are listed instead. If the export fails the rest of the data is still listed.
 pull_manifest() {
     local room
+    runuser -u money24 -- env GOMEMLIMIT=48MiB "$APP/current/m24backup" --export-news --data "$DATA" >&2 ||
+        printf '%s\n' 'News export failed; the PC copy will lack the newest news days.' >&2
     # No guard answer means no proven room: the PC then pulls nothing.
     room=$("$GUARD" status 2>/dev/null | sed -n 's/.*"backup_room_bytes": *\([0-9]*\).*/\1/p' | head -n 1) || room=0
     printf 'ROOM\t%s\n' "${room:-0}"
-    find "$DATA" -type f ! -name '*-wal' ! -name '*-shm' ! -name '*-journal' -printf 'F\t%s\t%T@\t%P\n'
+    find "$DATA" -type f ! -name '*-wal' ! -name '*-shm' ! -name '*-journal' ! -path "$DATA/$NEWS_DB" \
+        ! -path '*/.export-*' ! -path '*/.state-*' -printf 'F\t%s\t%T@\t%P\n'
 }
 
 # vps.js writes the requested paths here, one per line.
@@ -152,11 +157,8 @@ pull_pack() {
         [[ $rel =~ ^[A-Za-z0-9._/-]+$ && $rel != *..* ]] || die "Refusing pull path: $rel"
         [[ -f $DATA/$rel ]] || continue # removed since the manifest
         mkdir -p "$stage/tree/$(dirname -- "$rel")"
-        if [[ $rel == "$NEWS_DB" ]]; then
-            sqlite3 -batch -bail -readonly -cmd '.timeout 10000' "$DATA/$rel" ".backup '$stage/tree/$rel'"
-        else
-            cp -p -- "$DATA/$rel" "$stage/tree/$rel"
-        fi
+        [[ $rel != "$NEWS_DB"* ]] || die "Refusing to copy the live news database: $rel"
+        cp -p -- "$DATA/$rel" "$stage/tree/$rel"
         printf '%s\n' "$rel" >> "$list"
     done < <(pull_list)
     [[ -s $list ]] || die 'Nothing to pack.'

@@ -1,6 +1,12 @@
 // pull-backup: copies new and changed data from the cloud machine to this PC. It is the
 // free alternative to R2. Every byte leaves Google, so a run stays inside the egress room
 // the machine's guard reports and under PULL_MAX_BYTES.
+//
+// The news database is never copied. The machine writes each finished New York day once into
+// news/days/YYYY-MM-DD.jsonl.gz (a big day continues in YYYY-MM-DD.002.jsonl.gz and so on) and
+// the open day plus small tables into news/state.jsonl.gz; those are what the PC pulls. A day
+// file never changes, so it is pulled once. Rebuild a database from them with
+// m24backup --rebuild-news (see docs/CLOUD.md).
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
@@ -10,6 +16,16 @@ const MANIFEST = '.money24-pull.json';
 const SAFE_PATH = /^[A-Za-z0-9._/-]+$/;
 const STAGING = /^\/tmp\/money24\.[A-Za-z0-9]{10}$/;
 const TAB = '\t';
+const NEWS_DB = /^news\/news\.db(-wal|-shm|-journal)?$/;
+const NEWS_STATE = 'news/state.jsonl.gz';
+const NEWS_DAYS = 'news/days/';
+// Priorities when a night is tight: trading data first, then the news state, then news days.
+const PRIORITY_DATA = 0;
+const PRIORITY_NEWS_STATE = 1;
+const PRIORITY_NEWS_DAY = 2;
+// What the tar archive adds to the files it holds, so a run never lands over its room.
+const TAR_ENTRY_OVERHEAD = 1024;
+const TAR_END_OVERHEAD = 10240;
 
 /**
  * Parses pull-manifest output: a ROOM line, then one F line per file.
@@ -23,23 +39,44 @@ export function parseManifest(text) {
     if (parts[0] === 'ROOM') room = Number(parts[1]) || 0;
     if (parts[0] !== 'F' || parts.length !== 4) continue;
     const [, size, mtime, path] = parts;
-    if (!SAFE_PATH.test(path) || path.includes('..')) continue;
+    if (!SAFE_PATH.test(path) || path.includes('..') || NEWS_DB.test(path)) continue;
     files.set(path, { size: Number(size), mtime });
   }
   return { room, files };
 }
 
-/** Picks changed files, newest first, whose raw size fits the budget. Compression only helps. */
+function priority(path) {
+  if (path === NEWS_STATE) return PRIORITY_NEWS_STATE;
+  return path.startsWith(NEWS_DAYS) ? PRIORITY_NEWS_DAY : PRIORITY_DATA;
+}
+
+/**
+ * Picks changed files in priority order whose size, with the archive's own overhead, fits the budget:
+ * trading data (newest first), then the news state, then news days oldest first. Data that does not
+ * fit is skipped so smaller files still go; news days stop at the first one that does not fit, so
+ * the PC copy never has a hole in its history. Compression only helps.
+ * @returns {{picked: string[], waiting: number}}
+ */
 export function choose(remote, local, budget) {
   const changed = [...remote.entries()]
     .filter(([path, file]) => local[path]?.size !== file.size || local[path]?.mtime !== file.mtime)
-    .sort((a, b) => Number(b[1].mtime) - Number(a[1].mtime));
+    .sort(([pathA, a], [pathB, b]) => {
+      const byPriority = priority(pathA) - priority(pathB);
+      if (byPriority) return byPriority;
+      return priority(pathA) === PRIORITY_NEWS_DAY ? pathA.localeCompare(pathB) : Number(b.mtime) - Number(a.mtime);
+    });
   const picked = [];
-  let total = 0;
+  let total = TAR_END_OVERHEAD;
+  let newsFull = false;
   for (const [path, file] of changed) {
-    if (total + file.size > budget) continue;
+    const isDay = priority(path) === PRIORITY_NEWS_DAY;
+    if (isDay && newsFull) continue;
+    if (total + file.size + TAR_ENTRY_OVERHEAD > budget) {
+      newsFull = newsFull || isDay;
+      continue;
+    }
     picked.push(path);
-    total += file.size;
+    total += file.size + TAR_ENTRY_OVERHEAD;
   }
   return { picked, waiting: changed.length - picked.length };
 }
@@ -53,8 +90,8 @@ function readLocal(folder) {
 export function pullBackup(vm, folder, runDir) {
   if (vm.dry) {
     vm.admin('pull-manifest', { show: false });
-    console.log(`  [dry-run] compare with ${join(folder, MANIFEST)}; pick changed files, newest first, within`);
-    console.log(`            the guard's egress room and ${PULL_MAX_BYTES / 1e6} MB`);
+    console.log(`  [dry-run] compare with ${join(folder, MANIFEST)}; pick changed files (trading data, the news state,`);
+    console.log(`            then news days oldest first) within the guard's egress room and ${PULL_MAX_BYTES / 1e6} MB`);
     vm.admin('pull-pack', { show: false, pullList: ['<changed files>'] });
     vm.call(['compute', 'scp', `${vm.instance}:/tmp/money24.XXXXXXXXXX/pull.tar.gz`, '.run/vps/pull-XXXX/pull.tar.gz'], undefined, true);
     vm.admin('pull-clean', { args: ['/tmp/money24.XXXXXXXXXX'], show: false });

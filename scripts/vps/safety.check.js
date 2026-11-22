@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { assertAllowed, auditProblems, freeZone, instanceProblems, machinePlan } from './freetier.js';
 import { testMessage } from './killswitch.js';
-import { choose, parseManifest } from './pull.js';
+import { PULL_MAX_BYTES, choose, parseManifest } from './pull.js';
 import { decide, parseEvent, stopBilling } from '../../engine/deploy/gcp/killswitch/index.js';
 
 const SETTINGS = { project: 'money24-test', zone: 'us-east1-b', instance: 'money24' };
@@ -120,11 +120,45 @@ test('the test message is a real budget shape that fires, marked dry run', async
   assert.ok(!calls.some((call) => call.startsWith('PUT')), 'a dry run never changes billing');
 });
 
-test('pull-backup picks changed files newest first within the room', () => {
-  const { room, files } = parseManifest('ROOM\t100\nF\t60\t30.5\ttrading/a.jsonl\nF\t50\t40.1\tnews/news.db\nF\t10\t10.0\t../escape\nF\t5\t1.0\ttrading/same.jsonl\n');
+const TAR_FLOOR = 10240; // the archive's own end blocks, which every run pays
+const TAR_ENTRY = 1024; // and each file's header and padding
+
+test('pull-backup never lists the live news database or unsafe paths', () => {
+  const lines = ['ROOM\t100', 'F\t5\t1.0\ttrading/a.jsonl', 'F\t50\t40.1\tnews/news.db', 'F\t5\t1.0\tnews/news.db-wal',
+    'F\t10\t10.0\t../escape', 'F\t7\t2.0\tnews/days/2026-11-20.jsonl.gz'];
+  const { room, files } = parseManifest(lines.join('\n'));
   assert.equal(room, 100);
-  assert.ok(!files.has('../escape'));
-  const { picked, waiting } = choose(files, { 'trading/same.jsonl': { size: 5, mtime: '1.0' } }, room);
-  assert.deepEqual(picked, ['news/news.db']);
-  assert.equal(waiting, 1);
+  assert.deepEqual([...files.keys()], ['trading/a.jsonl', 'news/days/2026-11-20.jsonl.gz']);
+});
+
+test('pull-backup sends trading data, then the news state, then news days oldest first', () => {
+  const day = (name, size) => [`news/days/${name}.jsonl.gz`, { size, mtime: '5.0' }];
+  const remote = new Map([
+    day('2026-11-20', 1000), day('2026-11-18', 1000), day('2026-11-19', 1000),
+    ['news/state.jsonl.gz', { size: 500, mtime: '9.0' }],
+    ['trading/journal.jsonl', { size: 200, mtime: '1.0' }],
+    ['trading/same.jsonl', { size: 5, mtime: '1.0' }],
+  ]);
+  const local = { 'trading/same.jsonl': { size: 5, mtime: '1.0' } };
+  const tight = choose(remote, local, TAR_FLOOR + 3 * TAR_ENTRY + 200 + 500 + 1000 + 1);
+  assert.deepEqual(tight.picked, ['trading/journal.jsonl', 'news/state.jsonl.gz', 'news/days/2026-11-18.jsonl.gz']);
+  assert.equal(tight.waiting, 2);
+  const none = choose(remote, local, TAR_FLOOR);
+  assert.deepEqual(none.picked, []);
+  assert.equal(none.waiting, 5);
+  const all = choose(remote, local, PULL_MAX_BYTES);
+  assert.deepEqual(all.picked, ['trading/journal.jsonl', 'news/state.jsonl.gz', 'news/days/2026-11-18.jsonl.gz',
+    'news/days/2026-11-19.jsonl.gz', 'news/days/2026-11-20.jsonl.gz']);
+  assert.equal(all.waiting, 0);
+});
+
+test('pull-backup stops at the first news day that does not fit, so history has no hole', () => {
+  const remote = new Map([
+    ['news/days/2026-11-18.jsonl.gz', { size: 4000, mtime: '1.0' }],
+    ['news/days/2026-11-19.jsonl.gz', { size: 100, mtime: '2.0' }],
+    ['trading/small.jsonl', { size: 10, mtime: '3.0' }],
+  ]);
+  const { picked, waiting } = choose(remote, {}, TAR_FLOOR + 2 * TAR_ENTRY + 500);
+  assert.deepEqual(picked, ['trading/small.jsonl']);
+  assert.equal(waiting, 2);
 });
