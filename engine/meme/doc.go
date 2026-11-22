@@ -48,8 +48,11 @@
 //     https://docs.pump.fun/terms/
 //     https://pump.fun/docs/terms-and-conditions
 //
-// Data lives in DIR/YYYY-MM-DD/records-*.jsonl (UTC), with one observation per
-// line. Users can join by mint, use requested_at and at for lookup timing, and
+// Data lives in DIR/YYYY-MM-DD/records-*.jsonl.gz (UTC), with one observation per
+// line. The active .jsonl shard is compressed after five minutes, at UTC day
+// rollover or on shutdown, and closed plain shards are compacted on startup.
+// Both forms preserve the original line bytes and order. Users can join by
+// mint, use requested_at and at for lookup timing, and
 // deduplicate events by mint and kind or by signature where present. Market
 // snapshots use the deepest Solana pool with the mint as its base token. A
 // successful lookup with no such pool writes a snapshot without market fields.

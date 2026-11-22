@@ -1,11 +1,11 @@
 package memedesk
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 	"time"
 
@@ -41,14 +41,13 @@ func Replay(ctx context.Context, dataDir, recorderDir, day string) (ReplayResult
 	model.configure(rb, rules)
 	result := ReplayResult{Day: day}
 	for offset := -REPLAY_CONTEXT_DAYS; offset <= REPLAY_CONTEXT_DAYS; offset++ {
-		dir := filepath.Join(recorderDir, start.AddDate(0, 0, offset).Format(meme.DAY_LAYOUT))
-		paths, err := filepath.Glob(filepath.Join(dir, meme.RECORD_PATTERN))
+		paths, err := meme.RecordFiles(recorderDir, start.AddDate(0, 0, offset).Format(meme.DAY_LAYOUT))
 		if err != nil {
 			return result, err
 		}
 		for _, path := range paths {
 			result.Files++
-			if err := replayFile(ctx, model, &result, path); err != nil {
+			if err := replayFile(ctx, model, &result, recorderDir, path); err != nil {
 				return result, err
 			}
 		}
@@ -57,20 +56,26 @@ func Replay(ctx context.Context, dataDir, recorderDir, day string) (ReplayResult
 	return result, nil
 }
 
-func replayFile(ctx context.Context, model *engine, result *ReplayResult, path string) error {
-	file, err := os.Open(path)
+func replayFile(ctx context.Context, model *engine, result *ReplayResult, dir, path string) error {
+	reader, err := meme.OpenRecords(dir, path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, meme.RESTORE_BUFFER), meme.MAX_LOOKUP_BYTES)
-	for scanner.Scan() {
-		if err := ctx.Err(); err != nil {
-			return err
+	defer reader.Close()
+	for ctx.Err() == nil {
+		line, _, err := reader.Next()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if errors.Is(err, meme.ErrIncompleteRecord) {
+			result.MalformedRows++
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("replay %s: %w", path, err)
 		}
 		var row meme.Record
-		if err := json.Unmarshal(scanner.Bytes(), &row); err != nil || row.At.IsZero() || row.Kind == "" {
+		if err := json.Unmarshal(line, &row); err != nil || row.At.IsZero() || row.Kind == "" {
 			result.MalformedRows++
 			continue
 		}
@@ -80,5 +85,5 @@ func replayFile(ctx context.Context, model *engine, result *ReplayResult, path s
 		}
 		model.observe(row, isDay)
 	}
-	return scanner.Err()
+	return ctx.Err()
 }

@@ -162,7 +162,7 @@ func TestCapacityAndRecovery(t *testing.T) {
 	if _, err := run.writer.file.WriteString(`{"partial":`); err != nil {
 		t.Fatal(err)
 	}
-	if err := run.writer.file.Close(); err != nil {
+	if err := run.writer.seal(); err != nil {
 		t.Fatal(err)
 	}
 	restored := recording{
