@@ -1,0 +1,16 @@
+{
+  "mint": "So11111111111111111111111111111111111111112",
+  "creator": "11111111111111111111111111111111",
+  "tokenMeta": {"name": "Fixture Coin", "symbol": "FIX"},
+  "mintAuthority": null,
+  "freezeAuthority": "11111111111111111111111111111112",
+  "totalHolders": 150,
+  "topHolders": [{"pct": 15.44, "insider": false}],
+  "markets": [{"pubkey": "pool", "marketType": "pump_amm", "lp": {"lpLockedPct": 100, "lpLockedUSD": 9000}}],
+  "risks": [{"name": "Freeze Authority still enabled", "level": "danger"}],
+  "rugged": false,
+  "score": 4,
+  "score_normalised": 3,
+  "creatorTokens": null,
+  "detectedAt": "2026-11-22T04:19:27.674350382Z"
+}

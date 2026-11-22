@@ -1,0 +1,6 @@
+{
+  "signature": "fixture-migration",
+  "mint": "So11111111111111111111111111111111111111112",
+  "txType": "migrate",
+  "pool": "pump-amm"
+}

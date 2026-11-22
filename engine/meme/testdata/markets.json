@@ -1,0 +1,35 @@
+[
+  {
+    "chainId": "solana",
+    "dexId": "pumpfun",
+    "pairAddress": "curve",
+    "baseToken": {"address": "So11111111111111111111111111111111111111112", "name": "Fixture Coin", "symbol": "FIX"},
+    "priceNative": "0.00000002",
+    "priceUsd": "0.000001",
+    "txns": {"m5": {"buys": 1, "sells": 0}},
+    "liquidity": null
+  },
+  {
+    "chainId": "solana",
+    "dexId": "pumpswap",
+    "pairAddress": "pool",
+    "baseToken": {"address": "So11111111111111111111111111111111111111112", "name": "Fixture Coin", "symbol": "FIX"},
+    "quoteToken": {"address": "11111111111111111111111111111111", "symbol": "SOL"},
+    "priceUsd": "0.00003",
+    "txns": {"m5": {"buys": 12, "sells": 10}, "h24": {"buys": 33, "sells": 29}},
+    "volume": {"m5": 500.3, "h24": 9000.9},
+    "liquidity": {"usd": 9000, "base": 300000000, "quote": 83},
+    "fdv": 30000,
+    "marketCap": 28000,
+    "pairCreatedAt": 1795321416000
+  },
+  {
+    "chainId": "solana",
+    "dexId": "orca",
+    "pairAddress": "quote-side",
+    "baseToken": {"address": "11111111111111111111111111111112"},
+    "quoteToken": {"address": "So11111111111111111111111111111111111111112"},
+    "priceUsd": "12",
+    "liquidity": {"usd": 900000}
+  }
+]
