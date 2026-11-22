@@ -17,7 +17,8 @@ const (
 	MIN_DAYS         = 30
 	DAY              = 24 * time.Hour
 	RECENT_WINDOW    = 30 * DAY
-	DECAY_MARGIN     = 0.05 // $0.05 per dollar invested, or 0.05 R per call
+	DECAY_MARGIN     = 0.05  // $0.05 per dollar invested, or 0.05 R per call
+	DECAY_EPSILON    = 1e-12 // absorb roundoff when a recent mean lands on the permitted margin
 	Z_95             = 1.96
 	NOT_ENOUGH       = "not enough data"
 	LOSING           = "losing"
@@ -187,7 +188,7 @@ func verdict(row Row, blocker string) (string, string) {
 		return PROMISING, REASON_UNCERTAIN
 	case row.RecentMean == nil:
 		return PROMISING, REASON_NO_RECENT
-	case *row.RecentMean < *row.Mean-DECAY_MARGIN:
+	case *row.Mean-*row.RecentMean > DECAY_MARGIN+DECAY_EPSILON:
 		return PROMISING, REASON_DECAY
 	default:
 		return PASSES, REASON_PASSES

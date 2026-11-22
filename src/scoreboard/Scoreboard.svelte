@@ -26,7 +26,7 @@
   let busy = $state(false);
   let request;
   const visible = $derived(sortRows(rows ?? [], sort, desk));
-  const desks = $derived([...new Set((rows ?? []).map(row => row.desk))].sort((a, b) => strings.desks[a].localeCompare(strings.desks[b])));
+  const desks = $derived([...new Set((rows ?? []).map(row => row.desk))].sort((a, b) => (strings.desks[a] ?? a).localeCompare(strings.desks[b] ?? b)));
 
   async function refresh() {
     if (busy) return;
@@ -72,7 +72,7 @@
       {/if}
     </header>
 
-    <div class="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[12rem_minmax(0,1fr)] landscape-phone:grid landscape-phone:grid-cols-[9rem_minmax(0,1fr)] tv:grid-cols-[17rem_minmax(0,1fr)]">
+    <div class="flex min-h-0 flex-1 flex-col grid-rows-[minmax(0,1fr)] md:grid md:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[12rem_minmax(0,1fr)] landscape-phone:grid landscape-phone:grid-cols-[9rem_minmax(0,1fr)] tv:grid-cols-[17rem_minmax(0,1fr)]">
       <aside class="flex shrink-0 gap-2 border-b border-line px-3 py-1.5 md:flex-col md:gap-4 md:border-r md:border-b-0 md:py-4 landscape-phone:flex-col landscape-phone:border-r landscape-phone:border-b-0 tv:px-5">
         <label class="min-w-0 flex-1 md:flex-none landscape-phone:flex-none">
           <span class={LABEL}>{strings.desk}</span>
@@ -87,7 +87,7 @@
             {#each SORT_OPTIONS as [id, name] (id)}<option value={id}>{name}</option>{/each}
           </select>
         </label>
-        <div class="hidden space-y-2 border-t border-line pt-3 text-sm leading-snug text-muted md:block tv:text-lg">
+        <div class="hidden space-y-2 border-t border-line pt-3 text-sm leading-snug text-muted md:block landscape-phone:hidden! tv:text-lg">
           <h2 class="font-semibold text-white">{strings.rules}</h2>
           <p>{strings.method}</p>
           <p>{strings.evidence}</p>
@@ -97,7 +97,7 @@
       <!-- svelte-ignore a11y_no_noninteractive_tabindex (the strategy list needs keyboard scrolling on older browsers) -->
       <section tabindex="0" aria-label={strings.list}
         class="list-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain focus-visible:outline focus-visible:-outline-offset-2 focus-visible:outline-neon-red">
-        <details class="border-b border-line px-3 py-1.5 text-xs text-muted md:hidden">
+        <details class="border-b border-line px-3 py-1.5 text-xs text-muted md:hidden landscape-phone:block!">
           <summary class="spring w-fit cursor-pointer rounded-sm font-semibold text-white focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-neon-red">{strings.rules}</summary>
           <p class="mt-2">{strings.method}</p>
           <p class="mt-2">{strings.evidence}</p>

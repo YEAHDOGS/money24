@@ -39,7 +39,7 @@
   "empty": "No strategies found.",
   "rules": "How the verdict works",
   "method": "The record needs 100 settled results spanning at least 30 days. The mean return’s approximate 95% interval assumes independent results. A pass needs a positive lower bound and a last-30-day mean within 5 percentage points (or 0.05 R) of the full record, or better.",
-  "evidence": "Candidate and replay returns are labeled with their evidence source. P&L is realized paper dollars. Verdicts are informational.",
+  "evidence": "P&L is realized paper dollars. Signal replay and call-window results appear once the runner has priced them. Verdicts are informational.",
   "list": "Paper strategies",
   "missing": "—",
   "risk": "{risk} risk",

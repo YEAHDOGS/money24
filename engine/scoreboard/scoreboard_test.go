@@ -42,6 +42,12 @@ func TestVerdicts(t *testing.T) {
 		}
 		return 0.1
 	}
+	boundary := func(i int) float64 {
+		if i < FIXTURE_COUNT/2 {
+			return 0.25
+		}
+		return 0.15
+	}
 	for _, tc := range []struct {
 		name                  string
 		n                     int
@@ -58,6 +64,7 @@ func TestVerdicts(t *testing.T) {
 		{"uncertainty", FIXTURE_COUNT, FIXTURE_SPAN, 0, uncertain, "", PROMISING, REASON_UNCERTAIN},
 		{"stale", FIXTURE_COUNT, FIXTURE_SPAN, 31 * DAY, gain, "", PROMISING, REASON_NO_RECENT},
 		{"decay", FIXTURE_COUNT, FIXTURE_SPAN, 0, decay, "", PROMISING, REASON_DECAY},
+		{"decay at margin", FIXTURE_COUNT, FIXTURE_SPAN, 0, boundary, "", PASSES, REASON_PASSES},
 		{"benchmark", FIXTURE_COUNT, FIXTURE_SPAN, 0, gain, "benchmark only", PROMISING, "benchmark only"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
