@@ -40,6 +40,8 @@ src/tauri/binaries/
 
 # Local secrets for docker compose
 .env
+telegram.session
+.telegram.session-*
 engine/data/
 
 # Agent worktrees and local service runs

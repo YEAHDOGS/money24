@@ -21,6 +21,7 @@ type RawPost struct {
 	PostID   string    `json:"post_id,omitempty"`
 	ThreadID string    `json:"thread_id,omitempty"`
 	URL      string    `json:"url,omitempty"`
+	Author   string    `json:"author,omitempty"`
 	Manual   bool      `json:"manual,omitempty"`
 	Text     string    `json:"text"`
 }
@@ -38,6 +39,10 @@ type Recorder struct {
 func postIndex(p RawPost) string {
 	if p.PostID == "" {
 		return strings.ToLower(p.SourceID) + "|" + p.Text
+	}
+	kind, _, _ := strings.Cut(p.SourceID, ":")
+	if kind == TYPE_TELEGRAM {
+		return strings.ToLower(p.SourceID + "|" + p.PostID)
 	}
 	return strings.ToLower(p.SourceID) + "|" + p.PostID
 }

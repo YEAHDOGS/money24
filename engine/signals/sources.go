@@ -14,6 +14,7 @@ const (
 	TYPE_X           = "x"
 	TYPE_TELEGRAM    = "telegram"
 	TYPE_REDDIT      = "reddit"
+	TYPE_DISCORD     = "discord"
 	TYPE_WEBHOOK     = "webhook"
 	TYPE_LEADERBOARD = "leaderboard"
 	TYPE_EDGAR       = "edgar"
@@ -27,6 +28,8 @@ var defaultSources []byte
 type Source struct {
 	Type     string    `json:"type"`
 	Handle   string    `json:"handle,omitempty"`
+	Label    string    `json:"label,omitempty"`
+	TokenEnv string    `json:"token_env,omitempty"`
 	Venue    string    `json:"venue,omitempty"`
 	Markets  []string  `json:"markets"`
 	Role     string    `json:"role,omitempty"`

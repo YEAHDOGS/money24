@@ -1,0 +1,21 @@
+[
+  {
+    "id": "105",
+    "timestamp": "2025-06-09T15:00:05.000Z",
+    "content": "",
+    "author": {"username": "fixture-bot"},
+    "embeds": [{
+      "author": {"name": "Signal desk"},
+      "title": "Long BTC",
+      "description": "Entry 101",
+      "fields": [{"name": "Stop", "value": "99"}],
+      "footer": {"text": "Paper"}
+    }]
+  },
+  {
+    "id": "104",
+    "timestamp": "2025-06-09T15:00:04.000Z",
+    "content": "Moved stop",
+    "author": {"username": "fixture-reader"}
+  }
+]

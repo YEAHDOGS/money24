@@ -16,45 +16,15 @@ const (
 	PUBLIC_QUEUE_FULL    = "signal reader %s: queue full, post %s recorded"
 )
 
-// FollowPublic polls the configured Telegram and Reddit sources until ctx ends. The initial
-// snapshot records existing posts, and only posts published after startup can reach the queue.
-// Discord is the next adapter; it needs a bot token for a server we run.
-func FollowPublic(ctx context.Context, client *http.Client, catalog *Catalog, rec *Recorder, out chan<- Signal) {
-	var sources []Source
-	for _, source := range catalog.Sources {
-		if source.Type == TYPE_TELEGRAM || source.Type == TYPE_REDDIT {
-			sources = append(sources, source)
-		}
-	}
-	if len(sources) == 0 {
-		return
-	}
-	started := time.Now()
-	for ctx.Err() == nil {
-		for _, source := range sources {
-			if ctx.Err() != nil {
-				return
-			}
-			if err := pollPublicSource(ctx, client, catalog, rec, out, source, started); err != nil && ctx.Err() == nil {
-				log.Printf(PUBLIC_FOLLOW_ERROR, source.ID(), err)
-			}
-		}
-		// Wait after the entire pass, so even a slow request cannot compress two polls.
-		timer := time.NewTimer(PUBLIC_POLL_INTERVAL)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-		}
-	}
-}
-
 func pollPublicSource(ctx context.Context, client *http.Client, catalog *Catalog, rec *Recorder, out chan<- Signal, source Source, started time.Time) error {
 	posts, err := fetchPublicPosts(ctx, client, source, PUBLIC_HISTORY_POSTS, time.Time{}, PUBLIC_LIVE_PAGES)
 	if err != nil {
 		return err
 	}
+	return recordLivePosts(ctx, catalog, rec, out, source, started, posts)
+}
+
+func recordLivePosts(ctx context.Context, catalog *Catalog, rec *Recorder, out chan<- Signal, source Source, started time.Time, posts []RawPost) error {
 	seen := time.Now().UTC()
 	// Readers return newest first. Apply older callouts before later exits or adds.
 	for i := len(posts) - 1; i >= 0; i-- {
@@ -67,7 +37,7 @@ func pollPublicSource(ctx context.Context, client *http.Client, catalog *Catalog
 		if err != nil {
 			return err
 		}
-		if !newPost || p.PostedAt.Before(started) || !freshPublicPost(p.PostedAt, catalog.SettingsFor(p.SourceID), time.Now()) {
+		if !newPost || !p.PostedAt.After(started) || !freshPublicPost(p.PostedAt, catalog.SettingsFor(p.SourceID), time.Now()) {
 			continue
 		}
 		sig := p.parsed()
@@ -94,7 +64,7 @@ func stalePublicSignal(sig Signal, settings Settings, now time.Time) bool {
 		return false
 	}
 	kind, _, _ := strings.Cut(sig.SourceID, ":")
-	if kind != TYPE_TELEGRAM && kind != TYPE_REDDIT {
+	if kind != TYPE_TELEGRAM && kind != TYPE_REDDIT && kind != TYPE_DISCORD {
 		return false
 	}
 	return !freshPublicPost(sig.PostedAt, settings, now)

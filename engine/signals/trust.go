@@ -38,7 +38,7 @@ const (
 	TRUST_LOAD_ROUTE   = "POST /api/trust/load"
 )
 
-var ErrNotLoadable = errors.New("history is available for X, Telegram and Reddit sources")
+var ErrNotLoadable = errors.New("history is available for X, Telegram, Reddit and Discord sources")
 
 // PriceBar is one candle of market history.
 type PriceBar struct {
@@ -106,10 +106,16 @@ type Tracker struct {
 	history HistoryFunc
 	mu      sync.Mutex
 	done    map[string]Outcome
+	readers *SignalReaders
 }
 
 func NewTracker(rec *Recorder, c *Catalog, history HistoryFunc) *Tracker {
 	return &Tracker{rec: rec, catalog: c, history: history, done: map[string]Outcome{}}
+}
+
+// UseReaders shares authenticated sessions and rate limits with the live follower.
+func (t *Tracker) UseReaders(readers *SignalReaders) {
+	t.readers = readers
 }
 
 // follow prices one entry and what came after it. exit is the source's own exit post, if any.
@@ -288,16 +294,21 @@ func (t *Tracker) Ranking(ctx context.Context) []Trust {
 	return out
 }
 
-// Load pulls a public sample of posts into the record and returns how many were new.
+// Load pulls a sample of posts into the record and returns how many were new.
 // Old posts are only recorded: they never reach the runner, so they cannot open a trade.
 func (t *Tracker) Load(ctx context.Context, client *http.Client, id string) (int, error) {
 	kind, handle, _ := strings.Cut(id, ":")
 	source := Source{Type: kind, Handle: handle}
+	found := false
 	for _, configured := range t.catalog.Sources {
 		if strings.EqualFold(configured.ID(), id) {
 			source = configured
+			found = true
 			break
 		}
+	}
+	if !found && (kind == TYPE_DISCORD || (kind == TYPE_TELEGRAM && t.readers != nil && t.readers.telegram != nil)) {
+		return 0, errors.New("authenticated history requires a configured source")
 	}
 	var posts []RawPost
 	var err error
@@ -308,26 +319,19 @@ func (t *Tracker) Load(ctx context.Context, client *http.Client, id string) (int
 		for _, tw := range tweets {
 			posts = append(posts, RawPost{SourceID: source.ID(), PostID: tw.ID, PostedAt: tw.At, URL: tw.URL, Text: tw.Text})
 		}
-	case TYPE_TELEGRAM, TYPE_REDDIT:
-		posts, err = fetchPublicPosts(ctx, client, source, PUBLIC_HISTORY_POSTS, time.Now().Add(-PUBLIC_HISTORY_DAYS), PUBLIC_HISTORY_PAGES)
+	case TYPE_TELEGRAM, TYPE_REDDIT, TYPE_DISCORD:
+		if t.readers == nil {
+			posts, err = fetchPublicPosts(ctx, client, source, PUBLIC_HISTORY_POSTS, time.Now().Add(-PUBLIC_HISTORY_DAYS), PUBLIC_HISTORY_PAGES)
+		} else {
+			posts, err = t.readers.history(ctx, source)
+		}
 	default:
 		return 0, ErrNotLoadable
 	}
 	if err != nil {
 		return 0, err
 	}
-	added, now := 0, time.Now().UTC()
-	for _, post := range posts {
-		post.SeenAt = now
-		fresh, err := t.rec.recordNew(post)
-		if err != nil {
-			return added, err
-		}
-		if fresh {
-			added++
-		}
-	}
-	return added, nil
+	return recordHistoryPosts(ctx, t.rec, posts)
 }
 
 // Routes are the tracker's HTTP routes, for APIOptions.Mount. allowed guards the one route that
@@ -335,7 +339,7 @@ func (t *Tracker) Load(ctx context.Context, client *http.Client, id string) (int
 //
 //	GET  /api/trust               every source's record, ranked
 //	GET  /api/trust/source?id=    one source's record and each entry it called
-//	POST /api/trust/load?id=      pull a public sample of posts into the record
+//	POST /api/trust/load?id=      pull a sample of posts into the record
 func (t *Tracker) Routes(client *http.Client, allowed func(*http.Request) bool) map[string]http.Handler {
 	return map[string]http.Handler{
 		TRUST_ROUTE: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, t.Ranking(r.Context())) }),

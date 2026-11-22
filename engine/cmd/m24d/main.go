@@ -87,6 +87,12 @@ const (
 	BACKTEST_TIMEOUT  = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
 
+const (
+	TELEGRAM_LOGIN_FLAG    = "telegram-login"
+	TELEGRAM_CODE_FLAG     = "telegram-code-file"
+	TELEGRAM_PASSWORD_FLAG = "telegram-password-file"
+)
+
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
 func webhookSecret(dataDir string) (string, error) {
 	if s := os.Getenv(ENV_SECRET); s != "" {
@@ -191,12 +197,27 @@ func replayCrypto(playsDir string, options plays.CryptoReplayOptions, capitalUSD
 	return plays.BacktestCrypto(ctx, &http.Client{Timeout: QUOTE_TIMEOUT}, store.Rules(), options, capitalUSD, os.Stdout)
 }
 
+func prepareDataDir(dataDir *string) error {
+	if *dataDir == "" {
+		base, err := os.UserConfigDir()
+		if err != nil {
+			return err
+		}
+		*dataDir = filepath.Join(base, APP_DIR, DATA_SUBDIR)
+	}
+	return os.MkdirAll(*dataDir, DIR_PERMS)
+}
+
 func main() {
+	started := time.Now()
 	addr := flag.String("addr", DEFAULT_ADDR, "listen address; use 0.0.0.0:8025 on a server behind a reverse proxy")
 	dataDir := flag.String("data", "", "folder for the journal and secret (default: user config dir/Money24/trading)")
 	origins := flag.String("origins", cmp.Or(os.Getenv("M24D_ORIGINS"), DEFAULT_ORIGINS), "comma-separated browser origins allowed to call the API")
 	hosts := flag.String("hosts", os.Getenv("M24D_HOSTS"), "comma-separated Host headers to accept (default: localhost only when bound to loopback)")
 	sourcesFile := flag.String("sources", "", "override default_sources.json")
+	telegramLogin := flag.Bool(TELEGRAM_LOGIN_FLAG, false, "authorize the Telegram account and exit")
+	telegramCode := flag.String(TELEGRAM_CODE_FLAG, "", "private file to read the Telegram login code from")
+	telegramPassword := flag.String(TELEGRAM_PASSWORD_FLAG, "", "private file to read the Telegram two-step password from")
 	replay := flag.Bool("replay", false, "re-parse every recorded post with the current parser, print the result and exit")
 	exitWithStdin := flag.Bool("exit-with-stdin", false, "exit when stdin closes (set by the desktop app)")
 	quote := flag.String("quote", "", "print the Webull quote for a ticker or option symbol (AAPL, AAPL260522C00300000) and exit")
@@ -210,6 +231,19 @@ func main() {
 	cryptoBacktestCompare := flag.Bool("crypto-backtest-all", false, "compare all crypto strategies and also replay 90 days when the requested window is longer")
 	cryptoBacktestEnd := flag.String("crypto-backtest-end", "", "exclusive end of the offline crypto replay as an RFC3339 hour")
 	flag.Parse()
+
+	if *telegramLogin {
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		err := prepareDataDir(dataDir)
+		if err == nil {
+			err = signals.TelegramLogin(ctx, *dataDir, *telegramCode, *telegramPassword, os.Stdout)
+		}
+		cancel()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	if dexscreener.ADDRESS.MatchString(*coin) {
 		pair, err := dexscreener.Fetch(context.Background(), &http.Client{Timeout: QUOTE_TIMEOUT}, *coin)
@@ -251,14 +285,7 @@ func main() {
 		}()
 	}
 
-	if *dataDir == "" {
-		base, err := os.UserConfigDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		*dataDir = filepath.Join(base, APP_DIR, DATA_SUBDIR)
-	}
-	if err := os.MkdirAll(*dataDir, DIR_PERMS); err != nil {
+	if err := prepareDataDir(dataDir); err != nil {
 		log.Fatal(err)
 	}
 	postsPath := filepath.Join(*dataDir, POSTS_FILE)
@@ -328,16 +355,15 @@ func main() {
 	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes, prices))
 	runner.SetSettlement(settlement)
 	queue := make(chan signals.Signal, QUEUE_SIZE)
-	// Telegram and Reddit sources read from public pages, unless M24D_PUBLIC_FOLLOW=off (for example
-	// while Telegram is meant to be read through the owner's own API login instead).
+	readers := signals.NewSignalReaders(http.DefaultClient, *dataDir)
+	followPublic := !strings.EqualFold(os.Getenv(ENV_PUBLIC_FOLLOW), SWITCH_OFF)
+	if !followPublic {
+		log.Printf("public Telegram and Reddit polling is off (%s=%s)", ENV_PUBLIC_FOLLOW, SWITCH_OFF)
+	}
 	followDone := make(chan struct{})
 	go func() {
 		defer close(followDone)
-		if strings.EqualFold(os.Getenv(ENV_PUBLIC_FOLLOW), SWITCH_OFF) {
-			log.Printf("public Telegram and Reddit reading is off (%s=%s)", ENV_PUBLIC_FOLLOW, SWITCH_OFF)
-			return
-		}
-		signals.FollowPublic(ctx, http.DefaultClient, catalog, recorder, queue)
+		readers.Follow(ctx, catalog, recorder, queue, started, followPublic)
 	}()
 	done := make(chan struct{})
 	go func() {
@@ -381,6 +407,7 @@ func main() {
 	}
 	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts}
 	tracker := signals.NewTracker(recorder, catalog, priceHistory(prices))
+	tracker.UseReaders(readers)
 	// Loading a source's history makes network requests, so it takes the local desk or the webhook secret.
 	mayLoad := func(r *http.Request) bool {
 		return opts.TrustsLocalDesk(r) || r.Header.Get("Authorization") == BEARER+secret
