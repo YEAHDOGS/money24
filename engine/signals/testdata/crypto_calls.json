@@ -1,0 +1,451 @@
+[
+  {
+    "text": "🚨 **#BTC/USDT LONG**\nEntry Zone: 60,000 – 60,500\nTP1: 61,200\nTP2: 62,000\nStop Loss: 59,400",
+    "want": {
+      "base": "BTC",
+      "quote": "USDT",
+      "direction": "long",
+      "entry_low": 60000,
+      "entry_high": 60500,
+      "targets": [
+        61200,
+        62000
+      ],
+      "stop": 59400,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "$SOL BUY\nEntry: 125.5\nTargets: 128 / 132 / 140\nSL: 121",
+    "want": {
+      "base": "SOL",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 125.5,
+      "entry_high": 125.5,
+      "targets": [
+        128,
+        132,
+        140
+      ],
+      "stop": 121,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "ETHUSDT SHORT 10x\nEntry 3210–3240\nTake Profit: 3150, 3100, 3000\nStop 3300",
+    "want": {
+      "base": "ETH",
+      "quote": "USDT",
+      "direction": "short",
+      "entry_low": 3210,
+      "entry_high": 3240,
+      "targets": [
+        3150,
+        3100,
+        3000
+      ],
+      "stop": 3300,
+      "leverage": 10,
+      "derivative": false
+    }
+  },
+  {
+    "text": "Long XRP-USDC | Entries: .489 to .492 | TP 1: .51 | TP 2: .53 | S/L: .475",
+    "want": {
+      "base": "XRP",
+      "quote": "USDC",
+      "direction": "long",
+      "entry_low": 0.489,
+      "entry_high": 0.492,
+      "targets": [
+        0.51,
+        0.53
+      ],
+      "stop": 0.475,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "DOGE/USD Sell\nSell zone: $0.134 ~ $0.138\nTargets: 0.127 → 0.120\nInvalidation: $0.142",
+    "want": {
+      "base": "DOGE",
+      "quote": "USD",
+      "direction": "short",
+      "entry_low": 0.134,
+      "entry_high": 0.138,
+      "targets": [
+        0.127,
+        0.12
+      ],
+      "stop": 0.142,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "Buy ADA\nEntry price = $0.41\nTP $0.44\nStop-loss @ $0.39",
+    "want": {
+      "base": "ADA",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 0.41,
+      "entry_high": 0.41,
+      "targets": [
+        0.44
+      ],
+      "stop": 0.39,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "BNB/USDT\nShort\nEntry: 580\nTargets:\n1. 568\n2. 554\n3. 540\nSL: 592\nLeverage: x5",
+    "want": {
+      "base": "BNB",
+      "quote": "USDT",
+      "direction": "short",
+      "entry_low": 580,
+      "entry_high": 580,
+      "targets": [
+        568,
+        554,
+        540
+      ],
+      "stop": 592,
+      "leverage": 5,
+      "derivative": false
+    }
+  },
+  {
+    "text": "#LINK long spot\nEntry range: 14.80 - 14.40\nTake profits: 15.20; 16.10\nStop: 13.90",
+    "want": {
+      "base": "LINK",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 14.4,
+      "entry_high": 14.8,
+      "targets": [
+        15.2,
+        16.1
+      ],
+      "stop": 13.9,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "LONG $AVAX @ 30.2\nTPs: 31.1 | 32.5\nSL: 28.8",
+    "want": {
+      "base": "AVAX",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 30.2,
+      "entry_high": 30.2,
+      "targets": [
+        31.1,
+        32.5
+      ],
+      "stop": 28.8,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "$DOT sell at $5.25, stop $5.48, TP1 $5.10, TP2 $4.95",
+    "want": {
+      "base": "DOT",
+      "quote": "USD",
+      "direction": "short",
+      "entry_low": 5.25,
+      "entry_high": 5.25,
+      "targets": [
+        5.1,
+        4.95
+      ],
+      "stop": 5.48,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "ATOM LONG\nEntry area: 7.50\nTake-profit: 8.10 -> 8.40\nStoploss: 7.12",
+    "want": {
+      "base": "ATOM",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 7.5,
+      "entry_high": 7.5,
+      "targets": [
+        8.1,
+        8.4
+      ],
+      "stop": 7.12,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "📉 #LTCUSDT SHORT (isolated 3×)\nEntry: 84.2\nTarget1: 81.5\nTarget2: 79\nSL: 86.5",
+    "want": {
+      "base": "LTC",
+      "quote": "USDT",
+      "direction": "short",
+      "entry_low": 84.2,
+      "entry_high": 84.2,
+      "targets": [
+        81.5,
+        79
+      ],
+      "stop": 86.5,
+      "leverage": 3,
+      "derivative": true
+    }
+  },
+  {
+    "text": "Long #NEAR/USDT perp\nEntry - 4.70\nTargets:\n- 4.95\n- 5.2\nS/L - 4.50",
+    "want": {
+      "base": "NEAR",
+      "quote": "USDT",
+      "direction": "long",
+      "entry_low": 4.7,
+      "entry_high": 4.7,
+      "targets": [
+        4.95,
+        5.2
+      ],
+      "stop": 4.5,
+      "leverage": 0,
+      "derivative": true
+    }
+  },
+  {
+    "text": "Long $SUI\nBuy area: 1.08-1.11\nTP 1=1.18 / 1.22\nInvalidation: 1.02\nLev: 2.5x",
+    "want": {
+      "base": "SUI",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 1.08,
+      "entry_high": 1.11,
+      "targets": [
+        1.18,
+        1.22
+      ],
+      "stop": 1.02,
+      "leverage": 2.5,
+      "derivative": false
+    }
+  },
+  {
+    "text": "$UNI short\nEntry: 7.05\nTargets: 6.3 - 6.8\nSL: 7.21",
+    "want": {
+      "base": "UNI",
+      "quote": "USD",
+      "direction": "short",
+      "entry_low": 7.05,
+      "entry_high": 7.05,
+      "targets": [
+        6.8,
+        6.3
+      ],
+      "stop": 7.21,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "LONG #PEPE/USDT\nEntry: 0.00001215\nTP: 0.0000128 / 0.0000135\nSL: 0.0000118",
+    "want": {
+      "base": "PEPE",
+      "quote": "USDT",
+      "direction": "long",
+      "entry_low": 0.00001215,
+      "entry_high": 0.00001215,
+      "targets": [
+        0.0000128,
+        0.0000135
+      ],
+      "stop": 0.0000118,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "BUY BCH @ $420-$425 | target 450 | Stop loss $410",
+    "want": {
+      "base": "BCH",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 420,
+      "entry_high": 425,
+      "targets": [
+        450
+      ],
+      "stop": 410,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "📌 ETH / USDC buy\nEntry:\n$2,650\nTargets:\n• $2,715\n• $2,800\nSL: $2,605",
+    "want": {
+      "base": "ETH",
+      "quote": "USDC",
+      "direction": "long",
+      "entry_low": 2650,
+      "entry_high": 2650,
+      "targets": [
+        2715,
+        2800
+      ],
+      "stop": 2605,
+      "leverage": 0,
+      "derivative": false
+    }
+  },
+  {
+    "text": "#BTC/USDT LONG\nEntry: 94000\nTP: 94200\nSL: 93500",
+    "want": {
+      "base": "BTC",
+      "quote": "USDT",
+      "direction": "long",
+      "entry_low": 94000,
+      "entry_high": 94000,
+      "targets": [
+        94200
+      ],
+      "stop": 93500,
+      "leverage": 0,
+      "derivative": false
+    },
+    "live_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "text": "ETHUSDT SHORT 5x\nEntry: 3350\nTargets: 3300 / 3250\nSL: 3390",
+    "want": {
+      "base": "ETH",
+      "quote": "USDT",
+      "direction": "short",
+      "entry_low": 3350,
+      "entry_high": 3350,
+      "targets": [
+        3300,
+        3250
+      ],
+      "stop": 3390,
+      "leverage": 5,
+      "derivative": false
+    },
+    "live_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "text": "$SOL BUY\nEntry: 195–197\nTP: 200 / 205\nSL: 187",
+    "want": {
+      "base": "SOL",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 195,
+      "entry_high": 197,
+      "targets": [
+        200,
+        205
+      ],
+      "stop": 187,
+      "leverage": 0,
+      "derivative": false
+    },
+    "live_at": "2025-01-01T02:05:00Z"
+  },
+  {
+    "text": "BTC/USD long\nEntry: 50000\nTP: 60000\nSL: 49000",
+    "want": {
+      "base": "BTC",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 50000,
+      "entry_high": 50000,
+      "targets": [
+        60000
+      ],
+      "stop": 49000,
+      "leverage": 0,
+      "derivative": false
+    },
+    "live_at": "2025-01-02T00:00:00Z"
+  },
+  {
+    "text": "TP2 hit! +80%",
+    "reject": "recap"
+  },
+  {
+    "text": "$SOL long\nEntry 130 | TP1 145 | SL 125\nTP1 reached! +80% ROI",
+    "reject": "recap with original levels"
+  },
+  {
+    "text": "$SOL long\nEntry: 130 | TP1: 145 | SL: 125\nTP 1 ✅",
+    "reject": "recap with compact check"
+  },
+  {
+    "text": "Join our VIP signals. #BTC/USDT long Entry: 60000 TP: 63000 SL: 59000",
+    "reject": "promotion"
+  },
+  {
+    "text": "Anyone long $ETH here? Target is probably 4200 next month.",
+    "reject": "chatter"
+  },
+  {
+    "text": "UPDATE: $SOL LONG | entry 120 | targets 135/140 | SL 120",
+    "reject": "stop update"
+  },
+  {
+    "text": "$SOL LONG | Entry 120 | TP 140 | SL 115. Move your SL to breakeven.",
+    "reject": "stop move with original levels"
+  },
+  {
+    "text": "ETHUSDT SHORT / Entry 3000 / TP 2900 / SL 2950",
+    "reject": "invalid short stop"
+  },
+  {
+    "text": "BTCUSDT long | Entry 60800-61000 | TP 60900 | SL 60000",
+    "reject": "invalid target inside entry zone"
+  },
+  {
+    "text": "BTCUSDT long or short? Entry: 60000 TP: 61000 Stop: 59000",
+    "reject": "conflicting direction"
+  },
+  {
+    "text": "Long $ETH at market | TP 3200 | SL 2900",
+    "reject": "missing price"
+  },
+  {
+    "text": "BTO $SPY 600C 11/21 @ 1.20",
+    "reject": "stock option"
+  },
+  {
+    "text": "$ETH/BTC LONG Entry 0.05 TP 0.06 SL 0.04",
+    "reject": "unsupported cross pair"
+  },
+  {
+    "text": "SOLUSDT long 5x Entry 120 TP 130 SL 110 Leverage: 10x",
+    "reject": "conflicting leverage"
+  },
+  {
+    "text": "$SOL LONG Entry 120 TP 135 SL 5 %",
+    "reject": "percentage stop"
+  },
+  {
+    "text": "$BTC long Entry 60k TP 65000 SL 59000",
+    "reject": "abbreviated price"
+  },
+  {
+    "text": "Possible long $DOT Entry 5.2 TP 5.8 SL 4.9",
+    "reject": "speculation"
+  },
+  {
+    "text": "$SOL/EUR long Entry 110 TP 120 SL 100",
+    "reject": "unsupported quote"
+  }
+]
