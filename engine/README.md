@@ -205,7 +205,26 @@ a source is picked in the rail; `trading.html?source=x:Handle` links straight to
 |---|---|
 | `GET /api/trust` | every source with posts on record, most trusted first |
 | `GET /api/trust/source?id=x:Handle` | one source's record and each entry with its outcome |
-| `POST /api/trust/load?id=x:Handle` | pulls an X account's public sample of posts into the record |
+| `POST /api/trust/load?id=` | records a public sample for an X, Telegram or Reddit source ID |
+
+To follow a Telegram channel or Reddit listing, add an entry to the `sources` array in the catalog
+passed to `m24d --sources FILE`. A Telegram entry uses
+`{"type":"telegram","handle":"channelname","markets":["crypto"]}`. For Reddit, use type `reddit`
+with handle `u/name` for a user's submissions and comments or `r/sub` for a subreddit's new posts.
+The corresponding history IDs are `telegram:channelname`, `reddit:u/name` and `reddit:r/sub`.
+
+History loads record up to 200 Telegram or Reddit posts from the last 30 days, capped at 12
+pages per listing. Telegram only exposes posts present in the channel's public web preview.
+Reddit only exposes posts returned by its listings. The runner checks the newest page of each
+listing at least a minute apart. It records the initial snapshot and queues only previously
+unrecorded posts published after startup and within `max_signal_age_sec` (two minutes by default).
+A busy source can publish more than one page between checks. Queue overflow leaves posts in the
+record for replay.
+
+Reddit's unauthenticated JSON routes may return HTTP 403. On HTTP 429, the readers pause Reddit
+requests for at least a minute and honor a longer `Retry-After`. Reddit's Data API requires approval
+and OAuth and has deletion requirements for stored posts. Telegram's content licensing terms
+restrict automated collection. Review each platform's terms before enabling a source.
 
 How a call is judged:
 

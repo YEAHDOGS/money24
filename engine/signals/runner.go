@@ -150,10 +150,14 @@ func (r *Runner) track(e Entry) {
 }
 
 // Handle gates one signal and journals the result. now is when we would place the order.
-// It returns false for a duplicate post, which is dropped without a journal line.
+// It returns false for duplicates and expired public posts, which are dropped before journaling.
 func (r *Runner) Handle(sig Signal, now time.Time) (Entry, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	settings := r.catalog.SettingsFor(sig.SourceID)
+	if stalePublicSignal(sig, settings, now) {
+		return Entry{Rejected: ErrStale.Error(), Signal: sig}, false, nil
+	}
 	if !r.remember(sig) {
 		return Entry{Rejected: REJECT_DUPLICATE, Signal: sig}, false, nil
 	}
@@ -161,7 +165,6 @@ func (r *Runner) Handle(sig Signal, now time.Time) (Entry, bool, error) {
 	if r.catalog.IsCrypto(sig) {
 		sig.Market = MARKET_CRYPTO
 	}
-	settings := r.catalog.SettingsFor(sig.SourceID)
 	e := Entry{At: now.UTC(), Action: string(sig.Kind), Signal: sig}
 	// A manual share is planned as of its post time, so the clock rules start when the source posted.
 	asOf, planSig := now, sig

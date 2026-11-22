@@ -323,6 +323,11 @@ func main() {
 	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes, prices))
 	runner.SetSettlement(settlement)
 	queue := make(chan signals.Signal, QUEUE_SIZE)
+	followDone := make(chan struct{})
+	go func() {
+		defer close(followDone)
+		signals.FollowPublic(ctx, http.DefaultClient, catalog, recorder, queue)
+	}()
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -332,7 +337,7 @@ func main() {
 				log.Printf("journal: %v", err)
 			}
 			if !fresh {
-				log.Printf("%s %s duplicate post %s", sig.SourceID, sig.Symbol, sig.PostID)
+				log.Printf("%s %s post %s: %s", sig.SourceID, sig.Symbol, sig.PostID, e.Rejected)
 				continue
 			}
 			log.Printf("%s %s %s rejected=%q note=%q", sig.SourceID, sig.Kind, sig.Symbol, e.Rejected, e.Note)
@@ -365,7 +370,7 @@ func main() {
 	}
 	opts := signals.APIOptions{Origins: strings.Split(*origins, ","), Hosts: allowedHosts}
 	tracker := signals.NewTracker(recorder, catalog, priceHistory(prices))
-	// Loading a source's history reaches out to X, so it takes the local desk or the webhook secret.
+	// Loading a source's history makes network requests, so it takes the local desk or the webhook secret.
 	mayLoad := func(r *http.Request) bool {
 		return opts.TrustsLocalDesk(r) || r.Header.Get("Authorization") == BEARER+secret
 	}
@@ -478,6 +483,7 @@ func main() {
 	shutdown, cancel := context.WithTimeout(context.Background(), SHUTDOWN_TIMEOUT)
 	defer cancel()
 	srv.Shutdown(shutdown)
+	<-followDone
 	close(queue)
 	<-done
 }
