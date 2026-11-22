@@ -62,8 +62,12 @@ type Launch struct {
 
 // Graduation identifies the destination venue and pool address when supplied.
 type Graduation struct {
-	Venue string `json:"venue,omitempty"`
-	Pool  string `json:"pool,omitempty"`
+	Venue          string `json:"venue,omitempty"`
+	Pool           string `json:"pool,omitempty"`
+	UniqueBuyers   *int   `json:"unique_buyers,omitempty"`
+	SameBlock      *bool  `json:"same_block,omitempty"`
+	CreatorSold    *bool  `json:"creator_sold,omitempty"`
+	DeployerFunded *bool  `json:"deployer_funded,omitempty"`
 }
 
 type recordWriter struct {
