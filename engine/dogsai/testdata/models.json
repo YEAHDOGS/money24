@@ -1,0 +1,6 @@
+{"models": [
+  {"id": "finbert", "task": "sentiment", "ready": true},
+  {"id": "kronos", "task": "forecast", "ready": true},
+  {"id": "chronos", "task": "forecast", "ready": false},
+  {"id": "timesfm", "task": "forecast", "ready": true}
+]}
