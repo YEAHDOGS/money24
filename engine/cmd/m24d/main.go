@@ -375,6 +375,9 @@ func main() {
 		return opts.TrustsLocalDesk(r) || r.Header.Get("Authorization") == BEARER+secret
 	}
 	opts.Mount = tracker.Routes(http.DefaultClient, mayLoad)
+	for pattern, handler := range signals.NewCryptoBacktester(postsPath, alpaca.CRYPTO_TAKER_FEE_PCT).Routes(mayLoad) {
+		opts.Mount[pattern] = handler
+	}
 	opts.Mount[market.ROUTE_PREFIX] = market.Handler(prices)
 	opts.Mount[calendar.ROUTE] = calendar.Handler()
 	opts.Mount[ROUTE_ACCOUNT] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

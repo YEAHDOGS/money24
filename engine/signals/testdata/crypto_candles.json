@@ -1,0 +1,73 @@
+[
+  {
+    "name": "initial stop wins collision even on opening fill",
+    "bars": [[100, 131, 89, 120]],
+    "status": "stopped", "entry": 100, "r": -1.0475, "requests": 1
+  },
+  {
+    "name": "partial target then breakeven stop defeats next target",
+    "bars": [[100, 105, 98, 103], [103, 112, 101, 108], [108, 125, 99, 120]],
+    "status": "stopped", "entry": 100, "targets": 1, "r": 0.44875, "requests": 1
+  },
+  {
+    "name": "new breakeven stop on the first target bar",
+    "bars": [[100, 125, 98, 122]],
+    "status": "stopped", "entry": 100, "targets": 1, "r": 0.44875, "requests": 1
+  },
+  {
+    "name": "complete equal-share ladder",
+    "bars": [[100, 107, 97, 104], [104, 121, 103, 117]],
+    "status": "targets_hit", "entry": 100, "targets": 2, "r": 1.44625, "requests": 1
+  },
+  {
+    "name": "short ladder and leveraged ineligibility",
+    "text": "ETHUSDT short 3x | Entry 100 | TP 90 / 80 | SL 110",
+    "bars": [[100, 104, 95, 97], [97, 99, 78, 82]],
+    "status": "targets_hit", "entry": 100, "targets": 2, "r": 1.45375, "requests": 1,
+    "not_followable": true
+  },
+  {
+    "name": "unproven profit before intrabar fill is ignored",
+    "text": "$BTC long | Entry 99-101 | TP 110 | SL 91",
+    "bars": [[114, 120, 100, 106], [106, 109, 89, 95]],
+    "status": "stopped", "entry": 101, "r": -1.048, "requests": 1
+  },
+  {
+    "name": "gap through stop realizes worse than one R",
+    "bars": [[100, 107, 98, 105], [85, 124, 82, 123]],
+    "status": "stopped", "entry": 100, "r": -1.54625, "requests": 1
+  },
+  {
+    "name": "never filled with complete entry coverage",
+    "flat": [106, 112, 104, 107],
+    "status": "never_filled", "r": 0, "requests": 1
+  },
+  {
+    "name": "time exit with two fine pages then hourly",
+    "bars": [[100, 104, 96, 102]], "flat": [102, 108, 101, 105],
+    "status": "time_limit", "entry": 100, "r": 0.44875, "hourly": true, "requests": 4
+  },
+  {
+    "name": "gaps remain unscored",
+    "bars": [[100, 105, 96, 102], null, [102, 130, 102, 125]],
+    "status": "data_unavailable", "entry": 100, "requests": 1
+  },
+  {
+    "name": "forming bar cannot exit the trade",
+    "bars": [[100, 107, 98, 105], [105, 135, 103, 130]],
+    "now_minutes": 24,
+    "status": "pending", "entry": 100, "requests": 1
+  },
+  {
+    "name": "listing is unavailable",
+    "unlisted": true, "not_followable": true,
+    "status": "data_unavailable", "requests": 1
+  },
+  {
+    "name": "spot leverage excludes otherwise scored long",
+    "text": "BTCUSD long 2x | Entry 100 | TP 110 | SL 90",
+    "bars": [[100, 112, 94, 111]],
+    "status": "targets_hit", "entry": 100, "targets": 1, "r": 0.9475, "requests": 1,
+    "not_followable": true
+  }
+]
