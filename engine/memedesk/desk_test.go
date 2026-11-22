@@ -17,7 +17,7 @@ import (
 const (
 	TEST_PREVIOUS  = "prior-day"
 	TEST_LATER     = "later-day"
-	TEST_FILE      = "records-fixture.jsonl"
+	TEST_FILE      = "records-fixture-*.jsonl"
 	TEST_TORN_LINE = `{"version":`
 )
 
@@ -32,6 +32,9 @@ func TestReplayReadsPastSafetyAndFutureExitsForOneDay(t *testing.T) {
 		safetyRow(TEST_MINT, before, false),
 		meme.Record{At: before, Kind: meme.KIND_LAUNCH, Mint: TEST_PREVIOUS},
 	)
+	if err := meme.Compact(recorderDir); err != nil {
+		t.Fatal(err)
+	}
 	writeRecords(t, recorderDir, at,
 		migration(TEST_MINT, at),
 		snapshot(TEST_MINT, at.Add(SIMULATED_LATENCY), 1),
@@ -60,23 +63,34 @@ func TestReplayReadsPastSafetyAndFutureExitsForOneDay(t *testing.T) {
 	}
 }
 
-func writeRecords(t *testing.T, dir string, day time.Time, rows ...meme.Record) {
+func writeRecords(t *testing.T, dir string, day time.Time, rows ...meme.Record) []meme.Position {
 	t.Helper()
 	dayDir := filepath.Join(dir, day.Format(meme.DAY_LAYOUT))
 	if err := os.MkdirAll(dayDir, meme.DIRECTORY_MODE); err != nil {
 		t.Fatal(err)
 	}
-	f, err := os.Create(filepath.Join(dayDir, TEST_FILE))
+	f, err := os.CreateTemp(dayDir, TEST_FILE)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	enc := json.NewEncoder(f)
+	name := day.Format(meme.DAY_LAYOUT) + "/" + filepath.Base(f.Name())
+	var positions []meme.Position
+	var offset int64
 	for _, row := range rows {
-		if err := enc.Encode(row); err != nil {
+		data, err := json.Marshal(row)
+		if err != nil {
 			t.Fatal(err)
 		}
+		n, err := f.Write(append(data, JOURNAL_END))
+		if err != nil {
+			t.Fatal(err)
+		}
+		end := offset + int64(n)
+		positions = append(positions, meme.Position{File: name, Offset: offset, End: end})
+		offset = end
 	}
+	return positions
 }
 
 func TestDeskRestoresJournalAndGuardsRulebookWrites(t *testing.T) {
@@ -114,9 +128,15 @@ func TestDeskRestoresJournalAndGuardsRulebookWrites(t *testing.T) {
 		t.Fatalf("authorized write returned %d: %s", out.Code, out.Body)
 	}
 
-	d.Observe(safetyRow(TEST_MINT, testStart, false))
-	d.Observe(migration(TEST_MINT, testStart))
-	d.Observe(snapshot(TEST_MINT, testStart.Add(SIMULATED_LATENCY), 1))
+	rows := []meme.Record{
+		safetyRow(TEST_MINT, testStart, false),
+		migration(TEST_MINT, testStart),
+		snapshot(TEST_MINT, testStart.Add(SIMULATED_LATENCY), 1),
+	}
+	positions := writeRecords(t, filepath.Join(dir, meme.DATA_SUBDIR), testStart, rows...)
+	for i, row := range rows {
+		d.Observe(row, positions[i])
+	}
 	before := d.Status()
 	out = httptest.NewRecorder()
 	d.Routes()[ROUTE_STATUS].ServeHTTP(out, httptest.NewRequest(http.MethodGet, "/api/memedesk", nil))

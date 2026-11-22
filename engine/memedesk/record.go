@@ -241,6 +241,7 @@ type StrategyStatus struct {
 }
 
 type Status struct {
+	BytesOnDisk   int64            `json:"bytes_on_disk"`
 	PaperOnly     bool             `json:"paper_only"`
 	AsOf          time.Time        `json:"as_of,omitzero"`
 	Day           string           `json:"day,omitempty"`

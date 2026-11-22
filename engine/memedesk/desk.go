@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 	"github.com/YEAHDOGS/money24/engine/meme"
 )
 
@@ -33,6 +34,7 @@ type Desk struct {
 	model       *engine
 	journal     *os.File
 	path        string
+	lastRecord  meme.Position
 	nextReload  time.Time
 	rulebookErr error
 	journalErr  error
@@ -40,19 +42,11 @@ type Desk struct {
 
 func Open(dataDir string) (*Desk, error) {
 	d := &Desk{model: newEngine(), path: filepath.Join(dataDir, RULEBOOK_FILE)}
-	path := filepath.Join(dataDir, JOURNAL_FILE)
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, JOURNAL_MODE)
+	journal, err := openJournal(dataDir, d.model)
 	if err != nil {
 		return nil, err
 	}
-	restoreErr := restoreJournal(file, d.model)
-	if err := errors.Join(restoreErr, file.Close()); err != nil {
-		return nil, err
-	}
-	d.journal, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY, JOURNAL_MODE)
-	if err != nil {
-		return nil, err
-	}
+	d.journal = journal
 	d.reload(time.Now())
 	if d.model.rulebook.CapitalUSD == 0 {
 		d.journal.Close()
@@ -116,14 +110,19 @@ func (d *Desk) append(line journalLine) error {
 	return d.journalErr
 }
 
-// Observe consumes a recorder event only after it is written to the desk journal.
-func (d *Desk) Observe(row meme.Record) {
+// Observe consumes a recorder event only after its position is journaled.
+func (d *Desk) Observe(row meme.Record, pos meme.Position) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.reload(time.Now())
-	if err := d.append(journalLine{Record: &row}); err == nil {
-		d.model.observe(row, true)
+	if d.journalErr != nil {
+		return
 	}
+	if err := appendPosition(d.journal, &d.lastRecord, pos); err != nil {
+		d.journalErr = fmt.Errorf("meme desk journal: %w", err)
+		return
+	}
+	d.model.observe(row, true)
 }
 
 // Run advances pending decisions even when the recorder has gone quiet.
@@ -156,6 +155,7 @@ func (d *Desk) Status() Status {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	out := d.model.status(true)
+	out.BytesOnDisk = diskusage.Files(d.journal.Name(), d.path)
 	if d.rulebookErr != nil {
 		out.RulebookError = d.rulebookErr.Error()
 	}
