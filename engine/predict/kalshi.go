@@ -171,23 +171,23 @@ func KeysSet() bool {
 }
 
 type wireMarket struct {
-	Ticker      string  `json:"ticker"`
-	EventTicker string  `json:"event_ticker"`
-	Title       string  `json:"title"`
-	YesSubTitle string  `json:"yes_sub_title"`
-	MarketType  string  `json:"market_type"`
-	Status      string  `json:"status"`
-	Result      string  `json:"result"`
-	Settlement  string  `json:"settlement_value_dollars"`
-	CloseTime   string  `json:"close_time"`
-	YesBid      string  `json:"yes_bid_dollars"`
-	YesAsk      string  `json:"yes_ask_dollars"`
-	NoBid       string  `json:"no_bid_dollars"`
-	NoAsk       string  `json:"no_ask_dollars"`
-	Volume24h   string  `json:"volume_24h_fp"`
-	StrikeType  string  `json:"strike_type"`
-	FloorStrike float64 `json:"floor_strike"`
-	CapStrike   float64 `json:"cap_strike"`
+	Ticker      string   `json:"ticker"`
+	EventTicker string   `json:"event_ticker"`
+	Title       string   `json:"title"`
+	YesSubTitle string   `json:"yes_sub_title"`
+	MarketType  string   `json:"market_type"`
+	Status      string   `json:"status"`
+	Result      string   `json:"result"`
+	Settlement  string   `json:"settlement_value_dollars"`
+	CloseTime   string   `json:"close_time"`
+	YesBid      string   `json:"yes_bid_dollars"`
+	YesAsk      string   `json:"yes_ask_dollars"`
+	NoBid       string   `json:"no_bid_dollars"`
+	NoAsk       string   `json:"no_ask_dollars"`
+	Volume24h   string   `json:"volume_24h_fp"`
+	StrikeType  string   `json:"strike_type"`
+	FloorStrike *float64 `json:"floor_strike"`
+	CapStrike   *float64 `json:"cap_strike"`
 }
 
 func number(s string) float64 {
@@ -200,7 +200,19 @@ func (w wireMarket) market() Market {
 	m := Market{Ticker: w.Ticker, Event: w.EventTicker, Title: w.Title, YesTitle: w.YesSubTitle, Type: w.MarketType,
 		Status: w.Status, Result: w.Result, CloseAt: closeAt, YesBid: number(w.YesBid), YesAsk: number(w.YesAsk),
 		NoBid: number(w.NoBid), NoAsk: number(w.NoAsk), Volume24h: number(w.Volume24h),
-		Strike: w.StrikeType, Floor: w.FloorStrike, Cap: w.CapStrike}
+		Strike: w.StrikeType}
+	if w.FloorStrike != nil {
+		m.Floor = *w.FloorStrike
+	}
+	if w.CapStrike != nil {
+		m.Cap = *w.CapStrike
+	}
+	switch {
+	case w.StrikeType == STRIKE_GREATER && w.FloorStrike == nil,
+		w.StrikeType == STRIKE_LESS && w.CapStrike == nil,
+		w.StrikeType == STRIKE_BETWEEN && (w.FloorStrike == nil || w.CapStrike == nil):
+		m.Strike = ""
+	}
 	if value, err := strconv.ParseFloat(strings.TrimSpace(w.Settlement), 64); err == nil && value >= 0 && value <= DOLLAR {
 		m.Value, m.HasValue = value, true
 	}

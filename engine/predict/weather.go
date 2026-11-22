@@ -115,6 +115,9 @@ func newWeather(raw json.RawMessage) (Strategy, error) {
 	if p.SigmaF <= 0 || p.RecordSigmaF <= 0 || p.DaysAhead < 0 {
 		return nil, errors.New("sigma_f and record_sigma_f must be above 0, days_ahead not negative")
 	}
+	if p.KnownMarginF < 0 {
+		return nil, errors.New("known_margin_f must not be negative")
+	}
 	body := defaultStations
 	if p.StationsFile != "" {
 		b, err := os.ReadFile(p.StationsFile)
@@ -274,15 +277,16 @@ func (d dayModel) prob(lo, hi float64) float64 { return math.Max(0, d.below(hi)-
 // high can only rise from here and a low only fall, so a range the record has passed is out.
 func (d dayModel) decided(lo, hi, margin float64) bool {
 	r := d.recorded
+	below := r < lo && r <= lo-margin
 	switch {
 	case !d.hasRecord:
 		return false
 	case d.over:
-		return r <= lo-margin || r >= hi+margin || (r >= lo+margin && r <= hi-margin)
+		return below || r >= hi+margin || (r >= lo+margin && r < hi && r <= hi-margin)
 	case d.high:
 		return r >= hi+margin || (math.IsInf(hi, 1) && r >= lo+margin)
 	}
-	return r <= lo-margin || (math.IsInf(lo, -1) && r <= hi-margin)
+	return below || (math.IsInf(lo, -1) && r < hi && r <= hi-margin)
 }
 
 // model joins what the station recorded today with the forecast runs for the hours left.
@@ -298,8 +302,11 @@ func (w *weather) model(info seriesInfo, ens *Ensemble, obs *Readings, start, en
 		d.record, d.recorded = recorded+recordPeak, recorded
 	}
 	if !now.Before(end) {
+		if !d.hasRecord || obs.At.Before(end) {
+			return d, nil, false
+		}
 		d.over = true
-		return d, []string{fmt.Sprintf(WEATHER_REASON_FIN, recorded)}, d.hasRecord
+		return d, []string{fmt.Sprintf(WEATHER_REASON_FIN, recorded)}, true
 	}
 	if ens == nil {
 		return d, nil, false

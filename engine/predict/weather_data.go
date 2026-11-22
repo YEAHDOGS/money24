@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,14 +27,16 @@ const (
 	ENSEMBLE_AHEAD  = "3" // days ahead
 
 	// Observations: the station's own readings from the National Weather Service, in °C to a tenth.
-	OBS_URL      = "https://api.weather.gov/stations/%s/observations"
-	OBS_EVERY    = 10 * time.Minute
-	OBS_BACK     = 36 * time.Hour // yesterday's whole climate day too: its markets trade past midnight
-	OBS_ACCEPT   = "application/geo+json"
-	BODY_MAX     = 16 << 20
-	F_PER_C      = 9.0 / 5.0
-	F_FREEZE     = 32.0
-	DATA_TIMEOUT = 30 * time.Second
+	OBS_URL       = "https://api.weather.gov/stations/%s/observations"
+	OBS_EVERY     = 10 * time.Minute
+	OBS_BACK      = 36 * time.Hour // yesterday's whole climate day too: its markets trade past midnight
+	OBS_MAX_PAGES = 12
+	OBS_CURSOR    = "cursor"
+	OBS_ACCEPT    = "application/geo+json"
+	BODY_MAX      = 16 << 20
+	F_PER_C       = 9.0 / 5.0
+	F_FREEZE      = 32.0
+	DATA_TIMEOUT  = 30 * time.Second
 )
 
 // Env is what strategies share to reach outside data.
@@ -149,7 +152,7 @@ func (w *weatherData) loadReadings(ctx context.Context, env *Env, s Station, now
 	if cached != nil && now.Sub(cached.At) < OBS_EVERY {
 		return cached, nil
 	}
-	var doc struct {
+	type observationPage struct {
 		Features []struct {
 			Properties struct {
 				Timestamp   string `json:"timestamp"`
@@ -158,21 +161,45 @@ func (w *weatherData) loadReadings(ctx context.Context, env *Env, s Station, now
 				} `json:"temperature"`
 			} `json:"properties"`
 		} `json:"features"`
+		Pagination struct {
+			Next string `json:"next"`
+		} `json:"pagination"`
 	}
-	u := fmt.Sprintf(OBS_URL, s.Station) + "?" + url.Values{"start": {now.Add(-OBS_BACK).UTC().Format(time.RFC3339)}}.Encode()
-	if err := env.getJSON(ctx, u, map[string]string{"Accept": OBS_ACCEPT}, &doc); err != nil {
-		return cached, err
-	}
+	base := fmt.Sprintf(OBS_URL, s.Station)
+	query := url.Values{"start": {now.Add(-OBS_BACK).UTC().Format(time.RFC3339)}}
 	r := &Readings{At: now}
-	for i := len(doc.Features) - 1; i >= 0; i-- { // newest first from the service
-		p := doc.Features[i].Properties
-		t, err := time.Parse(time.RFC3339, p.Timestamp)
-		if err != nil || p.Temperature.Value == nil {
-			continue
+	for page := 1; ; page++ {
+		var doc observationPage
+		if err := env.getJSON(ctx, base+"?"+query.Encode(), map[string]string{"Accept": OBS_ACCEPT}, &doc); err != nil {
+			return cached, err
 		}
-		r.Times = append(r.Times, t.UTC())
-		r.TempsF = append(r.TempsF, *p.Temperature.Value*F_PER_C+F_FREEZE)
+		for _, feature := range doc.Features {
+			p := feature.Properties
+			t, err := time.Parse(time.RFC3339, p.Timestamp)
+			if err != nil || p.Temperature.Value == nil {
+				continue
+			}
+			r.Times = append(r.Times, t.UTC())
+			r.TempsF = append(r.TempsF, *p.Temperature.Value*F_PER_C+F_FREEZE)
+		}
+		if doc.Pagination.Next == "" {
+			break
+		}
+		if page >= OBS_MAX_PAGES {
+			return cached, fmt.Errorf("observations for %s: more than %d pages", s.Station, OBS_MAX_PAGES)
+		}
+		next, err := url.Parse(doc.Pagination.Next)
+		if err != nil {
+			return cached, err
+		}
+		cursor := next.Query().Get(OBS_CURSOR)
+		if cursor == "" || cursor == query.Get(OBS_CURSOR) {
+			return cached, fmt.Errorf("observations for %s: invalid next cursor", s.Station)
+		}
+		query = url.Values{OBS_CURSOR: {cursor}}
 	}
+	slices.Reverse(r.Times)
+	slices.Reverse(r.TempsF)
 	w.mu.Lock()
 	w.readings[s.Station] = r
 	w.mu.Unlock()
