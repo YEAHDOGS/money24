@@ -1,0 +1,22 @@
+[Unit]
+Description=Money 24 backup to Cloudflare R2
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/var/lib/money24/.ready
+
+[Service]
+Type=oneshot
+User=money24
+EnvironmentFile=/etc/money24.env
+Environment=GOMEMLIMIT=48MiB
+ExecStart=/opt/money24/current/m24backup --data /var/lib/money24/data
+TimeoutStartSec=4h
+MemoryMax=96M
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/money24/data/news
+UMask=0077

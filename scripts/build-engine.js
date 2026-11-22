@@ -14,6 +14,8 @@ const SERVER_DIR = join(ENGINE_DIR, 'dist');
 const COMMANDS = ['newsd', 'm24d'];
 const LINUX_SUFFIX = '-linux-amd64';
 const LINUX_FLAG = '--linux';
+const BACKUP_FLAG = '--backup';
+const BACKUP_COMMAND = 'm24backup';
 const WINDOWS_EXE = '.exe';
 // Rust target triple -> Go GOOS/GOARCH. Every desktop target Tauri ships.
 const GO_TARGETS = {
@@ -41,7 +43,8 @@ function build(cmd, goos, goarch, out) {
 }
 
 if (process.argv.includes(LINUX_FLAG)) {
-  for (const cmd of COMMANDS) build(cmd, 'linux', 'amd64', join(SERVER_DIR, `${cmd}${LINUX_SUFFIX}`));
+  const commands = process.argv.includes(BACKUP_FLAG) ? [...COMMANDS, BACKUP_COMMAND] : COMMANDS;
+  for (const cmd of commands) build(cmd, 'linux', 'amd64', join(SERVER_DIR, `${cmd}${LINUX_SUFFIX}`));
 } else {
   const triple = process.env.TAURI_ENV_TARGET_TRIPLE || hostTriple();
   const target = GO_TARGETS[triple];
