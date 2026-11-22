@@ -2,6 +2,8 @@ package alpaca
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +24,7 @@ const (
 	// stays the record of decisions; Alpaca's fills say what the market really gave, so the two can be
 	// compared trade by trade. Paper only: FromEnv refuses live keys.
 	CLIENT_PREFIX   = "m24-"
+	INSTALL_BYTES   = 3 // a random tag per install in every order id, so a fresh journal never reuses one
 	ENTRY_SUFFIX    = "-in"
 	QUEUE           = 1024
 	ACTIONS_KEPT    = 60
@@ -85,9 +88,21 @@ type Mirror struct {
 	Journal   *signals.Journal
 	StateFile string // remembers the last journal line handled, so a restart neither repeats nor misses
 
-	mu     sync.Mutex
-	status Status
-	last   int64
+	mu      sync.Mutex
+	status  Status
+	last    int64
+	install string
+}
+
+// mirrorState is what the mirror remembers across restarts.
+type mirrorState struct {
+	LastLine int64  `json:"last_line"`
+	Install  string `json:"install"`
+}
+
+// clientID is the order id for one journal line, unique to this install: m24-<install>-<line>[-in].
+func (m *Mirror) clientID(line int64, suffix string) string {
+	return fmt.Sprintf("%s%s-%d%s", CLIENT_PREFIX, m.install, line, suffix)
 }
 
 // symbolFor is Alpaca's name for what a signal trades, and whether it is a coin.
@@ -135,7 +150,7 @@ func (m *Mirror) note(a Action) {
 
 // enter places the desk's entry as a limit buy at its own price.
 func (m *Mirror) enter(ctx context.Context, e signals.Entry) {
-	a := Action{At: time.Now().UTC(), PlanID: e.ID, LineID: e.ID, Side: SIDE_BUY, ClientID: fmt.Sprintf("%s%d%s", CLIENT_PREFIX, e.ID, ENTRY_SUFFIX)}
+	a := Action{At: time.Now().UTC(), PlanID: e.ID, LineID: e.ID, Side: SIDE_BUY, ClientID: m.clientID(e.ID, ENTRY_SUFFIX)}
 	symbol, coin, err := symbolFor(e.Signal)
 	a.Symbol = symbol
 	if err != nil {
@@ -178,7 +193,7 @@ func (m *Mirror) held(ctx context.Context, symbol string) (float64, error) {
 // exit sells what the desk sold, never more than the broker holds. When the desk closes a trade whose
 // entry never filled at the broker, the entry is cancelled.
 func (m *Mirror) exit(ctx context.Context, e signals.Entry) {
-	a := Action{At: time.Now().UTC(), PlanID: e.PlanID, LineID: e.ID, Side: SIDE_SELL, ClientID: fmt.Sprintf("%s%d", CLIENT_PREFIX, e.ID)}
+	a := Action{At: time.Now().UTC(), PlanID: e.PlanID, LineID: e.ID, Side: SIDE_SELL, ClientID: m.clientID(e.ID, "")}
 	symbol, coin, err := symbolFor(e.Signal)
 	a.Symbol = symbol
 	if err != nil {
@@ -187,7 +202,7 @@ func (m *Mirror) exit(ctx context.Context, e signals.Entry) {
 		return
 	}
 	closing := e.Action == ACTION_CLOSE || e.Action == ACTION_VOID
-	if entry, err := m.Client.ByClientID(ctx, fmt.Sprintf("%s%d%s", CLIENT_PREFIX, e.PlanID, ENTRY_SUFFIX)); err == nil && closing {
+	if entry, err := m.Client.ByClientID(ctx, m.clientID(e.PlanID, ENTRY_SUFFIX)); err == nil && closing {
 		switch entry.Status {
 		case STATUS_NEW, STATUS_PARTIAL, STATUS_ACCEPTED, STATUS_PENDING:
 			if err := m.Client.Cancel(ctx, entry.ID); err == nil {
@@ -241,7 +256,12 @@ func (m *Mirror) handle(e signals.Entry) {
 		m.exit(ctx, e)
 	}
 	m.last = e.ID
-	if b, err := json.Marshal(map[string]int64{"last_line": m.last}); err == nil {
+	m.save()
+}
+
+// save writes what the mirror remembers.
+func (m *Mirror) save() {
+	if b, err := json.Marshal(mirrorState{LastLine: m.last, Install: m.install}); err == nil {
 		os.WriteFile(m.StateFile, b, STATE_PERMS)
 	}
 }
@@ -293,17 +313,22 @@ func (m *Mirror) Run(ctx context.Context) {
 			}
 		}
 	}()
-	var saved struct {
-		LastLine int64 `json:"last_line"`
-	}
+	var saved mirrorState
 	recent := m.Journal.Recent(0, signals.JOURNAL_RECENT)
-	if b, err := os.ReadFile(m.StateFile); err == nil && json.Unmarshal(b, &saved) == nil {
-		m.last = saved.LastLine
-		for _, e := range recent {
-			m.handle(e) // what was journaled while the runner was down
+	b, err := os.ReadFile(m.StateFile)
+	known := err == nil && json.Unmarshal(b, &saved) == nil && saved.Install != ""
+	m.last, m.install = saved.LastLine, saved.Install
+	if !known {
+		tag := make([]byte, INSTALL_BYTES)
+		rand.Read(tag)
+		m.install = hex.EncodeToString(tag)
+		if len(recent) > 0 {
+			m.last = recent[len(recent)-1].ID
 		}
-	} else if len(recent) > 0 {
-		m.last = recent[len(recent)-1].ID
+		m.save()
+	}
+	for _, e := range recent {
+		m.handle(e) // what was journaled while the runner was down; already handled lines are skipped
 	}
 	check := time.NewTicker(RECONCILE_EVERY)
 	defer check.Stop()
