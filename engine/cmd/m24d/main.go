@@ -38,6 +38,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/plays"
+	"github.com/YEAHDOGS/money24/engine/predict"
 	"github.com/YEAHDOGS/money24/engine/signals"
 	"github.com/YEAHDOGS/money24/engine/tape"
 	"github.com/YEAHDOGS/money24/engine/webull"
@@ -75,6 +76,9 @@ const (
 	ROUTE_BROKER     = "GET /api/broker"
 	MIRROR_FILE      = "alpaca-mirror.json" // the last journal line placed at the broker
 	TAPE_SUBDIR      = "tape"               // every minute's 0DTE and weekly chains, for backtests
+	ROUTE_PREDICT    = "GET /api/predict"
+	PREDICT_FILE     = "predict-journal.jsonl" // the prediction desk's paper book
+	PREDICT_TIMEOUT  = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
 	SCOUT_AT_LAYOUT  = "2006-01-02 15:04"
 	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
@@ -426,6 +430,16 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(tapeRecorder.Status(time.Now()))
 	})
+	// The prediction desk: a paper book of Kalshi event contracts at Kalshi's live prices, filled against
+	// the real order book with the real fee and settled at the real result. It places no order anywhere.
+	predictBook, err := predict.OpenBook(filepath.Join(*dataDir, PREDICT_FILE), predict.DEFAULT_CAPITAL_USD)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer predictBook.Close()
+	predictDesk := &predict.Desk{Book: predictBook, Kalshi: &predict.Kalshi{HTTP: &http.Client{Timeout: PREDICT_TIMEOUT}}, Rules: predict.DefaultRules()}
+	go predictDesk.Run(ctx)
+	opts.Mount[ROUTE_PREDICT] = predictDesk.Handler()
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

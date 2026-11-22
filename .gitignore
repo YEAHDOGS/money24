@@ -45,3 +45,7 @@ engine/data/
 # Agent worktrees and local service runs
 .claude/
 .run/
+
+# Private keys (Kalshi and the like) never belong in the repo
+*.pem
+*.key
