@@ -74,9 +74,8 @@ const (
 	ROUTE_ACCOUNT    = "GET /api/account"
 	ROUTE_TAPE       = "GET /api/tape"
 	ROUTE_BROKER     = "GET /api/broker"
-	MIRROR_FILE      = "alpaca-mirror.json" // the last journal line placed at the broker
-	TAPE_SUBDIR      = "tape"               // every minute's 0DTE and weekly chains, for backtests
-	ROUTE_PREDICT    = "GET /api/predict"
+	MIRROR_FILE      = "alpaca-mirror.json"    // the last journal line placed at the broker
+	TAPE_SUBDIR      = "tape"                  // every minute's 0DTE and weekly chains, for backtests
 	PREDICT_FILE     = "predict-journal.jsonl" // the prediction desk's paper book
 	PREDICT_TIMEOUT  = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
 	SCOUT_AT_LAYOUT  = "2006-01-02 15:04"
@@ -432,14 +431,20 @@ func main() {
 	})
 	// The prediction desk: a paper book of Kalshi event contracts at Kalshi's live prices, filled against
 	// the real order book with the real fee and settled at the real result. It places no order anywhere.
+	// Every strategy it runs is in predict-strategies.json in the data folder: edit it to add, retune or
+	// switch one off, and the desk picks it up within a minute.
 	predictBook, err := predict.OpenBook(filepath.Join(*dataDir, PREDICT_FILE), predict.DEFAULT_CAPITAL_USD)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer predictBook.Close()
-	predictDesk := &predict.Desk{Book: predictBook, Kalshi: &predict.Kalshi{HTTP: &http.Client{Timeout: PREDICT_TIMEOUT}}, Rules: predict.DefaultRules()}
+	predictHTTP := &http.Client{Timeout: PREDICT_TIMEOUT}
+	predictDesk := &predict.Desk{Book: predictBook, Kalshi: &predict.Kalshi{HTTP: predictHTTP}, Env: &predict.Env{HTTP: predictHTTP},
+		RulebookPath: filepath.Join(*dataDir, predict.RULEBOOK_FILE), MayWrite: mayLoad}
 	go predictDesk.Run(ctx)
-	opts.Mount[ROUTE_PREDICT] = predictDesk.Handler()
+	for pattern, h := range predictDesk.Routes() {
+		opts.Mount[pattern] = h
+	}
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

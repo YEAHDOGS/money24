@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,7 +27,9 @@ const (
 	KALSHI_PAGES_MAX  = 20   // a scan never reads more pages than this
 	KALSHI_TICKERS    = 50   // markets looked up by ticker in one request
 	KALSHI_BODY_MAX   = 32 << 20
-	REQUEST_GAP       = 120 * time.Millisecond // Kalshi's basic tier allows 20 reads a second; stay well under
+	REQUEST_GAP       = 200 * time.Millisecond // Kalshi's basic tier allows 20 reads a second; stay well under
+	KALSHI_TRIES      = 4
+	KALSHI_BACKOFF    = 2 * time.Second
 	STATUS_OPEN_QUERY = "open"
 	MVE_EXCLUDE       = "exclude" // multivariate combos (parlays) are left out: thin, and priced as bundles
 	MARKET_BINARY     = "binary"
@@ -35,6 +38,7 @@ const (
 	SIDE_YES          = "yes"
 	SIDE_NO           = "no"
 	DOLLAR            = 1.0
+	EVENT_SEPARATOR   = "-"
 
 	// Keys for Kalshi's authenticated API (demo orders, later). Market data needs none of them.
 	ENV_KALSHI_KEY_ID = "KALSHI_KEY_ID"
@@ -63,6 +67,38 @@ type Market struct {
 	NoBid     float64
 	NoAsk     float64
 	Volume24h float64
+	Strike    string  // greater, less or between
+	Floor     float64 // greater: YES above it; between: the lowest value YES covers
+	Cap       float64 // less: YES below it; between: the highest value YES covers
+}
+
+// Series is the market's series ticker: its event ticker up to the date.
+func (m Market) Series() string {
+	series, _, _ := strings.Cut(m.Event, EVENT_SEPARATOR)
+	return series
+}
+
+// EventDate is the day the market is about, from its event ticker (KXHIGHNY-26NOV21).
+func (m Market) EventDate() (time.Time, error) {
+	_, date, _ := strings.Cut(m.Event, EVENT_SEPARATOR)
+	if len(date) != len(EVENT_DATE_LAYOUT) {
+		return time.Time{}, fmt.Errorf("no date in event %q", m.Event)
+	}
+	// 26NOV21 -> 26Nov21, the way Go spells a month
+	return time.Parse(EVENT_DATE_LAYOUT, date[:3]+strings.ToLower(date[3:5])+date[5:])
+}
+
+// Range is the values that settle YES, as a half-open range of a quantity reported in whole units.
+func (m Market) Range() (lo, hi float64, ok bool) {
+	switch m.Strike {
+	case STRIKE_GREATER:
+		return m.Floor + HALF_DEGREE, math.Inf(1), true
+	case STRIKE_LESS:
+		return math.Inf(-1), m.Cap - HALF_DEGREE, true
+	case STRIKE_BETWEEN:
+		return m.Floor - HALF_DEGREE, m.Cap + HALF_DEGREE, m.Cap >= m.Floor
+	}
+	return 0, 0, false
 }
 
 // Finished says whether the market's result is known.
@@ -118,20 +154,23 @@ func KeysSet() bool {
 }
 
 type wireMarket struct {
-	Ticker      string `json:"ticker"`
-	EventTicker string `json:"event_ticker"`
-	Title       string `json:"title"`
-	YesSubTitle string `json:"yes_sub_title"`
-	MarketType  string `json:"market_type"`
-	Status      string `json:"status"`
-	Result      string `json:"result"`
-	Settlement  string `json:"settlement_value_dollars"`
-	CloseTime   string `json:"close_time"`
-	YesBid      string `json:"yes_bid_dollars"`
-	YesAsk      string `json:"yes_ask_dollars"`
-	NoBid       string `json:"no_bid_dollars"`
-	NoAsk       string `json:"no_ask_dollars"`
-	Volume24h   string `json:"volume_24h_fp"`
+	Ticker      string  `json:"ticker"`
+	EventTicker string  `json:"event_ticker"`
+	Title       string  `json:"title"`
+	YesSubTitle string  `json:"yes_sub_title"`
+	MarketType  string  `json:"market_type"`
+	Status      string  `json:"status"`
+	Result      string  `json:"result"`
+	Settlement  string  `json:"settlement_value_dollars"`
+	CloseTime   string  `json:"close_time"`
+	YesBid      string  `json:"yes_bid_dollars"`
+	YesAsk      string  `json:"yes_ask_dollars"`
+	NoBid       string  `json:"no_bid_dollars"`
+	NoAsk       string  `json:"no_ask_dollars"`
+	Volume24h   string  `json:"volume_24h_fp"`
+	StrikeType  string  `json:"strike_type"`
+	FloorStrike float64 `json:"floor_strike"`
+	CapStrike   float64 `json:"cap_strike"`
 }
 
 func number(s string) float64 {
@@ -143,37 +182,49 @@ func (w wireMarket) market() Market {
 	closeAt, _ := time.Parse(time.RFC3339, w.CloseTime)
 	m := Market{Ticker: w.Ticker, Event: w.EventTicker, Title: w.Title, YesTitle: w.YesSubTitle, Type: w.MarketType,
 		Status: w.Status, Result: w.Result, CloseAt: closeAt, YesBid: number(w.YesBid), YesAsk: number(w.YesAsk),
-		NoBid: number(w.NoBid), NoAsk: number(w.NoAsk), Volume24h: number(w.Volume24h)}
+		NoBid: number(w.NoBid), NoAsk: number(w.NoAsk), Volume24h: number(w.Volume24h),
+		Strike: w.StrikeType, Floor: w.FloorStrike, Cap: w.CapStrike}
 	if w.Settlement != "" {
 		m.Value, m.HasValue = number(w.Settlement), true
 	}
 	return m
 }
 
+// get reads one Kalshi endpoint. Told to slow down (429), it waits and tries again, a little longer each time.
 func (k *Kalshi) get(ctx context.Context, path string, query url.Values, out any) error {
 	base := k.Base
 	if base == "" {
 		base = KALSHI_URL
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path+"?"+query.Encode(), nil)
-	if err != nil {
-		return err
+	for try := 1; ; try++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path+"?"+query.Encode(), nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("User-Agent", KALSHI_USER_AGENT)
+		req.Header.Set("Accept", "application/json")
+		res, err := k.HTTP.Do(req)
+		if err != nil {
+			return err
+		}
+		body, err := io.ReadAll(io.LimitReader(res.Body, KALSHI_BODY_MAX))
+		res.Body.Close()
+		if err != nil {
+			return err
+		}
+		if res.StatusCode == http.StatusTooManyRequests && try < KALSHI_TRIES {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(time.Duration(try) * KALSHI_BACKOFF):
+			}
+			continue
+		}
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("kalshi %s: %s", path, res.Status)
+		}
+		return json.Unmarshal(body, out)
 	}
-	req.Header.Set("User-Agent", KALSHI_USER_AGENT)
-	req.Header.Set("Accept", "application/json")
-	res, err := k.HTTP.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(res.Body, KALSHI_BODY_MAX))
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("kalshi %s: %s", path, res.Status)
-	}
-	return json.Unmarshal(body, out)
 }
 
 // pause waits between requests, and gives up when ctx ends.
@@ -188,8 +239,19 @@ func pause(ctx context.Context) error {
 
 // Closing returns the open markets whose trading ends between from and to, combos left out.
 func (k *Kalshi) Closing(ctx context.Context, from, to time.Time) ([]Market, error) {
-	query := url.Values{"limit": {strconv.Itoa(KALSHI_PAGE)}, "status": {STATUS_OPEN_QUERY}, "mve_filter": {MVE_EXCLUDE},
-		"min_close_ts": {strconv.FormatInt(from.Unix(), 10)}, "max_close_ts": {strconv.FormatInt(to.Unix(), 10)}}
+	return k.markets(ctx, url.Values{"mve_filter": {MVE_EXCLUDE},
+		"min_close_ts": {strconv.FormatInt(from.Unix(), 10)}, "max_close_ts": {strconv.FormatInt(to.Unix(), 10)}})
+}
+
+// InSeries returns the open markets of one series.
+func (k *Kalshi) InSeries(ctx context.Context, series string) ([]Market, error) {
+	return k.markets(ctx, url.Values{"series_ticker": {series}})
+}
+
+// markets pages through the open markets a query matches.
+func (k *Kalshi) markets(ctx context.Context, query url.Values) ([]Market, error) {
+	query.Set("limit", strconv.Itoa(KALSHI_PAGE))
+	query.Set("status", STATUS_OPEN_QUERY)
 	out := []Market{}
 	for page := 0; page < KALSHI_PAGES_MAX; page++ {
 		var doc struct {

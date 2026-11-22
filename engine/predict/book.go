@@ -22,14 +22,14 @@ const (
 	FILE_PERMS   = 0o644
 	DAY_LAYOUT   = "2006-01-02"
 	NEW_YORK     = "America/New_York"
+	KEY_JOIN     = "|"
+	// Lines written before strategies had names all came from the favorites rule.
+	LEGACY_STRATEGY = FAVORITES_ID
 
-	KIND_WATCH  = "watch"  // a market met the rule: followed to its result, traded or not
+	KIND_WATCH  = "watch"  // a market met a strategy's rules: followed to its result, traded or not
 	KIND_BUY    = "buy"    // a paper fill against the real order book
 	KIND_SETTLE = "settle" // the result: what every watched contract and every position paid
 )
-
-// BANDS are the favorite's price ranges the record is kept in, so each can prove itself on its own.
-var BANDS = []float64{0.85, 0.88, 0.91, 0.95}
 
 var newYork = func() *time.Location {
 	loc, err := time.LoadLocation(NEW_YORK)
@@ -44,11 +44,13 @@ type Line struct {
 	ID        int64     `json:"id"`
 	At        time.Time `json:"at"`
 	Kind      string    `json:"kind"`
+	Strategy  string    `json:"strategy,omitempty"`
 	Ticker    string    `json:"ticker"`
 	Event     string    `json:"event,omitempty"`
 	Title     string    `json:"title,omitempty"`
 	Side      string    `json:"side,omitempty"`
 	Price     float64   `json:"price,omitempty"` // watch: the ask then; buy: the average fill
+	Prob      float64   `json:"prob,omitempty"`  // the strategy's chance the side wins, when it gives one
 	Qty       float64   `json:"qty,omitempty"`
 	CostUSD   float64   `json:"cost_usd,omitempty"`
 	FeeUSD    float64   `json:"fee_usd,omitempty"`
@@ -78,10 +80,10 @@ type watch struct {
 	payout  float64 // per contract
 }
 
-// Account is the paper cash account of the prediction desk.
+// Account is the paper cash account of the prediction desk, or one strategy's share of it.
 type Account struct {
-	CapitalUSD  float64 `json:"capital_usd"`
-	CashUSD     float64 `json:"cash_usd"`
+	CapitalUSD  float64 `json:"capital_usd,omitempty"`
+	CashUSD     float64 `json:"cash_usd,omitempty"`
 	OpenUSD     float64 `json:"open_usd"` // open positions at cost, fees included
 	MarkUSD     float64 `json:"mark_usd"` // open positions at what they bid now
 	RealizedUSD float64 `json:"realized_usd"`
@@ -91,36 +93,27 @@ type Account struct {
 	Won         int     `json:"won"`
 }
 
-// Band is the record of every watched favorite in one price range, as if one contract of each had
-// been bought at the watched price with the fee: the honest test of the rule, traded or not.
-type Band struct {
-	From     float64 `json:"from"`
-	To       float64 `json:"to"`
-	Watched  int     `json:"watched"`
-	Settled  int     `json:"settled"`
-	Won      int     `json:"won"`
-	WinPct   float64 `json:"win_pct"`
-	AvgPrice float64 `json:"avg_price"` // the average ask paid, fee included: the win rate that breaks even
-	EdgePct  float64 `json:"edge_pct"`  // what a dollar in every settled one made or lost
-}
-
 // Book is the append-only journal of the prediction desk and everything added up from it.
 type Book struct {
 	file      *os.File
 	enc       *json.Encoder
 	nextID    int64
 	capital   float64
-	watches   map[string]*watch
-	positions map[string]*Position
-	order     []string           // position tickers, oldest first
-	staked    map[string]float64 // New York day -> dollars put into new positions
-	lost      map[string]float64 // New York day -> dollars lost on positions settled that day
+	watches   map[string]*watch // strategy|ticker
+	byTicker  map[string][]*watch
+	positions map[string]*Position // by ticker: one position a market, whichever strategy bought it
+	order     []string             // position tickers, oldest first
+	staked    map[string]float64   // strategy|New York day -> dollars put into new positions
+	lost      map[string]float64   // New York day -> dollars lost on positions settled that day
 }
 
 // Fee is Kalshi's taker fee for qty contracts bought at price.
 func Fee(qty, price float64) float64 {
 	return math.Ceil(round(FEE_RATE*qty*price*(DOLLAR-price)/CENT, PRICE_DIGITS)) * CENT
 }
+
+// feeEach is the fee one contract carries in an order of some size, before the cent rounding.
+func feeEach(price float64) float64 { return FEE_RATE * price * (DOLLAR - price) }
 
 func round(n float64, digits int) float64 {
 	scale := math.Pow(10, float64(digits))
@@ -132,8 +125,8 @@ func Day(t time.Time) string { return t.In(newYork).Format(DAY_LAYOUT) }
 
 // OpenBook opens the journal at path for appending and adds up what is in it.
 func OpenBook(path string, capital float64) (*Book, error) {
-	b := &Book{nextID: 1, capital: capital, watches: map[string]*watch{}, positions: map[string]*Position{},
-		staked: map[string]float64{}, lost: map[string]float64{}}
+	b := &Book{nextID: 1, capital: capital, watches: map[string]*watch{}, byTicker: map[string][]*watch{},
+		positions: map[string]*Position{}, staked: map[string]float64{}, lost: map[string]float64{}}
 	if f, err := os.Open(path); err == nil {
 		sc := bufio.NewScanner(f)
 		sc.Buffer(make([]byte, 0, LINE_MAX), LINE_MAX)
@@ -158,6 +151,9 @@ func OpenBook(path string, capital float64) (*Book, error) {
 // Close closes the journal.
 func (b *Book) Close() error { return b.file.Close() }
 
+// SetCapital changes the paper capital the account is counted from.
+func (b *Book) SetCapital(usd float64) { b.capital = usd }
+
 // Append numbers l, writes it and adds it up.
 func (b *Book) Append(l Line) (Line, error) {
 	l.ID = b.nextID
@@ -170,10 +166,16 @@ func (b *Book) Append(l Line) (Line, error) {
 }
 
 func (b *Book) apply(l Line) {
+	if l.Strategy == "" && l.Kind != KIND_SETTLE {
+		l.Strategy = LEGACY_STRATEGY
+	}
 	switch l.Kind {
 	case KIND_WATCH:
-		if b.watches[l.Ticker] == nil {
-			b.watches[l.Ticker] = &watch{line: l}
+		key := l.Strategy + KEY_JOIN + l.Ticker
+		if b.watches[key] == nil {
+			w := &watch{line: l}
+			b.watches[key] = w
+			b.byTicker[l.Ticker] = append(b.byTicker[l.Ticker], w)
 		}
 	case KIND_BUY:
 		if b.positions[l.Ticker] != nil {
@@ -181,22 +183,23 @@ func (b *Book) apply(l Line) {
 		}
 		b.positions[l.Ticker] = &Position{Buy: l, Mark: l.Price}
 		b.order = append(b.order, l.Ticker)
-		b.staked[Day(l.At)] += l.CostUSD + l.FeeUSD
+		b.staked[l.Strategy+KEY_JOIN+Day(l.At)] += l.CostUSD + l.FeeUSD
 	case KIND_SETTLE:
 		b.settle(l)
 	}
 }
 
 func (b *Book) settle(l Line) {
-	yes := l.Value
-	if w := b.watches[l.Ticker]; w != nil && !w.settled {
-		w.settled, w.payout = true, payoutFor(w.line.Side, yes)
+	for _, w := range b.byTicker[l.Ticker] {
+		if !w.settled {
+			w.settled, w.payout = true, payoutFor(w.line.Side, l.Value)
+		}
 	}
 	p := b.positions[l.Ticker]
 	if p == nil || p.Settled {
 		return
 	}
-	per := payoutFor(p.Buy.Side, yes)
+	per := payoutFor(p.Buy.Side, l.Value)
 	p.Settled, p.Mark, p.Result, p.SettledAt = true, per, l.Result, l.At
 	p.PayoutUSD = round(per*p.Buy.Qty, USD_DIGITS)
 	p.PnlUSD = round(p.PayoutUSD-p.Buy.CostUSD-p.Buy.FeeUSD, USD_DIGITS)
@@ -212,8 +215,10 @@ func payoutFor(side string, yesValue float64) float64 {
 	return DOLLAR - yesValue
 }
 
-// Watched says whether a market is already being followed.
-func (b *Book) Watched(ticker string) bool { return b.watches[ticker] != nil }
+// Watched says whether a strategy already follows a market.
+func (b *Book) Watched(strategy, ticker string) bool {
+	return b.watches[strategy+KEY_JOIN+ticker] != nil
+}
 
 // Holding returns the position in a market, nil when there is none.
 func (b *Book) Holding(ticker string) *Position { return b.positions[ticker] }
@@ -229,17 +234,35 @@ func (b *Book) OpenEvents() map[string]int {
 	return out
 }
 
+// OpenBy counts a strategy's open positions.
+func (b *Book) OpenBy(strategy string) int {
+	n := 0
+	for _, p := range b.positions {
+		if !p.Settled && p.Buy.Strategy == strategy {
+			n++
+		}
+	}
+	return n
+}
+
 // Unsettled lists every market still waiting for a result: watched ones and held ones.
 func (b *Book) Unsettled() []string {
+	seen := map[string]bool{}
 	out := []string{}
-	for t, w := range b.watches {
-		if !w.settled {
+	add := func(t string) {
+		if !seen[t] {
+			seen[t] = true
 			out = append(out, t)
 		}
 	}
+	for _, w := range b.watches {
+		if !w.settled {
+			add(w.line.Ticker)
+		}
+	}
 	for t, p := range b.positions {
-		if !p.Settled && b.watches[t] == nil {
-			out = append(out, t)
+		if !p.Settled {
+			add(t)
 		}
 	}
 	sort.Strings(out)
@@ -253,14 +276,20 @@ func (b *Book) Mark(ticker string, bid float64) {
 	}
 }
 
-// StakedOn and LostOn are the dollars put in and lost on one New York day.
-func (b *Book) StakedOn(day string) float64 { return b.staked[day] }
-func (b *Book) LostOn(day string) float64   { return b.lost[day] }
+// StakedOn is the dollars a strategy put in on one New York day; LostOn the desk's settled losses that day.
+func (b *Book) StakedOn(strategy, day string) float64 { return b.staked[strategy+KEY_JOIN+day] }
+func (b *Book) LostOn(day string) float64             { return b.lost[day] }
 
-// Account adds up the cash account.
-func (b *Book) Account() Account {
-	a := Account{CapitalUSD: b.capital, CashUSD: b.capital}
+// Account adds up the cash account: the whole desk for strategy "", or one strategy's positions.
+func (b *Book) Account(strategy string) Account {
+	a := Account{}
+	if strategy == "" {
+		a.CapitalUSD, a.CashUSD = b.capital, b.capital
+	}
 	for _, p := range b.positions {
+		if strategy != "" && p.Buy.Strategy != strategy {
+			continue
+		}
 		cost := p.Buy.CostUSD + p.Buy.FeeUSD
 		a.CashUSD -= cost
 		a.FeesUSD += p.Buy.FeeUSD
@@ -277,55 +306,12 @@ func (b *Book) Account() Account {
 			a.Won++
 		}
 	}
+	if strategy != "" {
+		a.CashUSD = 0
+	}
 	a.CashUSD, a.OpenUSD, a.MarkUSD = round(a.CashUSD, USD_DIGITS), round(a.OpenUSD, USD_DIGITS), round(a.MarkUSD, USD_DIGITS)
 	a.RealizedUSD, a.FeesUSD = round(a.RealizedUSD, USD_DIGITS), round(a.FeesUSD, USD_DIGITS)
 	return a
-}
-
-// Bands is the rule's record by price range.
-func (b *Book) Bands() []Band {
-	out := make([]Band, len(BANDS)-1)
-	paid, made := make([]float64, len(out)), make([]float64, len(out))
-	for i := range out {
-		out[i].From, out[i].To = BANDS[i], BANDS[i+1]
-	}
-	for _, w := range b.watches {
-		i := bandOf(w.line.Price)
-		if i < 0 {
-			continue
-		}
-		out[i].Watched++
-		if !w.settled {
-			continue
-		}
-		out[i].Settled++
-		// The fee per contract as it falls on an order of some size, before the cent rounding.
-		cost := w.line.Price + FEE_RATE*w.line.Price*(DOLLAR-w.line.Price)
-		paid[i] += cost
-		made[i] += w.payout - cost
-		if w.payout > w.line.Price {
-			out[i].Won++
-		}
-	}
-	for i := range out {
-		if out[i].Settled == 0 {
-			continue
-		}
-		n := float64(out[i].Settled)
-		out[i].WinPct = round(float64(out[i].Won)/n*PERCENT, 1)
-		out[i].AvgPrice = round(paid[i]/n, PRICE_DIGITS)
-		out[i].EdgePct = round(made[i]/paid[i]*PERCENT, 2)
-	}
-	return out
-}
-
-func bandOf(price float64) int {
-	for i := 0; i+1 < len(BANDS); i++ {
-		if price >= BANDS[i] && (price < BANDS[i+1] || i+2 == len(BANDS) && price <= BANDS[i+1]) {
-			return i
-		}
-	}
-	return -1
 }
 
 // Positions returns the open positions soonest to close first, then up to closed settled ones, newest first.
