@@ -20,6 +20,11 @@ const SCOUT_LOOKING = 'looking';
 const SCOUT_ERROR = 'error';
 const SERVICE_ORDER = ['newsd', 'm24d', 'tunnel'];
 const DESK = { predict: 'predict', memedesk: 'memedesk', scout: 'scout' };
+// Kalshi questions shortened for one line: "Will the temp in Miami be above 74.99° on Nov 22, 2026?" reads
+// "Temp in Miami be above 74.99°". The full question stays in the row's tooltip.
+const QUESTION_START = /^will\s+(?:the\s+)?/i;
+const QUESTION_DATE = /\s+(?:on|at|for)\s+[A-Z][a-z]{2,8}\s+\d{1,2},\s+\d{4}(?:\s+at\s+\d{1,2}(?::\d{2})?\s*[ap]m(?:\s+[A-Z]{2,4})?)?/g;
+const QUESTION_END = /\?(?=\s|$)/g;
 /** How a row reads at a glance: its dot and its state word. */
 export const TONE = { ok: 'ok', warn: 'warn', bad: 'bad', idle: 'idle' };
 
@@ -29,7 +34,7 @@ export const TONE = { ok: 'ok', warn: 'warn', bad: 'bad', idle: 'idle' };
  * Each route's answer, null when it did not answer. runner and news: their health checks answered.
  * @typedef {{ id: string, name: string, tone: string, state: string, detail: string }} Row
  * @typedef {Row & { pnl: number | null, pnlNote: string }} DeskRow
- * @typedef {{ id: string, desk: string, title: string, closeAt: number, closes: string, mark: string, pnl: number | null }} PlayRow
+ * @typedef {{ id: string, desk: string, title: string, full: string, closeAt: number, closes: string, soon: string, mark: string, pnl: number | null }} PlayRow
  */
 
 const t = strings;
@@ -169,6 +174,18 @@ function closes(/** @type {number} */ at, /** @type {number} */ now) {
   return at > now ? fill(t.plays.closesIn, { time: span(at - now) }) : t.plays.closing;
 }
 
+/** A Kalshi question in a few words, for one line. */
+function shortQuestion(/** @type {string} */ question) {
+  const s = question.replace(QUESTION_START, '').replace(QUESTION_DATE, '').replace(QUESTION_END, '').trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : question;
+}
+
+/** "2h 3m" until a close, or "now" once it is past: the short form for a one-line row. */
+function soon(/** @type {number} */ at, /** @type {number} */ now) {
+  if (!Number.isFinite(at)) return '';
+  return at > now ? span(at - now) : t.plays.now;
+}
+
 /** @returns {PlayRow[]} every open position across the desks, soonest to close first */
 export function playRows(/** @type {Snapshot} */ snap, /** @type {number} */ now) {
   /** @type {PlayRow[]} */
@@ -176,19 +193,20 @@ export function playRows(/** @type {Snapshot} */ snap, /** @type {number} */ now
   for (const p of snap.predict?.open ?? []) {
     const closeAt = Date.parse(p.buy?.close_at ?? '');
     const pnlNow = (p.mark - p.buy.price) * p.buy.qty;
-    rows.push({ id: `p-${p.buy.id}`, desk: t.plays.desk.predict, title: p.buy.title, closeAt, closes: closes(closeAt, now), mark: cents(p.mark), pnl: Number.isFinite(pnlNow) ? pnlNow : null });
+    rows.push({ id: `p-${p.buy.id}`, desk: t.plays.desk.predict, title: shortQuestion(p.buy.title), full: p.buy.title, closeAt, closes: closes(closeAt, now),
+      soon: soon(closeAt, now), mark: cents(p.mark), pnl: Number.isFinite(pnlNow) ? pnlNow : null });
   }
   for (const s of snap.memedesk?.strategies ?? []) {
     const hold = (s.config?.exit?.hold_seconds ?? 0) * MS_PER_SECOND;
     for (const p of s.open_positions ?? []) {
       const closeAt = hold ? Date.parse(p.buy?.at ?? '') + hold : NaN;
       const value = (p.mark_usd ?? 0) + (p.proceeds_usd ?? 0) - (p.buy?.net_usd ?? 0);
-      rows.push({ id: `m-${p.mint}`, desk: t.plays.desk.memedesk, title: `${s.config?.id ?? ''} · ${p.mint.slice(0, MINT_SHOWN)}…${p.mint.slice(-MINT_SHOWN)}`, closeAt, closes: closes(closeAt, now), mark: usd(p.mark_usd ?? 0), pnl: value });
+      rows.push({ id: `m-${p.mint}`, desk: t.plays.desk.memedesk, title: `${s.config?.id ?? ''} · ${p.mint.slice(0, MINT_SHOWN)}…${p.mint.slice(-MINT_SHOWN)}`, closeAt, closes: closes(closeAt, now), soon: soon(closeAt, now), full: '', mark: usd(p.mark_usd ?? 0), pnl: value });
     }
   }
   for (const c of snap.scout?.open ?? []) {
     const closeAt = Date.parse(c.exit_by ?? '');
-    rows.push({ id: `s-${c.id}`, desk: t.plays.desk.scout, title: contractName(c.contract), closeAt, closes: closes(closeAt, now), mark: c.mark ? `$${c.mark.toFixed(2)}` : '—', pnl: null });
+    rows.push({ id: `s-${c.id}`, desk: t.plays.desk.scout, title: contractName(c.contract), full: '', closeAt, closes: closes(closeAt, now), soon: soon(closeAt, now), mark: c.mark ? `$${c.mark.toFixed(2)}` : '—', pnl: null });
   }
   return rows.sort((a, b) => (Number.isFinite(a.closeAt) ? a.closeAt : NO_TIME) - (Number.isFinite(b.closeAt) ? b.closeAt : NO_TIME));
 }

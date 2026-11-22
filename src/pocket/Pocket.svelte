@@ -1,9 +1,10 @@
 <script>
   /**
    * The pocket: Money 24 at a glance, in the small window over the tray (src/tauri/src/pocket.rs).
-   * A verdict at the top, then the problems in plain words (only when there are any), the services,
-   * the recorders, the desks and the open positions soonest to close, read every ten seconds
-   * (pocket-client.svelte.js). At the bottom, the button that opens the full desk in the app's window.
+   * A verdict at the top, then four tabs so nothing needs scrolling: the services (with any problems in
+   * plain words first), the recorders, the desks, and the open plays soonest to close, read every ten
+   * seconds (pocket-client.svelte.js). The pocket reopens on the tab it was left on. At the bottom, the
+   * button that opens the full desk in the app's window.
    * The tray's "Stop Money 24…" opens it on the stop question instead (#stop).
    */
   import strings from './strings.json';
@@ -16,10 +17,13 @@
   import StatusRow from './StatusRow.svelte';
   import PlayRow from './PlayRow.svelte';
   import StopPanel from './StopPanel.svelte';
+  import PocketTabs from './PocketTabs.svelte';
   import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
   import { onMount } from 'svelte';
 
   const STOP_HASH = '#stop';
+  const TAB = { services: 'services', recorders: 'recorders', desks: 'desks', plays: 'plays' };
+  const TAB_STORE = 'm24.pocket.tab'; // the pocket reopens on the tab it was left on
   const ESCAPE = 'Escape';
   const EMPTY = ' ';
   const DESK_PAGE = `${import.meta.env.BASE_URL}home.html`;
@@ -27,8 +31,21 @@
 
   const client = new PocketClient();
   let confirming = $state(location.hash === STOP_HASH);
+  let tab = $state(Object.values(TAB).includes(localStorage.getItem(TAB_STORE) ?? '') ? /** @type {string} */ (localStorage.getItem(TAB_STORE)) : TAB.services);
   /** @type {{ attached: boolean, supervisor_known: boolean } | null} what the app says about itself */
   let info = $state(null);
+
+  const tabs = $derived([
+    { id: TAB.services, label: strings.tabs.services, count: client.problems.length, tone: 'text-bad' },
+    { id: TAB.recorders, label: strings.tabs.recorders },
+    { id: TAB.desks, label: strings.tabs.desks },
+    { id: TAB.plays, label: strings.tabs.plays, count: client.plays.length },
+  ]);
+
+  function choose(/** @type {string} */ id) {
+    tab = id;
+    localStorage.setItem(TAB_STORE, id);
+  }
 
   const mode = $derived(!native ? strings.mode.browser : info?.attached === false ? strings.mode.own : strings.mode.attached);
 
@@ -78,50 +95,50 @@
   {#if confirming}
     <StopPanel onCancel={cancel} />
   {:else}
-    <div class="list-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      {#key client.shown}
+    <PocketTabs {tabs} active={tab} label={strings.tabsLabel} onSelect={choose} />
+    <div id="pocket-panel" role="tabpanel" aria-labelledby="pocket-tab-{tab}" class="list-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {#key `${tab}|${client.shown}`}
         {#if !client.snap}
           <p class="px-3 py-4 text-sm text-muted">{strings.loading}</p>
+        {:else if tab === TAB.services}
+          {#if client.problems.length}
+            <Section id="pocket-problems" title={strings.sections.problems} count={client.problems.length} tone="text-bad">
+              {#each client.problems as problem, i (problem.id)}
+                <li class="cal-rise flex gap-2 px-3 py-1 text-[0.74rem] leading-snug text-white/90 tv:text-base" style:--i={i}>
+                  <span class="mt-[0.45em] size-1.5 shrink-0 rounded-full bg-bad" aria-hidden="true"></span>
+                  <span class="min-w-0 break-words">{problem.text}</span>
+                </li>
+              {/each}
+            </Section>
+          {/if}
+          <Section id="pocket-services" title={strings.sections.services}>
+            {#each client.services as row, i (row.id)}<StatusRow {row} index={i} />{/each}
+          </Section>
+        {:else if tab === TAB.recorders}
+          <Section id="pocket-recorders" title={strings.sections.recorders}>
+            {#each client.recorders as row, i (row.id)}<StatusRow {row} index={i} />{/each}
+          </Section>
+        {:else if tab === TAB.desks}
+          <Section id="pocket-desks" title={strings.sections.desks}>
+            {#each client.desks as row, i (row.id)}
+              <StatusRow {row} index={i}>
+                {#snippet aside()}
+                  <span class="text-right font-mono tabular-nums">
+                    <span class="block text-[0.78rem] font-bold tv:text-lg {money(row.pnl)}">{row.pnl === null ? EMPTY : pnl(row.pnl)}</span>
+                    <span class="block text-[0.58rem] text-muted tv:text-xs">{row.pnlNote || EMPTY}</span>
+                  </span>
+                {/snippet}
+              </StatusRow>
+            {/each}
+          </Section>
         {:else}
-          <div class="sm:grid sm:grid-cols-2 sm:items-start xl:grid-cols-3">
-            {#if client.problems.length}
-              <div class="sm:col-span-full">
-                <Section id="pocket-problems" title={strings.sections.problems} count={client.problems.length} tone="text-bad">
-                  {#each client.problems as problem, i (problem.id)}
-                    <li class="cal-rise flex gap-2 px-3 py-1 text-[0.74rem] leading-snug text-white/90 tv:text-base" style:--i={i}>
-                      <span class="mt-[0.45em] size-1.5 shrink-0 rounded-full bg-bad" aria-hidden="true"></span>
-                      <span class="min-w-0 break-words">{problem.text}</span>
-                    </li>
-                  {/each}
-                </Section>
-              </div>
-            {/if}
-            <Section id="pocket-services" title={strings.sections.services}>
-              {#each client.services as row, i (row.id)}<StatusRow {row} index={i} />{/each}
-            </Section>
-            <Section id="pocket-recorders" title={strings.sections.recorders}>
-              {#each client.recorders as row, i (row.id)}<StatusRow {row} index={i} />{/each}
-            </Section>
-            <Section id="pocket-desks" title={strings.sections.desks}>
-              {#each client.desks as row, i (row.id)}
-                <StatusRow {row} index={i}>
-                  {#snippet aside()}
-                    <span class="text-right font-mono tabular-nums">
-                      <span class="block text-[0.78rem] font-bold tv:text-lg {money(row.pnl)}">{row.pnl === null ? EMPTY : pnl(row.pnl)}</span>
-                      <span class="block text-[0.58rem] text-muted tv:text-xs">{row.pnlNote || EMPTY}</span>
-                    </span>
-                  {/snippet}
-                </StatusRow>
-              {/each}
-            </Section>
-            <Section id="pocket-plays" title={strings.sections.plays} count={client.plays.length}>
-              {#each client.plays as play, i (play.id)}
-                <PlayRow {play} index={i} />
-              {:else}
-                <li class="px-3 py-1.5 text-[0.74rem] text-muted tv:text-base">{strings.plays.empty}</li>
-              {/each}
-            </Section>
-          </div>
+          <Section id="pocket-plays" title={strings.sections.plays} count={client.plays.length}>
+            {#each client.plays as play, i (play.id)}
+              <PlayRow {play} index={i} />
+            {:else}
+              <li class="px-3 py-1.5 text-[0.74rem] text-muted tv:text-base">{strings.plays.empty}</li>
+            {/each}
+          </Section>
         {/if}
       {/key}
     </div>

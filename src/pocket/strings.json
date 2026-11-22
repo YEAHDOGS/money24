@@ -1,4 +1,6 @@
 {
+  "tabsLabel": "What the pocket shows",
+  "tabs": { "services": "Services", "recorders": "Recorders", "desks": "Desks", "plays": "Plays" },
   "heading": "Status",
   "paper": "Paper",
   "paperNote": "Paper trading only: nothing here places a real order.",
@@ -90,6 +92,7 @@
     "empty": "Nothing open right now.",
     "closesIn": "closes in {time}",
     "closing": "closing now",
+    "now": "now",
     "mark": "mark",
     "desk": {
       "predict": "Odds",
