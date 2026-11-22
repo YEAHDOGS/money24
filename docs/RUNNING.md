@@ -140,6 +140,7 @@ It builds the two services and the pages, starts the services and watches them. 
 | Output | The terminal | `.run/logs/`: one file per service plus `forever.log`, every line timestamped (UTC) |
 | Sleep | The machine sleeps as usual | Windows does not idle-sleep while the runner is up |
 | A build fails | It does not start | It says so and runs the last good build |
+| Seeing it | The terminal window | A Money 24 icon in the Windows system tray for as long as it runs: double-click opens the desk; right-click shows each service's status, opens the logs, restarts or stops everything. `--no-tray` leaves it out |
 
 Each log file holds 5 MB; then it becomes `<name>.log.1` (one older file is kept) and a new one starts.
 

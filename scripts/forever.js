@@ -41,7 +41,7 @@ const SERVICES = [
 ];
 const RUNNER = 'm24d';
 const SUPERVISOR = 'forever'; // the supervisor's own log
-const FLAG = { noBuild: '--no-build', stop: '--stop', status: '--status', install: '--install', uninstall: '--uninstall', dryRun: '--dry-run' };
+const FLAG = { noBuild: '--no-build', stop: '--stop', status: '--status', install: '--install', uninstall: '--uninstall', dryRun: '--dry-run', noTray: '--no-tray' };
 // Both services exit on their own when this pipe closes, so a supervisor that dies leaves nothing behind.
 const EXIT_WITH_STDIN = '--exit-with-stdin';
 // The desk lives under this path, here (http://127.0.0.1:8025/desk/) and on money24.dogs.red/desk/.
@@ -81,6 +81,13 @@ const WAIT_STEP_MS = 250;
 const TASK_NAME = 'Money24';
 const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'; // the fallback when Task Scheduler refuses
 const HEADLESS = '--headless'; // conhost runs a console program with no window at all
+// On Windows the supervisor always shows an icon in the system tray while it runs (scripts/tray.ps1), so
+// nothing of Money 24 runs out of sight. Windows PowerShell is built in; nothing to install.
+const TRAY_SCRIPT = join(ROOT, 'scripts', 'tray.ps1');
+const TRAY_ICON = join(ROOT, 'public', 'favicon.ico');
+const TRAY_SHELL = 'powershell.exe';
+const TRAY_RESPAWN_MS = 5000; // a tray that dies while the supervisor runs comes back after this long
+const TRAY = 'tray'; // the tray's own log name
 const ENV_LINE = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/i;
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
@@ -100,6 +107,8 @@ let services = [];
 let serviceEnv = process.env;
 let startedAt = 0;
 let stopping = false;
+/** @type {import('node:child_process').ChildProcess | null} */
+let trayChild = null;
 /** @type {Record<string, number>} bytes in each log file, so rotating needs no stat per line */
 const logSizes = {};
 
@@ -321,6 +330,22 @@ async function checkHealth(/** @type {Service} */ svc) {
   child.kill();
 }
 
+/** Shows the tray icon (Windows), and brings it back if it dies while the supervisor runs. */
+function startTray() {
+  if (!IS_WINDOWS || stopping || process.argv.includes(FLAG.noTray) || !existsSync(TRAY_SCRIPT)) return;
+  const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-WindowStyle', 'Hidden', '-File', TRAY_SCRIPT,
+    '-Supervisor', String(process.pid), '-Root', ROOT, '-Desk', `http://${HOST}:${RUNNER_PORT}${DESK_PATH}/`,
+    '-Health', `http://${HOST}:${RUNNER_PORT}${HEALTH_PATH}`, '-Logs', LOG_DIR, '-Icon', TRAY_ICON, '-Task', TASK_NAME];
+  trayChild = spawn(TRAY_SHELL, args, { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+  trayChild.stderr?.on('data', (chunk) => log(TRAY, String(chunk).trimEnd()));
+  trayChild.on('exit', (code) => {
+    trayChild = null;
+    if (stopping) return;
+    log(SUPERVISOR, `tray icon exited (${code}): showing it again`);
+    setTimeout(startTray, TRAY_RESPAWN_MS);
+  });
+}
+
 /** Stops both services (cleanly first, then by force), removes the supervisor's files and exits. */
 async function shutdown(/** @type {number} */ code) {
   if (stopping) return;
@@ -336,6 +361,7 @@ async function shutdown(/** @type {number} */ code) {
     say(`${svc.name} did not stop in time: killing it`);
     svc.child.kill();
   }
+  trayChild?.kill();
   for (const file of [PID_FILE, STOP_FILE, STATE_FILE]) rmSync(file, { force: true });
   say('Stopped.');
   process.exit(code);
@@ -374,6 +400,7 @@ async function supervise() {
   writeFileSync(PID_FILE, String(process.pid));
   say(`Supervisor started (pid ${process.pid})`);
   for (const svc of services) start(svc);
+  startTray();
 
   process.on('SIGINT', () => shutdown(0));
   process.on('SIGTERM', () => shutdown(0));
