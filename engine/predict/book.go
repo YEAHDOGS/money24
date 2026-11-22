@@ -25,6 +25,7 @@ const (
 	DAY_LAYOUT     = "2006-01-02"
 	NEW_YORK       = "America/New_York"
 	KEY_JOIN       = "|"
+	JOURNAL_EOL    = '\n'
 	// Lines written before strategies had names all came from the favorites rule.
 	LEGACY_STRATEGY = FAVORITES_ID
 
@@ -131,22 +132,41 @@ func Day(t time.Time) string { return t.In(newYork).Format(DAY_LAYOUT) }
 func OpenBook(path string, capital float64) (*Book, error) {
 	b := &Book{nextID: 1, capital: capital, watches: map[string]*watch{}, byTicker: map[string][]*watch{},
 		positions: map[string]*Position{}, staked: map[string]float64{}, lost: map[string]float64{}}
-	if f, err := os.Open(path); err == nil {
-		sc := bufio.NewScanner(f)
-		sc.Buffer(make([]byte, 0, LINE_MAX), LINE_MAX)
-		for sc.Scan() {
-			var l Line
-			if json.Unmarshal(sc.Bytes(), &l) != nil {
-				continue
-			}
-			b.nextID = max(b.nextID, l.ID+1)
-			b.apply(l)
-		}
-		f.Close()
-	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, FILE_PERMS)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_RDWR, FILE_PERMS)
 	if err != nil {
 		return nil, err
+	}
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 0, LINE_MAX), LINE_MAX)
+	for sc.Scan() {
+		var l Line
+		if json.Unmarshal(sc.Bytes(), &l) != nil {
+			continue
+		}
+		b.nextID = max(b.nextID, l.ID+1)
+		b.apply(l)
+	}
+	if err := sc.Err(); err != nil {
+		f.Close()
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if info.Size() > 0 {
+		last := [1]byte{}
+		if _, err := f.ReadAt(last[:], info.Size()-1); err != nil {
+			f.Close()
+			return nil, err
+		}
+		if last[0] != JOURNAL_EOL {
+			if _, err := f.Write([]byte{JOURNAL_EOL}); err != nil {
+				f.Close()
+				return nil, err
+			}
+		}
 	}
 	b.file, b.enc = f, json.NewEncoder(f)
 	return b, nil

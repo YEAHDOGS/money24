@@ -40,11 +40,11 @@ func (t *tally) add(w *watch) {
 	if !w.settled {
 		return
 	}
-	cost := w.line.Price + feeEach(w.line.Price)
+	cost := w.line.Price + Fee(1, w.line.Price)
 	t.settled++
 	t.paid += cost
 	t.made += w.payout - cost
-	if w.payout > w.line.Price {
+	if w.payout > cost {
 		t.won++
 	}
 	if w.line.Prob > 0 {
@@ -59,7 +59,10 @@ func (t tally) rates() (winPct, avgCost, edgePct float64) {
 		return 0, 0, 0
 	}
 	n := float64(t.settled)
-	return round(float64(t.won)/n*PERCENT, 1), round(t.paid/n, PRICE_DIGITS), round(t.made/t.paid*PERCENT, 2)
+	if t.paid > 0 {
+		edgePct = round(t.made/t.paid*PERCENT, USD_DIGITS)
+	}
+	return round(float64(t.won)/n*PERCENT, 1), round(t.paid/n, PRICE_DIGITS), edgePct
 }
 
 // Record adds up one strategy's watches, and its bands when it has any.
