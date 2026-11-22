@@ -14,8 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 )
 
 const (
@@ -77,7 +75,6 @@ type StrategyStatus struct {
 
 // Status is the desk as the page shows it.
 type Status struct {
-	BytesOnDisk   int64            `json:"bytes_on_disk"`
 	Venue         string           `json:"venue"`
 	KeysSet       bool             `json:"keys_set"` // Kalshi keys in .env, for demo orders later; the paper book needs none
 	On            bool             `json:"on"`
@@ -592,7 +589,6 @@ func (d *Desk) Status() Status {
 	s := Status{Venue: VENUE, KeysSet: KeysSet(), On: !d.off, Mode: rb.Mode, CapitalUSD: rb.CapitalUSD, DailyLossUSD: rb.DailyLossUSD,
 		LostTodayUSD: round(d.Book.LostOn(Day(time.Now())), USD_DIGITS), RulebookFile: d.RulebookPath, RulebookError: d.rulebookErr,
 		SettledAt: d.settledAt, Account: d.Book.Account(""), Kinds: Kinds(), Strategies: []StrategyStatus{}}
-	s.BytesOnDisk = diskusage.Files(d.Book.file.Name(), d.RulebookPath)
 	for _, r := range d.strategies {
 		st := d.runs[r.cfg.ID]
 		ss := StrategyStatus{Config: r.cfg, State: st.state, Why: st.why, LastAt: st.lastAt, NextAt: st.nextAt, LastError: st.lastError,

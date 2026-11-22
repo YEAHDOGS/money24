@@ -81,18 +81,17 @@ type CryptoNote struct {
 
 // CryptoStatus is the desk's last pass, for the app: nothing it does is hidden.
 type CryptoStatus struct {
-	BytesOnDisk int64        `json:"bytes_on_disk"`
-	At          time.Time    `json:"at"`
-	State       string       `json:"state"` // looking, off, full (the open or daily count), paused (the day's loss) or error
-	Why         string       `json:"why,omitempty"`
-	Open        int          `json:"open"`    // coin plays running now
-	Today       int          `json:"today"`   // plays it opened today
-	DayPnL      float64      `json:"day_pnl"` // every coin play closed today, in dollars
-	Funds       Funds        `json:"funds"`   // the account the pass sized against
-	FeePct      float64      `json:"fee_pct"` // the fee assumed on each side, already in every price
-	Notes       []CryptoNote `json:"notes"`   // one per coin, in the rulebook's order
-	NextAt      time.Time    `json:"next_at"`
-	EveryMs     int64        `json:"every_ms"`
+	At      time.Time    `json:"at"`
+	State   string       `json:"state"` // looking, off, full (the open or daily count), paused (the day's loss) or error
+	Why     string       `json:"why,omitempty"`
+	Open    int          `json:"open"`    // coin plays running now
+	Today   int          `json:"today"`   // plays it opened today
+	DayPnL  float64      `json:"day_pnl"` // every coin play closed today, in dollars
+	Funds   Funds        `json:"funds"`   // the account the pass sized against
+	FeePct  float64      `json:"fee_pct"` // the fee assumed on each side, already in every price
+	Notes   []CryptoNote `json:"notes"`   // one per coin, in the rulebook's order
+	NextAt  time.Time    `json:"next_at"`
+	EveryMs int64        `json:"every_ms"`
 }
 
 // hourCandles is one coin's completed hourly candles, good until the hour turns.
@@ -111,10 +110,8 @@ type cryptoDesk struct {
 // CryptoStatus returns the crypto desk's last pass.
 func (s *Service) CryptoStatus() CryptoStatus {
 	s.crypto.mu.Lock()
-	status := s.crypto.last
-	s.crypto.mu.Unlock()
-	status.BytesOnDisk = s.Store.bytesOnDisk()
-	return status
+	defer s.crypto.mu.Unlock()
+	return s.crypto.last
 }
 
 // coinCandles returns a coin's completed hourly candles. Completed candles only change when the hour

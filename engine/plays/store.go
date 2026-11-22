@@ -10,8 +10,6 @@ import (
 	"sort"
 	"sync"
 	"time"
-
-	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 )
 
 const (
@@ -36,17 +34,6 @@ type Store struct {
 	plays []Play
 	links []Link
 	rules Rules
-}
-
-func (s *Store) bytesOnDisk() int64 {
-	if s == nil {
-		return 0
-	}
-	return diskusage.Files(
-		filepath.Join(s.dir, PLAYS_FILE),
-		filepath.Join(s.dir, LINKS_FILE),
-		filepath.Join(s.dir, RULES_FILE),
-	)
 }
 
 // OpenStore reads the folder, creating it and the DOGS rulebook on first run.

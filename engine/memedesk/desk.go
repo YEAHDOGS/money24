@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 	"github.com/YEAHDOGS/money24/engine/meme"
 )
 
@@ -155,7 +154,11 @@ func (d *Desk) Status() Status {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	out := d.model.status(true)
-	out.BytesOnDisk = diskusage.Files(d.journal.Name(), d.path)
+	for _, path := range []string{d.journal.Name(), d.path} {
+		if info, err := os.Stat(path); err == nil {
+			out.BytesOnDisk += info.Size()
+		}
+	}
 	if d.rulebookErr != nil {
 		out.RulebookError = d.rulebookErr.Error()
 	}

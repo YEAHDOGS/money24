@@ -37,7 +37,6 @@ import (
 	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
-	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 	"github.com/YEAHDOGS/money24/engine/kalshitape"
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/meme"
@@ -354,8 +353,7 @@ func main() {
 		}
 		defer release()
 	}
-	journalPath := filepath.Join(*dataDir, JOURNAL_FILE)
-	journal, err := signals.OpenJournal(journalPath)
+	journal, err := signals.OpenJournal(filepath.Join(*dataDir, JOURNAL_FILE))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -446,10 +444,7 @@ func main() {
 	opts.Mount[calendar.ROUTE] = calendar.Handler()
 	opts.Mount[ROUTE_ACCOUNT] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(struct {
-			signals.Account
-			BytesOnDisk int64 `json:"bytes_on_disk"`
-		}{runner.Account(time.Now()), diskusage.Files(journalPath)})
+		json.NewEncoder(w).Encode(runner.Account(time.Now()))
 	})
 	newsURL := cmp.Or(os.Getenv(ENV_NEWSD), DEFAULT_NEWSD)
 	if *web != "" {
