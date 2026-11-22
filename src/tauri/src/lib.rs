@@ -51,6 +51,9 @@ const TRAY_FLAG: &str = "--tray";
 // The supervisor runs the services: never start the app's own, even for a moment while one restarts.
 #[cfg(desktop)]
 const ATTACH_FLAG: &str = "--attach";
+// Shows the pocket over the tray, as a click on the icon does: `money24.exe --pocket` while the app runs.
+#[cfg(desktop)]
+const POCKET_FLAG: &str = "--pocket";
 
 /// What the desktop shell found at launch: attached or on its own, and where the supervisor lives.
 #[cfg(desktop)]
@@ -67,6 +70,10 @@ pub fn run() {
     // arguments to this one and exits: the desk opens here, unless it asked for the tray alone.
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if args.iter().any(|a| a == POCKET_FLAG) {
+            pocket::show(app, false);
+            return;
+        }
         if args.iter().any(|a| a == TRAY_FLAG) {
             return;
         }
