@@ -21,10 +21,10 @@ const (
 	DIRECTION_NONE   = "unclear"
 	MIN_IMPORTANCE   = 1
 	MAX_IMPORTANCE   = 5
-	MAX_HEADLINES    = 24  // a story's newest headlines; more adds reading time and little else
-	MAX_SUMMARY      = 240 // characters kept of the one-line summary
+	MAX_HEADLINES    = 24    // a story's newest headlines; more adds reading time and little else
+	MAX_SUMMARY      = 240   // characters kept of the one-line summary
 	STORY_THINK      = "low" // gpt-oss cannot stop thinking; low is its quickest. Qwen reads well with "false".
-	STORY_MAX_TOKENS = 4096 // thinking included; gpt-oss reasons before it answers
+	STORY_MAX_TOKENS = 4096  // thinking included; gpt-oss reasons before it answers
 	STORY_CTX        = 8192
 )
 

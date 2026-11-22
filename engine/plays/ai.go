@@ -10,8 +10,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/YEAHDOGS/money24/engine/localai"
 )
 
 // Where AI lives: here, in the runner, as a reader and drafter. It gets the play, the market and
@@ -21,11 +24,16 @@ import (
 // to, and never reach the browser.
 //
 // The engine calls each provider over plain HTTP so the binary stays one dependency-free module.
+//
+// Ollama is the local provider: it needs no key, runs on this machine, and is used only when .env names
+// it (OLLAMA_HOST or M24D_OLLAMA_MODEL). When it is chosen but not answering, it shows as not connected
+// with the reason, so the desk falls back to a connected cloud provider or to no AI read at all.
 const (
 	PROVIDER_ANTHROPIC = "anthropic"
 	PROVIDER_OPENAI    = "openai"
 	PROVIDER_XAI       = "xai"
 	PROVIDER_GEMINI    = "gemini"
+	PROVIDER_OLLAMA    = "ollama"
 
 	ANTHROPIC_URL     = "https://api.anthropic.com/v1/messages"
 	ANTHROPIC_VERSION = "2023-06-01"
@@ -36,11 +44,17 @@ const (
 	XAI_URL                 = "https://api.x.ai/v1/chat/completions"
 	GEMINI_URL              = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
 
-	AI_TIMEOUT    = 3 * time.Minute
-	AI_MAX_TOKENS = 16000
-	AI_MAX_BODY   = 4 << 20
-	STOP_REFUSAL  = "refusal"
-	SCHEMA_NAME   = "play_analysis"
+	AI_TIMEOUT = 3 * time.Minute
+	// A 20B model that half fits a laptop GPU loads in about half a minute and then reads a play at a
+	// few tokens a second; requests queue behind each other in Ollama, so the local deadline is longer.
+	OLLAMA_TIMEOUT = 8 * time.Minute
+	OLLAMA_THINK   = "low" // gpt-oss's quickest level; M24D_OLLAMA_THINK overrides it
+	OLLAMA_TRIES   = 2     // a second ask when a local model answers in the wrong shape
+	OLLAMA_OFF     = "set OLLAMA_HOST or M24D_OLLAMA_MODEL in .env to use the local model"
+	AI_MAX_TOKENS  = 16000
+	AI_MAX_BODY    = 4 << 20
+	STOP_REFUSAL   = "refusal"
+	SCHEMA_NAME    = "play_analysis"
 )
 
 // PROVIDERS lists every provider: its key and model environment variables, and its default model.
@@ -50,14 +64,18 @@ var PROVIDERS = []Provider{
 	{ID: PROVIDER_OPENAI, Name: "OpenAI", KeyEnv: "OPENAI_API_KEY", ModelEnv: "M24D_OPENAI_MODEL", Model: "gpt-5.1", URL: OPENAI_URL},
 	{ID: PROVIDER_XAI, Name: "Grok", KeyEnv: "XAI_API_KEY", ModelEnv: "M24D_XAI_MODEL", Model: "grok-4", URL: XAI_URL},
 	{ID: PROVIDER_GEMINI, Name: "Gemini", KeyEnv: "GEMINI_API_KEY", ModelEnv: "M24D_GEMINI_MODEL", Model: "gemini-2.5-flash", URL: GEMINI_URL},
+	{ID: PROVIDER_OLLAMA, Name: "Ollama (this PC)", ModelEnv: localai.ENV_OLLAMA_MODEL, Model: localai.DEFAULT_OLLAMA_MODEL, Local: true},
 }
 
+// VERDICTS are the answers a read can give: trade it, wait for it, or let it go.
+var VERDICTS = []string{"take", "wait", "pass"}
+
 var (
-	ErrNoProvider = errors.New("no AI provider connected: add a key to .env (ANTHROPIC_API_KEY, OPENAI_API_KEY, XAI_API_KEY or GEMINI_API_KEY) and restart")
+	ErrNoProvider = errors.New("no AI provider connected: add a key to .env (ANTHROPIC_API_KEY, OPENAI_API_KEY, XAI_API_KEY or GEMINI_API_KEY), or set M24D_OLLAMA_MODEL for the local model, and restart")
 	ErrRefused    = errors.New("the model declined to analyze this play")
 )
 
-// Provider is one AI cloud the engine can ask.
+// Provider is one AI the engine can ask: a cloud with a key, or Ollama on this machine.
 type Provider struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -66,17 +84,33 @@ type Provider struct {
 	Model     string `json:"model"`
 	URL       string `json:"-"`
 	Connected bool   `json:"connected"`
+	Local     bool   `json:"local"`            // runs on this machine; nothing leaves it
+	Detail    string `json:"detail,omitempty"` // why a local provider is not connected
 }
 
-// Providers reports which providers have a key, without the keys.
+// Providers reports which providers have a key, without the keys, and whether the local one answers.
 func Providers() []Provider {
 	out := make([]Provider, 0, len(PROVIDERS))
 	for _, p := range PROVIDERS {
 		p.Model = cmp.Or(os.Getenv(p.ModelEnv), p.Model)
-		p.Connected = os.Getenv(p.KeyEnv) != ""
+		p.Connected = p.KeyEnv != "" && os.Getenv(p.KeyEnv) != ""
+		if p.Local {
+			p.Connected, p.Detail = localStatus()
+		}
 		out = append(out, p)
 	}
 	return out
+}
+
+// localStatus says whether Ollama was chosen in .env and is answering, and if not, why not.
+func localStatus() (bool, string) {
+	if !localai.Enabled() {
+		return false, OLLAMA_OFF
+	}
+	if err := localai.FromEnv(nil).UpCached(context.Background()); err != nil {
+		return false, err.Error() + ": open Ollama from its tray icon"
+	}
+	return true, ""
 }
 
 // Suggestion is the bracket the model would use instead. Applying it is the user's call.
@@ -147,7 +181,7 @@ func analysisSchema() map[string]any {
 		"source": str, "url": str, "breaking": map[string]any{"type": "boolean"}, "source_count": map[string]any{"type": "integer"},
 	})
 	return obj(map[string]any{
-		"verdict":     map[string]any{"type": "string", "enum": []string{"take", "wait", "pass"}},
+		"verdict":     map[string]any{"type": "string", "enum": VERDICTS},
 		"summary":     str,
 		"must_happen": str,
 		"thesis":      str,
@@ -168,12 +202,18 @@ func Analyze(ctx context.Context, client *http.Client, providerID string, p Play
 			break
 		}
 	}
+	if prov.Local && !prov.Connected {
+		return Analysis{}, fmt.Errorf("%s: %s", prov.Name, prov.Detail)
+	}
 	if prov.ID == "" || !prov.Connected {
 		return Analysis{}, ErrNoProvider
 	}
 	input, err := json.Marshal(map[string]any{"link": link, "play": p, "report": rep, "headlines": headlines, "now": time.Now().UTC()})
 	if err != nil {
 		return Analysis{}, err
+	}
+	if prov.Local {
+		return askOllama(ctx, client, prov, string(input))
 	}
 	ctx, cancel := context.WithTimeout(ctx, AI_TIMEOUT)
 	defer cancel()
@@ -193,6 +233,33 @@ func Analyze(ctx context.Context, client *http.Client, providerID string, p Play
 	}
 	a.At, a.Provider, a.Model = time.Now().UTC(), prov.ID, prov.Model
 	return a, nil
+}
+
+// askOllama has the local model read a play. Local runners do not always hold a model to the schema,
+// so the answer is checked, and asked for once more when it comes back in the wrong shape.
+func askOllama(ctx context.Context, client *http.Client, prov Provider, input string) (Analysis, error) {
+	ctx, cancel := context.WithTimeout(ctx, OLLAMA_TIMEOUT)
+	defer cancel()
+	o := localai.FromEnv(client)
+	req := localai.Request{Model: prov.Model, System: AI_SYSTEM, User: input, Schema: analysisSchema(),
+		Think: cmp.Or(os.Getenv(localai.ENV_OLLAMA_THINK), OLLAMA_THINK)}
+	var shapeErr error
+	for range OLLAMA_TRIES {
+		res, err := o.Chat(ctx, req)
+		if err != nil {
+			return Analysis{}, fmt.Errorf("%s: %w", prov.Name, err)
+		}
+		var a Analysis
+		shapeErr = localai.DecodeJSON(res.Content, &a)
+		if shapeErr == nil && !slices.Contains(VERDICTS, a.Verdict) {
+			shapeErr = fmt.Errorf("verdict %q", a.Verdict)
+		}
+		if shapeErr == nil {
+			a.At, a.Provider, a.Model = time.Now().UTC(), prov.ID, cmp.Or(res.Model, prov.Model)
+			return a, nil
+		}
+	}
+	return Analysis{}, fmt.Errorf("%s answered in the wrong shape: %w", prov.Name, shapeErr)
 }
 
 func post(ctx context.Context, client *http.Client, url string, headers map[string]string, body any, out any) error {

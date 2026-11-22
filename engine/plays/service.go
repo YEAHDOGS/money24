@@ -577,6 +577,7 @@ func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 		for _, x := range Providers() {
 			if provider == "" && x.Connected {
 				provider = x.ID
+				break
 			}
 		}
 		if provider != "" {
