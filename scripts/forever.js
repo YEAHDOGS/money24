@@ -382,7 +382,8 @@ function startTray(openDesk = false) {
 function startApp(/** @type {string} */ app, /** @type {boolean} */ openDesk) {
   const started = Date.now();
   const args = openDesk ? APP_FLAGS : [APP_TRAY_FLAG, ...APP_FLAGS];
-  const child = spawn(app, args, { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+  // No windowsHide: the app has no console to hide, and Windows would apply the hide to the first window it shows.
+  const child = spawn(app, args, { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'] });
   trayChild = child;
   log(SUPERVISOR, `tray: the desktop app ${app} (pid ${child.pid})`);
   child.stderr?.on('data', (chunk) => log(TRAY, String(chunk).trimEnd()));

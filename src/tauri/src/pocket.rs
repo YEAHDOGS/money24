@@ -11,6 +11,7 @@ pub const POCKET_LABEL: &str = "pocket";
 const POCKET_PAGE: &str = "pocket.html";
 // The page shows its stop question when its address ends in this.
 const CONFIRM_STOP_HASH: &str = "#stop";
+const NO_HASH: &str = "";
 const POCKET_TITLE: &str = "Money 24 status";
 const SHOWN_SCRIPT: &str = "window.dispatchEvent(new Event('pocket-shown'))";
 const POCKET_SIZE: (f64, f64) = (380.0, 520.0);
@@ -61,9 +62,9 @@ pub fn show(app: &AppHandle, confirm_stop: bool) {
             }
         },
     };
-    if confirm_stop {
-        let _ = window.eval(format!("location.hash = '{CONFIRM_STOP_HASH}'"));
-    }
+    // The stop question, or (when it was left open and the pocket hid) back to the status.
+    let hash = if confirm_stop { CONFIRM_STOP_HASH } else { NO_HASH };
+    let _ = window.eval(format!("location.hash = '{hash}'"));
     let anchor = app.state::<Pocket>().0.lock().unwrap().anchor;
     if let Err(err) = place(&window, anchor) {
         eprintln!("[money24] the pocket could not be placed: {err}");
