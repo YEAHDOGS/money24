@@ -48,41 +48,43 @@ import (
 const (
 	DEFAULT_ADDR = "127.0.0.1:8025"
 	// Tauri WebView origins (Windows, then macOS/Linux) and the Vite dev server: same list as newsd.
-	DEFAULT_ORIGINS  = "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:5173,http://127.0.0.1:5173"
-	APP_DIR          = "Money24"
-	DATA_SUBDIR      = "trading"
-	JOURNAL_FILE     = "paper-journal.jsonl"
-	POSTS_FILE       = "posts.jsonl"
-	SECRET_FILE      = "webhook-secret"
-	SECRET_BYTES     = 24
-	QUEUE_SIZE       = 256
-	DIR_PERMS        = 0o755
-	SECRET_PERMS     = 0o600
-	HEADER_TIMEOUT   = 10 * time.Second
-	SHUTDOWN_TIMEOUT = 5 * time.Second
-	WATCH_INTERVAL   = 30 * time.Second // how often open positions are priced; one quote request each
-	ENV_SECRET       = "M24D_WEBHOOK_SECRET"
-	PLACEHOLDER      = "change-me" // the value old copies of .env.example shipped with
-	SECRET_MIN_CHARS = 16
-	LOOPBACK_NAME    = "localhost"
-	MAX_TICKER_CHARS = 6 // longer than this is a full option symbol, not a ticker
-	BEARER           = "Bearer "
-	PLAYS_SUBDIR     = "plays"
-	ENV_NEWSD        = "M24D_NEWSD" // newsd base URL, for headlines on a play
-	DEFAULT_NEWSD    = "http://127.0.0.1:8024"
-	ENV_WEB          = "M24D_WEB"  // folder of built pages to serve, same as --web
-	ENV_BASE         = "M24D_BASE" // the path the pages were built for, same as --base
-	ROUTE_ACCOUNT    = "GET /api/account"
-	ROUTE_TAPE       = "GET /api/tape"
-	ROUTE_MEME       = "GET /api/meme"
-	ROUTE_BROKER     = "GET /api/broker"
-	MIRROR_FILE      = "alpaca-mirror.json" // the last journal line placed at the broker
-	TAPE_SUBDIR      = "tape"               // every minute's 0DTE and weekly chains, for backtests
-	MEME_SUBDIR      = "meme"
-	PREDICT_FILE     = "predict-journal.jsonl" // the prediction desk's paper book
-	PREDICT_TIMEOUT  = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
-	SCOUT_AT_LAYOUT  = "2006-01-02 15:04"
-	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
+	DEFAULT_ORIGINS   = "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:5173,http://127.0.0.1:5173"
+	APP_DIR           = "Money24"
+	DATA_SUBDIR       = "trading"
+	JOURNAL_FILE      = "paper-journal.jsonl"
+	POSTS_FILE        = "posts.jsonl"
+	SECRET_FILE       = "webhook-secret"
+	SECRET_BYTES      = 24
+	QUEUE_SIZE        = 256
+	DIR_PERMS         = 0o755
+	SECRET_PERMS      = 0o600
+	HEADER_TIMEOUT    = 10 * time.Second
+	SHUTDOWN_TIMEOUT  = 5 * time.Second
+	WATCH_INTERVAL    = 30 * time.Second // how often open positions are priced; one quote request each
+	ENV_SECRET        = "M24D_WEBHOOK_SECRET"
+	PLACEHOLDER       = "change-me" // the value old copies of .env.example shipped with
+	SECRET_MIN_CHARS  = 16
+	LOOPBACK_NAME     = "localhost"
+	MAX_TICKER_CHARS  = 6 // longer than this is a full option symbol, not a ticker
+	BEARER            = "Bearer "
+	PLAYS_SUBDIR      = "plays"
+	ENV_NEWSD         = "M24D_NEWSD" // newsd base URL, for headlines on a play
+	DEFAULT_NEWSD     = "http://127.0.0.1:8024"
+	ENV_WEB           = "M24D_WEB"           // folder of built pages to serve, same as --web
+	ENV_BASE          = "M24D_BASE"          // the path the pages were built for, same as --base
+	ENV_PUBLIC_FOLLOW = "M24D_PUBLIC_FOLLOW" // "off" stops reading Telegram and Reddit from public pages
+	SWITCH_OFF        = "off"
+	ROUTE_ACCOUNT     = "GET /api/account"
+	ROUTE_TAPE        = "GET /api/tape"
+	ROUTE_MEME        = "GET /api/meme"
+	ROUTE_BROKER      = "GET /api/broker"
+	MIRROR_FILE       = "alpaca-mirror.json" // the last journal line placed at the broker
+	TAPE_SUBDIR       = "tape"               // every minute's 0DTE and weekly chains, for backtests
+	MEME_SUBDIR       = "meme"
+	PREDICT_FILE      = "predict-journal.jsonl" // the prediction desk's paper book
+	PREDICT_TIMEOUT   = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
+	SCOUT_AT_LAYOUT   = "2006-01-02 15:04"
+	BACKTEST_TIMEOUT  = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -326,9 +328,15 @@ func main() {
 	runner := signals.NewRunner(catalog, journal, liveQuotes(quotes, prices))
 	runner.SetSettlement(settlement)
 	queue := make(chan signals.Signal, QUEUE_SIZE)
+	// Telegram and Reddit sources read from public pages, unless M24D_PUBLIC_FOLLOW=off (for example
+	// while Telegram is meant to be read through the owner's own API login instead).
 	followDone := make(chan struct{})
 	go func() {
 		defer close(followDone)
+		if strings.EqualFold(os.Getenv(ENV_PUBLIC_FOLLOW), SWITCH_OFF) {
+			log.Printf("public Telegram and Reddit reading is off (%s=%s)", ENV_PUBLIC_FOLLOW, SWITCH_OFF)
+			return
+		}
 		signals.FollowPublic(ctx, http.DefaultClient, catalog, recorder, queue)
 	}()
 	done := make(chan struct{})
