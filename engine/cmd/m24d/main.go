@@ -38,6 +38,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/plays"
 	"github.com/YEAHDOGS/money24/engine/signals"
+	"github.com/YEAHDOGS/money24/engine/tape"
 	"github.com/YEAHDOGS/money24/engine/webull"
 )
 
@@ -69,6 +70,8 @@ const (
 	ENV_WEB          = "M24D_WEB"  // folder of built pages to serve, same as --web
 	ENV_BASE         = "M24D_BASE" // the path the pages were built for, same as --base
 	ROUTE_ACCOUNT    = "GET /api/account"
+	ROUTE_TAPE       = "GET /api/tape"
+	TAPE_SUBDIR      = "tape"           // every minute's 0DTE and weekly chains, for backtests
 	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
 
@@ -360,6 +363,14 @@ func main() {
 	go playService.RunCrypto(ctx)
 	// The flow desk follows the most premium traded in the most traded options, through the stock session.
 	go playService.RunFlow(ctx)
+	// The tape records the same-day and weekly option chains every minute of the session: the
+	// history short-term option plays are backtested on, which no free source has.
+	tapeRecorder := &tape.Recorder{Dir: filepath.Join(*dataDir, TAPE_SUBDIR), Market: prices}
+	go tapeRecorder.Run(ctx)
+	opts.Mount[ROUTE_TAPE] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tapeRecorder.Status(time.Now()))
+	})
 	for _, p := range plays.Providers() {
 		if p.Connected {
 			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)

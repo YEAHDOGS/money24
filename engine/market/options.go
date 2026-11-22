@@ -107,17 +107,21 @@ type OptionRow struct {
 	Strike       float64 `json:"strike"`
 	Bid          float64 `json:"bid"`
 	Ask          float64 `json:"ask"`
+	Last         float64 `json:"last"`
 	Volume       int     `json:"volume"`
 	OpenInterest int     `json:"open_interest"`
+	IV           float64 `json:"iv"`         // implied volatility as a decimal
+	LastTradeAt  int64   `json:"last_trade"` // Unix seconds of the strike's last trade
 }
 
 // Chain is every strike a symbol lists on one expiry, and every expiry it lists at all.
 type Chain struct {
-	Spot     float64     `json:"spot"`
-	Expiry   int64       `json:"expiry"`   // Unix seconds, as Yahoo keys its chains
-	Expiries []int64     `json:"expiries"` // soonest first
-	Calls    []OptionRow `json:"calls"`
-	Puts     []OptionRow `json:"puts"`
+	Spot       float64     `json:"spot"`
+	MarketTime int64       `json:"market_time"` // Unix seconds the quote is from: Yahoo's chains run about 15 minutes behind
+	Expiry     int64       `json:"expiry"`      // Unix seconds, as Yahoo keys its chains
+	Expiries   []int64     `json:"expiries"`    // soonest first
+	Calls      []OptionRow `json:"calls"`
+	Puts       []OptionRow `json:"puts"`
 }
 
 // Chain reads one expiry of a symbol's option chain. With expiry 0 it reads the nearest one,
@@ -131,15 +135,19 @@ func (c *Client) Chain(ctx context.Context, symbol string, expiry int64) (Chain,
 		Strike       float64 `json:"strike"`
 		Bid          float64 `json:"bid"`
 		Ask          float64 `json:"ask"`
+		Last         float64 `json:"lastPrice"`
 		Volume       int     `json:"volume"`
 		OpenInterest int     `json:"openInterest"`
+		IV           float64 `json:"impliedVolatility"`
+		LastTradeAt  int64   `json:"lastTradeDate"`
 	}
 	var res struct {
 		OptionChain struct {
 			Result []struct {
 				Expiries []int64 `json:"expirationDates"`
 				Quote    struct {
-					Price float64 `json:"regularMarketPrice"`
+					Price      float64 `json:"regularMarketPrice"`
+					MarketTime int64   `json:"regularMarketTime"`
 				} `json:"quote"`
 				Options []struct {
 					Expiry int64 `json:"expirationDate"`
@@ -160,7 +168,7 @@ func (c *Client) Chain(ctx context.Context, symbol string, expiry int64) (Chain,
 		return Chain{}, ErrNotFound
 	}
 	r := res.OptionChain.Result[0]
-	out := Chain{Spot: r.Quote.Price, Expiry: r.Options[0].Expiry, Expiries: r.Expiries, Calls: []OptionRow{}, Puts: []OptionRow{}}
+	out := Chain{Spot: r.Quote.Price, MarketTime: r.Quote.MarketTime, Expiry: r.Options[0].Expiry, Expiries: r.Expiries, Calls: []OptionRow{}, Puts: []OptionRow{}}
 	for _, o := range r.Options[0].Calls {
 		out.Calls = append(out.Calls, OptionRow(o))
 	}
