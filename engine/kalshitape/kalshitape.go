@@ -26,23 +26,24 @@ import (
 )
 
 const (
-	TICK           = time.Minute
-	PASS_EVERY     = 30 * time.Minute
-	SETTLE_EVERY   = time.Hour
-	WINDOW         = 48 * time.Hour // markets closing this soon are snapshot
-	SETTLED_LOOK   = 48 * time.Hour // settlements are looked for among markets that closed this recently
-	PASS_TIMEOUT   = 10 * time.Minute
-	SEEN_DAYS      = 3 // days of result files read back on start, so a restart never writes a result twice
-	DAY_LAYOUT     = "2006-01-02"
-	FILE_MARKETS   = "markets.jsonl.gz"
-	FILE_RESULTS   = "results.jsonl.gz"
-	FILE_CATALOG   = "catalog.jsonl.gz"
-	DIR_PERMS      = 0o755
-	FILE_PERMS     = 0o644
-	LINE_MAX       = 1 << 20
-	LOG_PREFIX     = "kalshitape: "
-	ERR_NO_MARKETS = "kalshi returned no markets"
-	DAYS_SHOWN     = 7
+	TICK            = time.Minute
+	PASS_EVERY      = 30 * time.Minute
+	SETTLE_EVERY    = time.Hour
+	WINDOW          = 48 * time.Hour // markets closing this soon are snapshot
+	SETTLED_LOOK    = 48 * time.Hour // the first sweep looks back this far for settled markets
+	SETTLED_OVERLAP = 6 * time.Hour  // later sweeps look back to the last one, plus this much for late settlements
+	PASS_TIMEOUT    = 10 * time.Minute
+	SEEN_DAYS       = 3 // days of result files read back on start, so a restart never writes a result twice
+	DAY_LAYOUT      = "2006-01-02"
+	FILE_MARKETS    = "markets.jsonl.gz"
+	FILE_RESULTS    = "results.jsonl.gz"
+	FILE_CATALOG    = "catalog.jsonl.gz"
+	DIR_PERMS       = 0o755
+	FILE_PERMS      = 0o644
+	LINE_MAX        = 1 << 20
+	LOG_PREFIX      = "kalshitape: "
+	ERR_NO_MARKETS  = "kalshi returned no markets"
+	DAYS_SHOWN      = 7
 )
 
 // Snapshot is one market at one moment, as compact as it can be: prices are dollars a contract.
@@ -195,7 +196,13 @@ func (r *Recorder) pass(ctx context.Context, now time.Time) error {
 
 // settle writes the result of every market that settled and is not on record yet.
 func (r *Recorder) settle(ctx context.Context, now time.Time) error {
-	markets, err := r.Kalshi.Settled(ctx, now.Add(-SETTLED_LOOK))
+	r.mu.Lock()
+	from := now.Add(-SETTLED_LOOK)
+	if last := r.state.LastSettleAt; !last.IsZero() && last.Add(-SETTLED_OVERLAP).After(from) {
+		from = last.Add(-SETTLED_OVERLAP)
+	}
+	r.mu.Unlock()
+	markets, err := r.Kalshi.Settled(ctx, from)
 	day := now.Format(DAY_LAYOUT)
 	r.mu.Lock()
 	r.rollDay(day)
