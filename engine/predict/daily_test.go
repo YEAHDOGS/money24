@@ -148,7 +148,7 @@ func TestParseTSAReadsDailyCounts(t *testing.T) {
 
 func dailyStrategy(t *testing.T, knownOnly bool, snapshots map[string]*DailySnapshot) *dailyCounts {
 	t.Helper()
-	raw := dailyParams(knownOnly)
+	raw := dailyParams(knownOnly, nil)
 	strategy, err := newDailyCounts(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -215,7 +215,7 @@ func TestLiveDailyCounts(t *testing.T) {
 	}
 	client := &http.Client{Timeout: 30 * time.Second}
 	env := &Env{HTTP: client}
-	strategy, err := newDailyCounts(dailyParams(false))
+	strategy, err := newDailyCounts(dailyParams(false, nil))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -60,6 +60,11 @@ const (
 	DAILY_DATE_FORMAT   = "Jan 2"
 )
 
+// DAILY_FORECAST_SERIES are the series the forecast strategy trades: prices that drift a little a day.
+// TSA counts swing by weekday and holiday far more than a day-to-day spread captures, so until a
+// weekday-aware model exists they trade only once published.
+var DAILY_FORECAST_SERIES = []string{SERIES_AAA_GAS_DAILY, SERIES_AAA_GAS_WEEKLY, SERIES_AAA_DIESEL_DAILY, SERIES_AAA_DIESEL_WEEKLY}
+
 // DailyParams are the daily-counts kind's own settings.
 type DailyParams struct {
 	Only           []string `json:"only,omitempty"` // series tickers to trade; empty: all five
@@ -321,8 +326,9 @@ func (d *dailyCounts) Evaluate(m Market, now time.Time) (Opinion, bool) {
 	return Opinion{Side: side, Prob: prob, Reasons: reasons}, true
 }
 
-func dailyParams(knownOnly bool) json.RawMessage {
-	raw, _ := json.Marshal(DailyParams{KnownOnly: knownOnly, SigmaFloorFrac: DEFAULT_DAILY_SIGMA_FLOOR_FRAC,
+// dailyParams builds the settings; only lists the series traded, empty for all.
+func dailyParams(knownOnly bool, only []string) json.RawMessage {
+	raw, _ := json.Marshal(DailyParams{Only: only, KnownOnly: knownOnly, SigmaFloorFrac: DEFAULT_DAILY_SIGMA_FLOOR_FRAC,
 		Lookback: DEFAULT_DAILY_LOOKBACK, MaxGapDays: DEFAULT_DAILY_MAX_GAP_DAYS})
 	return raw
 }
@@ -330,11 +336,11 @@ func dailyParams(knownOnly bool) json.RawMessage {
 func defaultDailyKnown() Config {
 	return Config{ID: DAILY_KNOWN_ID, Kind: KIND_DAILY, Name: DAILY_KNOWN_NAME, On: true, Risk: RISK_LOW, EveryMinutes: DEFAULT_EVERY_MINUTES,
 		Entry:  Entry{MinPrice: 0.50, MaxPrice: 0.97, MaxSpread: 0.05, LeftMinutes: DEFAULT_LEFT_MINUTES, MinEdge: 0.03, MinProb: 0.95},
-		Limits: Limits{StakeUSD: 15, MaxOpen: 15, NewPerPass: 5, DailyStakeUSD: 150}, Params: dailyParams(true)}
+		Limits: Limits{StakeUSD: 15, MaxOpen: 15, NewPerPass: 5, DailyStakeUSD: 150}, Params: dailyParams(true, nil)}
 }
 
 func defaultDailyForecast() Config {
 	return Config{ID: DAILY_FORECAST_ID, Kind: KIND_DAILY, Name: DAILY_FORECAST_NAME, On: true, Risk: RISK_MEDIUM, EveryMinutes: DEFAULT_EVERY_MINUTES * 2,
 		Entry:  Entry{MinPrice: 0.08, MaxPrice: 0.92, MaxSpread: 0.06, LeftMinutes: 30, MinEdge: 0.08, MaxEdge: 0.25},
-		Limits: Limits{StakeUSD: 10, MaxOpen: 20, NewPerPass: 4, DailyStakeUSD: 100}, Params: dailyParams(false)}
+		Limits: Limits{StakeUSD: 10, MaxOpen: 20, NewPerPass: 4, DailyStakeUSD: 100}, Params: dailyParams(false, DAILY_FORECAST_SERIES)}
 }
