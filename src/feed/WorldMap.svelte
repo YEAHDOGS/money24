@@ -9,6 +9,7 @@
   import Maximize from '@lucide/svelte/icons/maximize';
   import strings from './stories.json';
   import { MapView } from './map-view.svelte.js';
+  import { untrack } from 'svelte';
 
   const ZOOM_STEP = 1.6;
   const WHEEL_STEP = 1.0015; // per wheel pixel
@@ -33,7 +34,8 @@
    */
   let { world, heat, selected, arcs, onPick, onHover } = $props();
 
-  const view = new MapView(world.width, world.height);
+  // The map's viewBox size never changes, and the view keeps its pan and zoom: it is made once, from the first world.
+  const view = untrack(() => new MapView(world.width, world.height));
   const points = $derived(Object.fromEntries(world.countries.map((c) => [c.id, c])));
   const loudest = $derived(Object.entries(heat).sort((a, b) => b[1] - a[1]).slice(0, PULSES).map(([id]) => points[id]).filter(Boolean));
   const curves = $derived(arcs.map(([from, to]) => [points[from], points[to]]).filter(([a, b]) => a && b && a !== b).map(([a, b]) => {
