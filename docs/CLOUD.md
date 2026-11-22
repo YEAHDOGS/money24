@@ -41,7 +41,7 @@ which hosts answer on each family.
 | **Billing kill switch** (`killswitch`): a $1 budget on the billing account notifies Pub/Sub; a function removes this project's billing account when cost reaches it. | Anything at all that bills: a wrong machine, an IP, egress, a forgotten disk. The budget watches the whole billing account, so keep no other projects on it: the switch can only unlink this one. | Google: "There's a delay between incurring costs and receiving budget notifications." Notifications come "multiple times per day", the first "may take several hours". Disabling billing stops **everything**, free services included, and "Resources might be irretrievably deleted." | Cost that accrues before the notification lands, likely cents past $1. The switch's own parts are inside their free tiers (below). |
 | **On-machine guard** (`m24guard`, every 5 minutes): meters bytes sent on the network card this month, persisted across reboots; stops the services at 800 MB. Refuses to start them unless the metadata server and Compute API show a non-preemptible `e2-micro` in a free region, no external IPv4, one `pd-standard` disk of at most 30 GB. Two sightings of a billable machine power it off. If it cannot count for 30 minutes (a broken counter or ledger), it stops the services rather than run blind. | Egress past the free 1 GB, which the kill switch would only see hours later. A machine changed by hand in the console. | It counts all bytes on the card, including traffic Google does not bill (conservative). Up to five minutes of traffic can be lost if the machine crashes rather than shuts down. It cannot remove an IP or a disk; powering off stops compute and releases an ephemeral IPv4, but a disk bills while it exists. | A few MB past 800 MB, still under 1 GB. |
 | **Allowlist** (`scripts/vps/freetier.js`): every gcloud command the kit runs must be on a fixed list. Snapshots, static IPs, load balancers, routers (NAT), disks and images may only be listed. An instance create must be STANDARD `e2-micro`, free zone, 30 GB `pd-standard`, no IPv4. `setup` also refuses while the project holds any snapshot, IP, load balancer, router, custom image, or other disk or instance. | The kit itself creating something billable. | It cannot stop you from clicking in the console; the guard and kill switch cover that. | Nothing billable is ever created by the kit. |
-| **Backup caps** (`m24backup`): R2 keeps at most 8 GB (free: 10 GB); a night makes at most 4 uploads and 5 list pages (~300 write operations a month of R2's free million) and sends at most 15 MB, never pushing the month past 75% of the guard's limit. `pull-backup` sends at most 50 MB a run, inside the same room. | R2, which has no spending cap of its own; backups eating the egress allowance. | A state archive larger than a night's allowance fails loudly (`vps.js status`, `logs`) rather than sending. | R2 storage stays under its free 10 GB. |
+| **Backup caps** (`m24backup`): R2 keeps at most 8 GB (free: 10 GB); a night makes at most 8 uploads and 5 list pages (about 400 write operations a month of R2's free million) and sends at most 15 MB (`R2_BACKUP_NIGHT_BYTES`, up to 50 MB), never pushing the month past 75% of the guard's limit. `pull-backup` sends at most 50 MB a run, inside the same room. | R2, which has no spending cap of its own; backups eating the egress allowance. | Whatever does not fit tonight waits for a later night, in priority order (see Backups); the run still succeeds and says what waits. The monthly room is shared by everything the machine sends, so at the top of the news growth range (below) the backlog grows. | R2 storage stays under its free 10 GB. |
 
 What the kill switch creates, and what each could ever cost (Google's free tiers, checked 2026-11-21):
 
@@ -113,10 +113,87 @@ Run each with `--dry-run` first and read what it prints.
 
 ### Backups
 
+The news archive is the only thing that grows without limit, so it is backed up **by New York day**
+instead of as one database file. Uploading the whole database every night would pass the night's cap
+within days, and then the whole run (trading state included) would fail.
+
+**What is stored.** In the data folder, `m24backup` writes each finished New York day once into
+`news/days/YYYY-MM-DD.jsonl.gz`, read through a single consistent snapshot of the live database (a
+read transaction; the SQLite file itself is never copied, so a write in progress cannot tear it). A
+day that compresses past about 6 MB continues in `YYYY-MM-DD.002.jsonl.gz`, `.003`, and so on. A day
+file holds every news row dated that day: articles with their excerpt, byline, outlet, image, tags and
+the feed address they came from; the stories last updated that day and which articles joined them;
+story readings, prediction-market odds, calendar entries and data-usage counts. A finished day never
+changes, so it is exported once and uploaded once.
+
+In R2, under `money24/v1/`:
+
+| Object | When | Holds |
+| --- | --- | --- |
+| `state/YYYY-MM-DD.tar.gz` | every night (UTC date) | the trading state, plus `news/state.jsonl.gz`: the news rows dated from the start of today (New York) onward and the small tables (feed addresses, settings, upcoming calendar entries). It never holds finished days, so it stays at the first hours of one day of news (a few MB), however large the history. |
+| `days/YYYY-MM-DD.tar.gz` | once per finished day | that day's dated trading files |
+| `news/YYYY-MM-DD.tar.gz` (`.002`, `.003` for a big day) | once per finished day | that day's news file, as above |
+
+The live `news/news.db` is in none of them. The day files stay in the data folder as well (they are
+what `pull-backup` copies), so the disk holds roughly 41% more than the database alone.
+
+**How much news.** The news archive grows about 13 MB a day today, and up to about 50 MB a day with
+the new sources. Compressed it is about 41% of that:
+
+| | a day | a month | a year |
+| --- | --- | --- | --- |
+| database growth | 13 to 50 MB | 0.4 to 1.5 GB | 4.7 to 18 GB |
+| backed up (about 41%) | 5 to 20 MB | 160 to 615 MB | 1.9 to 7.5 GB |
+
+A first measurement of a real day of the current feeds (8,255 articles with that day's stories, odds
+and readings) gave 13.6 MB of JSON and a 2.6 MB day file, smaller than the 41% planning figure.
+What that means against each limit:
+
+- **Night cap (15 MB default, 50 MB at most).** A day at the heavy end (20 MB) does not fit one
+  default night; it goes in parts over two nights or more. Past about 12 MB a day of backup, a 15 MB night cannot keep
+  up with the growth: set `R2_BACKUP_NIGHT_BYTES` higher (at most 50 MB).
+- **Monthly room.** The guard stops the services at 800 MB a month and backups may use 75% of that
+  (600 MB) minus everything else the machine already sent that month. The heavy end, 615 MB of news
+  alone, does not fit; the low end (160 MB) does. When it does not fit, the oldest unsent days wait and
+  the backlog grows; they stay on the machine's disk. `pull-backup` spends the same room, so running
+  both backups at the heavy end doubles the bytes: pick one.
+- **R2's 8 GB cap.** News alone fills it in about 4 years at the low end and about a year at the heavy
+  end. Past the cap the oldest days are deleted first, and so are superseded state archives (a few MB each
+  night, kept until the cap needs room); the newest state is always kept.
+
+**A tight night.** The run sends what fits, in this order, and never fails because something is too
+big for tonight:
+
+1. the current state (trading files plus the news open day);
+2. finished trading days, newest first;
+3. news day files, **oldest first**, one object per file.
+
+Anything over tonight's bytes, uploads (8) or the bucket's cap waits. The run exits successfully and
+prints what waits and why, for example `waiting for a later night: 2 news day file(s), about
+5812340 bytes, 2026-11-19 to 2026-11-20 (tonight's bytes or uploads are used)`. The next night starts
+from the same order, so the backlog drains oldest first and no day is skipped. A single archive bigger
+than a whole night is named with the setting to raise. Only a real failure (the network, R2 refusing an
+upload, a news export error) makes the run exit with an error, and then only after everything else
+that could be sent was sent.
+
+**Restore.** `m24backup --restore --data <new folder> --guard-state ""` (R2 settings in the
+environment) downloads the newest state and every retained day, then rebuilds `news/news.db` through
+the same migrations the news service uses: day files first, oldest to newest, then the state, which
+also rebuilds the word search. It reports days with no file between the first day and the state (an
+empty day, or one that was waiting) and days with missing part files. Backups made before this layout,
+whose state archive holds the whole database, restore as before.
+
 - **R2** (if configured): nightly at about 06:30 UTC, within the caps above.
 - **PC copy** (free, no Cloudflare account needed): `node scripts/vps.js pull-backup` copies new and
-  changed files to `%APPDATA%\Money24-cloud-backup` (or `VPS_PULL_DIR`). To run it every night the
-  PC is on, catching up after it was off, run once in PowerShell from the repo folder:
+  changed files to `%APPDATA%\Money24-cloud-backup` (or `VPS_PULL_DIR`). It never copies the live
+  database: it first has the machine export (`m24backup --export-news`) any finished day not yet written plus
+  the current state, then pulls trading data first, then `news/state.jsonl.gz`, then `news/days/`
+  files oldest first, each counted with the archive's own overhead so a run stays under its 50 MB and
+  the guard's room. A day file never changes, so it is pulled once; a news day that does not fit stops
+  the queue, so the copy has no hole, and the rest waits for the next run. To get a database from the PC
+  copy, copy the folder, then run `go run ./cmd/m24backup --rebuild-news --data <the copy>` from
+  `engine/`. To run it every night the PC is on, catching up after it was off, run once in PowerShell
+  from the repo folder:
 
   ```powershell
   $action = New-ScheduledTaskAction -Execute node -Argument 'scripts\vps.js pull-backup' -WorkingDirectory (Get-Location)
@@ -127,7 +204,8 @@ Run each with `--dry-run` first and read what it prints.
 
 Both backups send bytes out of Google, so both count toward the guard's monthly total. If the kill
 switch ever fires and Google deletes the machine, restore from either copy: `m24backup --restore
---data <new folder> --guard-state ""` with the R2 settings in the environment, or the PC copy as-is.
+--data <new folder> --guard-state ""` with the R2 settings in the environment, or the PC copy
+(rebuild its news database with `--rebuild-news`, above).
 
 ## If something trips
 
