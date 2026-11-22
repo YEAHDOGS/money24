@@ -241,7 +241,7 @@ func TestBackupRoom(t *testing.T) {
 	if _, err := BackupRoom(State{}, now); err == nil {
 		t.Fatal("no ledger, no backup traffic")
 	}
-	state := State{Month: "2026-11", TxBytes: 500 * MEGABYTE, LimitBytes: TEST_LIMIT}
+	state := State{Month: "2026-11", TxBytes: 500 * MEGABYTE, LimitBytes: TEST_LIMIT, SampledAt: now.Add(-5 * time.Minute)}
 	if room, _ := BackupRoom(state, now); room != 100*MEGABYTE {
 		t.Fatalf("room = %d", room)
 	}
@@ -249,8 +249,13 @@ func TestBackupRoom(t *testing.T) {
 	if room, _ := BackupRoom(state, now); room != 0 {
 		t.Fatalf("room past the share = %d", room)
 	}
-	if room, _ := BackupRoom(state, at(t, "2026-12-02T20:00:00Z")); room != 600*MEGABYTE {
-		t.Fatalf("a stale month is empty, room = %d", room)
+	december := at(t, "2026-12-01T09:00:00Z")
+	state.SampledAt = december.Add(-10 * time.Minute)
+	if room, _ := BackupRoom(state, december); room != 600*MEGABYTE {
+		t.Fatalf("last month's total does not count, room = %d", room)
+	}
+	if _, err := BackupRoom(state, december.Add(time.Hour)); err == nil {
+		t.Fatal("a ledger the guard stopped updating leaves no room")
 	}
 }
 
@@ -314,5 +319,36 @@ func TestInspectorReadsMetadataAndComputeAPI(t *testing.T) {
 	facts = Facts{Zone: "us-east1-b"}
 	if err := in.Disks(&facts); err == nil || facts.DiskChecked {
 		t.Fatal("no service account, no disk proof")
+	}
+}
+
+func TestDiskProblemsStandUntilTheNextDiskCheck(t *testing.T) {
+	when := at(t, "2026-11-20T20:00:00Z")
+	resized := freeFacts()
+	resized.DiskSizesGB = []int64{50}
+	in := Input{Sample: reading(TEST_BOOT, 1, when), LimitBytes: TEST_LIMIT, Facts: resized}
+	state, verdict, _ := Step(State{}, in)
+	if verdict.Action != STOP || verdict.PowerOff {
+		t.Fatalf("the hourly disk check sees the resize: %+v", verdict)
+	}
+	// Five minutes later only the metadata server is asked; the disk finding must still hold.
+	in.Facts = freeFacts()
+	in.Facts.DiskChecked = false
+	in.Sample = reading(TEST_BOOT, 2, when.Add(5*time.Minute))
+	state, verdict, _ = Step(state, in)
+	if verdict.Action != STOP || !verdict.PowerOff || !strings.Contains(verdict.Reason, "50 GB") {
+		t.Fatalf("the cached disk problem stops and then powers off: %+v", verdict)
+	}
+	in.Starting = true
+	_, verdict, _ = Step(state, in)
+	if verdict.Action != STOP {
+		t.Fatalf("the start gate refuses on the cached disk problem: %+v", verdict)
+	}
+	in.Starting = false
+	in.Facts = freeFacts()
+	in.Sample = reading(TEST_BOOT, 3, when.Add(time.Hour))
+	state, verdict, _ = Step(state, in)
+	if verdict.Action != RUN || len(state.DiskProblems) != 0 {
+		t.Fatalf("a clean disk check clears it: %+v %+v", verdict, state)
 	}
 }

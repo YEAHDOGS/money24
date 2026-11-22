@@ -128,7 +128,8 @@ netcheck() {
 # are skipped; pull-pack snapshots the database itself.
 pull_manifest() {
     local room
-    room=$("$GUARD" status 2>/dev/null | sed -n 's/.*"backup_room_bytes": *\([0-9]*\).*/\1/p' | head -n 1)
+    # No guard answer means no proven room: the PC then pulls nothing.
+    room=$("$GUARD" status 2>/dev/null | sed -n 's/.*"backup_room_bytes": *\([0-9]*\).*/\1/p' | head -n 1) || room=0
     printf 'ROOM\t%s\n' "${room:-0}"
     find "$DATA" -type f ! -name '*-wal' ! -name '*-shm' ! -name '*-journal' -printf 'F\t%s\t%T@\t%P\n'
 }
@@ -143,7 +144,8 @@ pull_list() {
 pull_pack() {
     local stage rel list
     stage=$(mktemp -d /tmp/money24.XXXXXXXXXX)
-    trap "rm -rf -- '$stage'" ERR
+    # Removed on any exit, die included, unless the archive is handed over below.
+    trap "rm -rf -- '$stage'" EXIT
     list=$stage/files
     mkdir "$stage/tree"
     while IFS= read -r rel; do
@@ -157,11 +159,12 @@ pull_pack() {
         fi
         printf '%s\n' "$rel" >> "$list"
     done < <(pull_list)
-    [[ -s $list ]] || { rm -rf -- "$stage"; die 'Nothing to pack.'; }
+    [[ -s $list ]] || die 'Nothing to pack.'
     tar -czf "$stage/pull.tar.gz" -C "$stage/tree" -T "$list"
     rm -rf -- "$stage/tree" "$list"
     chown -R "${SUDO_USER:-root}" "$stage"
     printf 'PACK\t%s\t%s\n' "$stage" "$(stat -c %s "$stage/pull.tar.gz")"
+    trap - EXIT # pull-clean removes it after the download
 }
 
 check_health() {

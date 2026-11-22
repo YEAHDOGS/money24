@@ -5,9 +5,12 @@
 // No npm packages: the Cloud Billing REST API with the function's own token.
 
 const METADATA_TOKEN_URL = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
-const BILLING_API = 'https://cloudbilling.googleapis.com/v1/projects/';
+const BILLING_ROOT = 'https://cloudbilling.googleapis.com/v1/';
+const BILLING_API = `${BILLING_ROOT}projects/`;
 const PROJECTS_API = 'https://cloudresourcemanager.googleapis.com/v1/projects/';
 const UNLINK_PERMISSION = 'resourcemanager.projects.deleteBillingAssignment';
+const ASSOCIATIONS_PERMISSION = 'billing.resourceAssociations.list';
+const BILLING_ACCOUNT_NAME = /^billingAccounts\/[A-F0-9]{6}-[A-F0-9]{6}-[A-F0-9]{6}$/;
 const PROJECT_ENV = 'KILL_PROJECT';
 const KILL_AT_ENV = 'KILL_AT_USD';
 // Only `node scripts/vps.js killswitch test` sets these. Google's budget messages never carry them.
@@ -91,9 +94,14 @@ export async function stopBilling(event) {
   const bearer = await token();
   const info = await call('GET', `${BILLING_API}${project}/billingInfo`, bearer);
   if (dryRun) {
-    // Prove the grant without using it: the account can read billing and holds the unlink permission.
+    // Prove the grants without using them. Google's table for unlinking asks for both: the unlink
+    // permission on the project and the association list permission on the billing account.
     const held = await call('POST', `${PROJECTS_API}${project}:testIamPermissions`, bearer, { permissions: [UNLINK_PERMISSION] });
-    const canUnlink = (held.permissions ?? []).includes(UNLINK_PERMISSION);
+    const account = BILLING_ACCOUNT_NAME.test(info.billingAccountName ?? '') ? info.billingAccountName : '';
+    const listed = account ? await call('POST', `${BILLING_ROOT}${account}:testIamPermissions`, bearer,
+      { permissions: [ASSOCIATIONS_PERMISSION] }) : {};
+    const canUnlink = (held.permissions ?? []).includes(UNLINK_PERMISSION) &&
+      (listed.permissions ?? []).includes(ASSOCIATIONS_PERMISSION);
     log('NOTICE', `dry run: would disable billing (${verdict.reason})`,
       { ...fields, decision: 'would-disable', billingEnabled: Boolean(info.billingEnabled), canUnlink });
     return;

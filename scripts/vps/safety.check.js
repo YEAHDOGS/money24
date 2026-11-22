@@ -101,9 +101,11 @@ test('the test message is a real budget shape that fires, marked dry run', async
   process.env.KILL_AT_USD = '1';
   globalThis.fetch = async (url, options = {}) => {
     calls.push(`${options.method ?? 'GET'} ${url}`);
-    const body = String(url).includes('token') ? { access_token: 't' } :
-      String(url).includes('testIamPermissions') ? { permissions: ['resourcemanager.projects.deleteBillingAssignment'] } :
-        { billingEnabled: true };
+    const target = String(url);
+    const body = target.includes('token') ? { access_token: 't' } :
+      target.includes('billingAccounts/') ? { permissions: ['billing.resourceAssociations.list'] } :
+        target.includes('testIamPermissions') ? { permissions: ['resourcemanager.projects.deleteBillingAssignment'] } :
+          { billingEnabled: true, billingAccountName: 'billingAccounts/000000-000000-000000' };
     return { ok: true, status: 200, json: async () => body };
   };
   console.log = (line) => logs.push(JSON.parse(line));

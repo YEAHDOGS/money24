@@ -16,7 +16,9 @@ const (
 	DISK_RECHECK = time.Hour
 	// Backups only move data while the month's total is below this share of the limit.
 	BACKUP_SHARE_PERCENT = 75
-	MEGABYTE             = 1_000_000
+	// A ledger older than this means the guard is not running; backups and the timer treat it as unknown.
+	STALE_AFTER = 30 * time.Minute
+	MEGABYTE    = 1_000_000
 )
 
 // Action is what the services should do now.
@@ -60,12 +62,18 @@ func Step(previous State, in Input) (State, Verdict, error) {
 	if in.FactsErr == nil && in.Facts.DiskChecked {
 		state.DiskBootID = in.Sample.BootID
 		state.DiskCheckedAt = in.Sample.At
+		state.DiskProblems = diskViolations(in.Facts)
 	}
-	verdict := decide(state, in)
+	// Disk problems found by the last Compute API check stand until the next one.
+	var found []string
+	if in.FactsErr == nil {
+		found = append(machineViolations(in.Facts), state.DiskProblems...)
+	}
+	verdict := decide(state, in, found)
 	switch verdict.Action {
 	case STOP:
 		state.Blocked, state.BlockReason = true, verdict.Reason
-		if in.FactsErr == nil && len(Violations(in.Facts)) > 0 {
+		if len(found) > 0 {
 			state.Strikes++
 			verdict.PowerOff = state.Strikes >= STRIKES_TO_POWER_OFF
 		}
@@ -80,7 +88,7 @@ func Step(previous State, in Input) (State, Verdict, error) {
 	return state, verdict, nil
 }
 
-func decide(state State, in Input) Verdict {
+func decide(state State, in Input, found []string) Verdict {
 	if state.TxBytes >= in.LimitBytes {
 		return Verdict{Action: STOP, Reason: fmt.Sprintf("sent %d MB this month (%s Pacific), the limit is %d MB",
 			state.TxBytes/MEGABYTE, state.Month, in.LimitBytes/MEGABYTE)}
@@ -88,7 +96,7 @@ func decide(state State, in Input) Verdict {
 	if in.FactsErr != nil {
 		return Verdict{Action: HOLD, Reason: "cannot confirm a free-tier machine: " + in.FactsErr.Error()}
 	}
-	if found := Violations(in.Facts); len(found) > 0 {
+	if len(found) > 0 {
 		return Verdict{Action: STOP, Reason: "billable machine: " + strings.Join(found, "; ")}
 	}
 	if in.Starting && !in.Facts.DiskChecked && state.DiskBootID != in.Sample.BootID {
@@ -100,6 +108,7 @@ func decide(state State, in Input) Verdict {
 
 // BackupRoom is how many more bytes a backup may send this month without
 // pushing the month's total past BACKUP_SHARE_PERCENT of the guard's limit.
+// A ledger the guard has not updated recently proves nothing, so it leaves no room.
 func BackupRoom(state State, now time.Time) (int64, error) {
 	month, err := MonthKey(now)
 	if err != nil {
@@ -107,6 +116,9 @@ func BackupRoom(state State, now time.Time) (int64, error) {
 	}
 	if state.LimitBytes <= 0 {
 		return 0, fmt.Errorf("the egress guard has not sampled yet")
+	}
+	if now.Sub(state.SampledAt) > STALE_AFTER {
+		return 0, fmt.Errorf("the egress guard last sampled at %s", state.SampledAt.Format(time.RFC3339))
 	}
 	used := state.TxBytes
 	if state.Month != month {

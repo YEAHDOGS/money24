@@ -6,3 +6,8 @@ package cloudguard
 func Lock(string) (func(), error) {
 	return func() {}, nil
 }
+
+// Busy is always false off Linux.
+func Busy(string) bool {
+	return false
+}

@@ -42,6 +42,7 @@ type State struct {
 	Strikes       int              `json:"strikes"`         // consecutive checks that saw a billable machine
 	DiskBootID    string           `json:"disk_boot_id"`    // boot of the last Compute API disk check
 	DiskCheckedAt time.Time        `json:"disk_checked_at"` // when it ran; a disk can grow while running
+	DiskProblems  []string         `json:"disk_problems"`   // what that check found; stands until the next one
 }
 
 // Sample is one reading of the kernel's per-interface transmit counters.

@@ -225,6 +225,11 @@ func FreeRegion(zone string) bool {
 
 // Violations lists every way the machine would be billed. Empty means free.
 func Violations(facts Facts) []string {
+	return append(machineViolations(facts), diskViolations(facts)...)
+}
+
+// machineViolations checks what the metadata server reports on every run.
+func machineViolations(facts Facts) []string {
 	var found []string
 	if facts.MachineType != FREE_MACHINE_TYPE {
 		found = append(found, fmt.Sprintf("machine type %s is not %s", facts.MachineType, FREE_MACHINE_TYPE))
@@ -246,6 +251,12 @@ func Violations(facts Facts) []string {
 			found = append(found, fmt.Sprintf("a %s disk is attached; local SSD is billed", kind))
 		}
 	}
+	return found
+}
+
+// diskViolations checks the disk types and sizes the Compute API reported, when it was asked.
+func diskViolations(facts Facts) []string {
+	var found []string
 	if !facts.DiskChecked {
 		return found
 	}

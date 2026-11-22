@@ -22,3 +22,17 @@ func Lock(file string) (func(), error) {
 	}
 	return func() { handle.Close() }, nil
 }
+
+// Busy reports whether another process holds an exclusive lock on file. A missing file is free.
+func Busy(file string) bool {
+	handle, err := os.Open(file)
+	if err != nil {
+		return false
+	}
+	defer handle.Close()
+	if err := syscall.Flock(int(handle.Fd()), syscall.LOCK_SH|syscall.LOCK_NB); err != nil {
+		return true
+	}
+	syscall.Flock(int(handle.Fd()), syscall.LOCK_UN)
+	return false
+}

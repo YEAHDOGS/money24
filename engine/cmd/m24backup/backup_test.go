@@ -256,7 +256,7 @@ func TestNightLimitsFollowTheEgressGuard(t *testing.T) {
 	if _, err := nightLimits(getenv, guard, now); err == nil {
 		t.Fatal("no guard ledger, no uploads")
 	}
-	ledger := cloudguard.State{Month: "2026-11", TxBytes: 590_000_000, LimitBytes: cloudguard.DEFAULT_LIMIT_BYTES}
+	ledger := cloudguard.State{Month: "2026-11", TxBytes: 590_000_000, LimitBytes: cloudguard.DEFAULT_LIMIT_BYTES, SampledAt: now}
 	if err := cloudguard.SaveState(guard, ledger); err != nil {
 		t.Fatal(err)
 	}
