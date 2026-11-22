@@ -28,7 +28,9 @@ pub struct Supervisor {
 }
 
 fn forever(root: &Path) -> PathBuf {
-    FOREVER.iter().fold(root.to_path_buf(), |path, part| path.join(part))
+    FOREVER
+        .iter()
+        .fold(root.to_path_buf(), |path, part| path.join(part))
 }
 
 /// A folder is the repository when it has the supervisor script in it.
@@ -39,8 +41,16 @@ fn valid_root(path: PathBuf) -> Option<PathBuf> {
 impl Supervisor {
     /// The repository from --root, saved for next time, or the one saved last time.
     pub fn find(app: &AppHandle, args: &[String]) -> Self {
-        let saved = app.path().app_data_dir().ok().map(|dir| dir.join(ROOT_FILE));
-        let given = args.iter().position(|a| a == ROOT_FLAG).and_then(|i| args.get(i + 1)).map(PathBuf::from);
+        let saved = app
+            .path()
+            .app_data_dir()
+            .ok()
+            .map(|dir| dir.join(ROOT_FILE));
+        let given = args
+            .iter()
+            .position(|a| a == ROOT_FLAG)
+            .and_then(|i| args.get(i + 1))
+            .map(PathBuf::from);
         if let Some(root) = given.and_then(valid_root) {
             if let Some(file) = &saved {
                 let _ = file.parent().map(fs::create_dir_all);
@@ -48,7 +58,10 @@ impl Supervisor {
             }
             return Supervisor { root: Some(root) };
         }
-        let root = saved.and_then(|file| fs::read_to_string(file).ok()).map(|s| PathBuf::from(s.trim())).and_then(valid_root);
+        let root = saved
+            .and_then(|file| fs::read_to_string(file).ok())
+            .map(|s| PathBuf::from(s.trim()))
+            .and_then(valid_root);
         Supervisor { root }
     }
 
@@ -71,18 +84,27 @@ impl Supervisor {
         } else {
             format!("{NODE} \"{}\" {NO_BUILD_FLAG}", script.display())
         };
-        detached(root, &format!("{NODE} \"{}\" {STOP_FLAG} & {start}", script.display()))
+        detached(
+            root,
+            &format!("{NODE} \"{}\" {STOP_FLAG} & {start}", script.display()),
+        )
     }
 
     /// Stops the supervisor and every service. It stops this app too.
     pub fn stop(&self) -> io::Result<()> {
         let root = self.root.as_ref().ok_or_else(unknown)?;
-        detached(root, &format!("{NODE} \"{}\" {STOP_FLAG}", forever(root).display()))
+        detached(
+            root,
+            &format!("{NODE} \"{}\" {STOP_FLAG}", forever(root).display()),
+        )
     }
 }
 
 fn unknown() -> io::Error {
-    io::Error::new(io::ErrorKind::NotFound, "the supervisor's folder is not known: start Money 24 with npm run forever once")
+    io::Error::new(
+        io::ErrorKind::NotFound,
+        "the supervisor's folder is not known: start Money 24 with npm run forever once",
+    )
 }
 
 #[cfg(windows)]
@@ -117,5 +139,10 @@ fn detached(root: &Path, line: &str) -> io::Result<()> {
 #[cfg(not(windows))]
 fn detached(root: &Path, line: &str) -> io::Result<()> {
     let line = line.replace(" & ", " ; ").replace('\'', "'\\''");
-    Command::new("sh").arg("-c").arg(format!("nohup sh -c '{line}' >/dev/null 2>&1 &")).current_dir(root).spawn().map(|_| ())
+    Command::new("sh")
+        .arg("-c")
+        .arg(format!("nohup sh -c '{line}' >/dev/null 2>&1 &"))
+        .current_dir(root)
+        .spawn()
+        .map(|_| ())
 }

@@ -21,7 +21,10 @@ pub const NEWS_PORT: u16 = 8024;
 pub const RUNNER_PORT: u16 = 8025;
 const LISTEN_HOST: &str = "127.0.0.1";
 // (sidecar name, port, data folder under the app data dir)
-const ENGINES: [(&str, u16, &str); 2] = [("newsd", NEWS_PORT, "news"), ("m24d", RUNNER_PORT, "trading")];
+const ENGINES: [(&str, u16, &str); 2] = [
+    ("newsd", NEWS_PORT, "news"),
+    ("m24d", RUNNER_PORT, "trading"),
+];
 const RECHECK_AFTER: Duration = Duration::from_secs(2);
 
 /// The running engines the app started, kept so they can be stopped when the app exits.
@@ -41,12 +44,19 @@ pub enum Mode {
 }
 
 fn ports_free() -> bool {
-    ENGINES.iter().all(|(_, port, _)| !local_http::listening(*port))
+    ENGINES
+        .iter()
+        .all(|(_, port, _)| !local_http::listening(*port))
 }
 
 /// Attaches to the running services, or starts the app's own when nothing runs. attach_only: never start any.
-pub fn attach_or_start(app: &AppHandle, attach_only: bool) -> Result<Mode, Box<dyn std::error::Error>> {
-    let healthy = ENGINES.iter().all(|(_, port, _)| local_http::healthy(*port));
+pub fn attach_or_start(
+    app: &AppHandle,
+    attach_only: bool,
+) -> Result<Mode, Box<dyn std::error::Error>> {
+    let healthy = ENGINES
+        .iter()
+        .all(|(_, port, _)| local_http::healthy(*port));
     if attach_only || healthy {
         eprintln!("[money24] attached to the running services (healthy: {healthy})");
         return Ok(Mode::Attached);
@@ -67,7 +77,12 @@ pub fn attach_or_start(app: &AppHandle, attach_only: bool) -> Result<Mode, Box<d
 }
 
 /// Starts one engine with its data in the app data folder and forwards its log to ours.
-fn start(app: &AppHandle, name: &'static str, port: u16, dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn start(
+    app: &AppHandle,
+    name: &'static str,
+    port: u16,
+    dir: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let data = app.path().app_data_dir()?.join(dir);
     std::fs::create_dir_all(&data)?;
     let data = data.to_string_lossy().into_owned();
@@ -75,7 +90,13 @@ fn start(app: &AppHandle, name: &'static str, port: u16, dir: &str) -> Result<()
     let (mut events, child) = app
         .shell()
         .sidecar(name)?
-        .args(["--addr", addr.as_str(), "--data", data.as_str(), "--exit-with-stdin"])
+        .args([
+            "--addr",
+            addr.as_str(),
+            "--data",
+            data.as_str(),
+            "--exit-with-stdin",
+        ])
         .spawn()?;
     app.state::<Engines>().0.lock().unwrap().push(child);
 
@@ -85,7 +106,9 @@ fn start(app: &AppHandle, name: &'static str, port: u16, dir: &str) -> Result<()
                 CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
                     eprintln!("[{name}] {}", String::from_utf8_lossy(&line).trim_end());
                 }
-                CommandEvent::Terminated(status) => eprintln!("[{name}] exited with {:?}", status.code),
+                CommandEvent::Terminated(status) => {
+                    eprintln!("[{name}] exited with {:?}", status.code)
+                }
                 _ => {}
             }
         }

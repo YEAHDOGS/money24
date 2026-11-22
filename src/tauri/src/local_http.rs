@@ -27,11 +27,20 @@ pub fn get(port: u16, path: &str) -> Option<Vec<u8>> {
     stream.set_read_timeout(Some(READ_TIMEOUT)).ok()?;
     stream.set_write_timeout(Some(READ_TIMEOUT)).ok()?;
     // The runner only answers to its own Host names (a guard against DNS rebinding), 127.0.0.1:port among them.
-    write!(stream, "GET {path} HTTP/1.0\r\nHost: 127.0.0.1:{port}\r\nAccept: application/json\r\n\r\n").ok()?;
+    write!(
+        stream,
+        "GET {path} HTTP/1.0\r\nHost: 127.0.0.1:{port}\r\nAccept: application/json\r\n\r\n"
+    )
+    .ok()?;
     let mut raw = Vec::new();
     stream.read_to_end(&mut raw).ok()?;
-    let split = raw.windows(HEADER_END.len()).position(|w| w == HEADER_END)?;
-    let status = std::str::from_utf8(&raw[..split]).ok()?.split_whitespace().nth(1)?;
+    let split = raw
+        .windows(HEADER_END.len())
+        .position(|w| w == HEADER_END)?;
+    let status = std::str::from_utf8(&raw[..split])
+        .ok()?
+        .split_whitespace()
+        .nth(1)?;
     if status != STATUS_OK {
         return None;
     }

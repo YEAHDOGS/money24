@@ -41,7 +41,8 @@ const TIP_OPEN: &str = "open";
 const TIP_SEPARATOR: &str = " · ";
 const SUMMARY_EVERY: Duration = Duration::from_secs(10);
 // What the tooltip calls each service the supervisor runs.
-const SERVICE_NAMES: [(&str, &str); 3] = [("newsd", "news"), ("m24d", "runner"), ("tunnel", "tunnel")];
+const SERVICE_NAMES: [(&str, &str); 3] =
+    [("newsd", "news"), ("m24d", "runner"), ("tunnel", "tunnel")];
 const NEWS_NAME: &str = "news";
 const SUPERVISOR_NAME: &str = "supervisor";
 const SUPERVISOR_STALE: &str = "stale";
@@ -53,9 +54,15 @@ pub const QUIT_CODE: i32 = 0; // the supervisor leaves an app that exits with th
 
 /// Puts the icon in the tray and keeps its tooltip current.
 pub fn build(app: &AppHandle, mode: Mode, supervisor: &Supervisor) -> tauri::Result<()> {
-    let item = |id: &str, label: &str, enabled: bool| MenuItem::with_id(app, id, label, enabled, None::<&str>);
+    let item = |id: &str, label: &str, enabled: bool| {
+        MenuItem::with_id(app, id, label, enabled, None::<&str>)
+    };
     let separator = || PredefinedMenuItem::separator(app);
-    let quit = if mode == Mode::Own { LABEL_QUIT_OWN } else { LABEL_QUIT };
+    let quit = if mode == Mode::Own {
+        LABEL_QUIT_OWN
+    } else {
+        LABEL_QUIT
+    };
     let menu = Menu::with_items(
         app,
         &[
@@ -84,7 +91,13 @@ pub fn build(app: &AppHandle, mode: Mode, supervisor: &Supervisor) -> tauri::Res
 }
 
 fn on_click(tray: &TrayIcon, event: TrayIconEvent) {
-    if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, position, .. } = event {
+    if let TrayIconEvent::Click {
+        button: MouseButton::Left,
+        button_state: MouseButtonState::Up,
+        position,
+        ..
+    } = event
+    {
         pocket::toggle(tray.app_handle(), position);
     }
 }
@@ -112,7 +125,9 @@ fn open_logs(app: &AppHandle, supervisor: &Supervisor) -> Result<(), String> {
         None => app.path().app_log_dir().map_err(|e| e.to_string())?,
     };
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(|e| e.to_string())
+    app.opener()
+        .open_path(dir.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 fn keep_summary(tray: TrayIcon) {
@@ -137,14 +152,24 @@ fn summary() -> String {
         }
         for service in state["services"].as_array().into_iter().flatten() {
             let name = service["name"].as_str().unwrap_or_default();
-            let label = SERVICE_NAMES.iter().find(|(id, _)| *id == name).map_or(name, |(_, label)| label);
+            let label = SERVICE_NAMES
+                .iter()
+                .find(|(id, _)| *id == name)
+                .map_or(name, |(_, label)| label);
             if service["up"] == false && !down.iter().any(|d| d == label) {
                 down.push(label.to_string());
             }
         }
     }
-    let head = if down.is_empty() { TIP_ALL_RUNNING.to_string() } else { format!("{} {TIP_DOWN}", down.join(", ")) };
-    format!("{TIP_PREFIX}{head}{TIP_SEPARATOR}{} {TIP_OPEN}", open_positions())
+    let head = if down.is_empty() {
+        TIP_ALL_RUNNING.to_string()
+    } else {
+        format!("{} {TIP_DOWN}", down.join(", "))
+    };
+    format!(
+        "{TIP_PREFIX}{head}{TIP_SEPARATOR}{} {TIP_OPEN}",
+        open_positions()
+    )
 }
 
 fn count(value: &Value) -> u64 {
@@ -153,9 +178,16 @@ fn count(value: &Value) -> u64 {
 
 /// Open positions across the desks: the prediction desk, the meme desk and the options scout.
 fn open_positions() -> u64 {
-    let predict = local_http::get_json(RUNNER_PORT, ROUTE_PREDICT).map_or(0, |p| p["account"]["open"].as_u64().unwrap_or(0));
-    let meme = local_http::get_json(RUNNER_PORT, ROUTE_MEMEDESK)
-        .map_or(0, |m| m["strategies"].as_array().into_iter().flatten().map(|s| count(&s["open_positions"])).sum());
+    let predict = local_http::get_json(RUNNER_PORT, ROUTE_PREDICT)
+        .map_or(0, |p| p["account"]["open"].as_u64().unwrap_or(0));
+    let meme = local_http::get_json(RUNNER_PORT, ROUTE_MEMEDESK).map_or(0, |m| {
+        m["strategies"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|s| count(&s["open_positions"]))
+            .sum()
+    });
     let scout = local_http::get_json(RUNNER_PORT, ROUTE_SCOUT).map_or(0, |s| count(&s["open"]));
     predict + meme + scout
 }

@@ -81,18 +81,26 @@ pub fn run() {
             eprintln!("[money24] could not open the desk: {err}");
         }
     }));
-    let builder = builder.plugin(tauri_plugin_shell::init()).plugin(tauri_plugin_opener::init());
+    let builder = builder
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init());
     #[cfg(desktop)]
     let builder = builder
         .manage(engines::Engines::new())
         .manage(pocket::Pocket::default())
-        .invoke_handler(tauri::generate_handler![open_desk_command, hide_pocket, stop_money24, shell_info]);
+        .invoke_handler(tauri::generate_handler![
+            open_desk_command,
+            hide_pocket,
+            stop_money24,
+            shell_info
+        ]);
     let app = builder
         .setup(|app| {
             #[cfg(desktop)]
             {
                 let args: Vec<String> = std::env::args().collect();
-                let mode = engines::attach_or_start(app.handle(), args.iter().any(|a| a == ATTACH_FLAG))?;
+                let mode =
+                    engines::attach_or_start(app.handle(), args.iter().any(|a| a == ATTACH_FLAG))?;
                 let supervisor = supervisor::Supervisor::find(app.handle(), &args);
                 tray::build(app.handle(), mode, &supervisor)?;
                 app.manage(Shell { mode, supervisor });
@@ -101,7 +109,12 @@ pub fn run() {
                 }
             }
             #[cfg(mobile)]
-            app_window(app.handle(), WINDOW_LABEL, WebviewUrl::App(START_PAGE.into())).build()?;
+            app_window(
+                app.handle(),
+                WINDOW_LABEL,
+                WebviewUrl::App(START_PAGE.into()),
+            )
+            .build()?;
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -110,7 +123,9 @@ pub fn run() {
         #[cfg(desktop)]
         match _event {
             // Closing the desk window leaves the app in the tray; only Quit (an exit with a code) ends it.
-            RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+            RunEvent::ExitRequested {
+                code: None, api, ..
+            } => api.prevent_exit(),
             RunEvent::Exit => engines::stop(_app),
             _ => {}
         }
@@ -123,7 +138,11 @@ fn is_app_url(url: &Url) -> bool {
 
 /// A window that keeps the app's pages in it and sends every link that leaves them (headlines,
 /// posts) to the system browser.
-pub(crate) fn app_window<'a>(app: &'a AppHandle, label: &str, url: WebviewUrl) -> WebviewWindowBuilder<'a, Wry, AppHandle> {
+pub(crate) fn app_window<'a>(
+    app: &'a AppHandle,
+    label: &str,
+    url: WebviewUrl,
+) -> WebviewWindowBuilder<'a, Wry, AppHandle> {
     let handle = app.clone();
     WebviewWindowBuilder::new(app, label, url).on_navigation(move |url| {
         if is_app_url(url) {
@@ -176,7 +195,10 @@ fn hide_pocket(app: AppHandle) {
 #[cfg(desktop)]
 #[tauri::command]
 fn stop_money24(app: AppHandle) -> Result<(), String> {
-    app.state::<Shell>().supervisor.stop().map_err(|e| e.to_string())
+    app.state::<Shell>()
+        .supervisor
+        .stop()
+        .map_err(|e| e.to_string())
 }
 
 /// What the pocket says about the app itself: attached to running services or running its own, and

@@ -39,7 +39,10 @@ pub fn toggle(app: &AppHandle, click: PhysicalPosition<f64>) {
         s.hidden_at.is_some_and(|at| at.elapsed() < REOPEN_GUARD)
     };
     let window = app.get_webview_window(POCKET_LABEL);
-    if window.as_ref().is_some_and(|w| w.is_visible().unwrap_or(false)) {
+    if window
+        .as_ref()
+        .is_some_and(|w| w.is_visible().unwrap_or(false))
+    {
         hide(app);
         return;
     }
@@ -63,7 +66,11 @@ pub fn show(app: &AppHandle, confirm_stop: bool) {
         },
     };
     // The stop question, or (when it was left open and the pocket hid) back to the status.
-    let hash = if confirm_stop { CONFIRM_STOP_HASH } else { NO_HASH };
+    let hash = if confirm_stop {
+        CONFIRM_STOP_HASH
+    } else {
+        NO_HASH
+    };
     let _ = window.eval(format!("location.hash = '{hash}'"));
     let anchor = app.state::<Pocket>().0.lock().unwrap().anchor;
     if let Err(err) = place(&window, anchor) {
@@ -84,7 +91,11 @@ pub fn hide(app: &AppHandle) {
 }
 
 fn build(app: &AppHandle, confirm_stop: bool) -> tauri::Result<WebviewWindow> {
-    let page = if confirm_stop { format!("{POCKET_PAGE}{CONFIRM_STOP_HASH}") } else { POCKET_PAGE.to_string() };
+    let page = if confirm_stop {
+        format!("{POCKET_PAGE}{CONFIRM_STOP_HASH}")
+    } else {
+        POCKET_PAGE.to_string()
+    };
     let window = crate::app_window(app, POCKET_LABEL, WebviewUrl::App(page.into()))
         .title(POCKET_TITLE)
         .inner_size(POCKET_SIZE.0, POCKET_SIZE.1)
@@ -116,8 +127,15 @@ fn place(window: &WebviewWindow, anchor: Option<PhysicalPosition<f64>>) -> tauri
     };
     let scale = monitor.scale_factor();
     let area = monitor.work_area();
-    let (width, height, gap) = (POCKET_SIZE.0 * scale, POCKET_SIZE.1 * scale, POCKET_GAP * scale);
-    let (left, top) = (f64::from(area.position.x) + gap, f64::from(area.position.y) + gap);
+    let (width, height, gap) = (
+        POCKET_SIZE.0 * scale,
+        POCKET_SIZE.1 * scale,
+        POCKET_GAP * scale,
+    );
+    let (left, top) = (
+        f64::from(area.position.x) + gap,
+        f64::from(area.position.y) + gap,
+    );
     let right = (f64::from(area.position.x) + f64::from(area.size.width) - width - gap).max(left);
     let bottom = (f64::from(area.position.y) + f64::from(area.size.height) - height - gap).max(top);
     let middle = f64::from(area.position.y) + f64::from(area.size.height) / 2.0;
@@ -126,5 +144,8 @@ fn place(window: &WebviewWindow, anchor: Option<PhysicalPosition<f64>>) -> tauri
         Some(at) => (at.x - width / 2.0, at.y - height - gap),
         None => (right, bottom),
     };
-    window.set_position(PhysicalPosition::new(x.clamp(left, right).round() as i32, y.clamp(top, bottom).round() as i32))
+    window.set_position(PhysicalPosition::new(
+        x.clamp(left, right).round() as i32,
+        y.clamp(top, bottom).round() as i32,
+    ))
 }
