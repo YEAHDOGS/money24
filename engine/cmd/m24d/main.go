@@ -33,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YEAHDOGS/money24/engine/aicli"
 	"github.com/YEAHDOGS/money24/engine/alpaca"
 	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
@@ -238,6 +239,7 @@ func main() {
 	cryptoBacktestCompare := flag.Bool("crypto-backtest-all", false, "compare all crypto strategies and also replay 90 days when the requested window is longer")
 	cryptoBacktestEnd := flag.String("crypto-backtest-end", "", "exclusive end of the offline crypto replay as an RFC3339 hour")
 	memeReplay := flag.String(MEME_REPLAY_FLAG, "", "replay an offline UTC day of meme records (YYYY-MM-DD), print the paper desk record and exit")
+	aiCheck := flag.Bool(AI_CHECK_FLAG, false, "ask every AI app on this machine a tiny question, then the README's FAA story, print who answered and how fast, and exit")
 	telegramQR := flag.String(TELEGRAM_QR_FLAG, "", "sign Telegram in by QR code, with no login code: writes the code picture to this folder, waits for a scan and exits")
 	flag.Parse()
 
@@ -253,6 +255,16 @@ func main() {
 		}
 		cancel()
 		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if *aiCheck {
+		if err := prepareDataDir(dataDir); err != nil {
+			log.Fatal(err)
+		}
+		if err := runAICheck(*dataDir, os.Stdout); err != nil {
 			log.Fatal(err)
 		}
 		return
@@ -565,6 +577,12 @@ func main() {
 	for pattern, h := range predictDesk.Routes() {
 		opts.Mount[pattern] = h
 	}
+	aiDesk := aicli.NewDesk(*dataDir)
+	aiDesk.MayWrite = mayLoad
+	for pattern, h := range aiDesk.Routes() {
+		opts.Mount[pattern] = h
+	}
+	go aiDesk.Run(ctx)
 	opts.Mount[scoreboard.ROUTE] = scoreboard.Handler(predictDesk.Scoreboard, memeScoreboard, playService.Scoreboard, func() []scoreboard.Strategy {
 		return tracker.Scoreboard(journal, callBacktester, plays.SOURCE_ID)
 	})
