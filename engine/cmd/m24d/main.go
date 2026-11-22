@@ -6,6 +6,7 @@
 //	m24d [--data DIR] [--addr 127.0.0.1:8025] [--origins a,b] [--hosts h] [--sources FILE] [--web DIR] [--keep-awake] [--exit-with-stdin]
 //	m24d [--data DIR] --replay
 //	m24d [--data DIR] --crypto-backtest DAYS
+//	m24d [--data DIR] --meme-replay YYYY-MM-DD
 //
 // --origins and --hosts also read M24D_ORIGINS and M24D_HOSTS.
 //
@@ -38,6 +39,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/meme"
+	"github.com/YEAHDOGS/money24/engine/memedesk"
 	"github.com/YEAHDOGS/money24/engine/plays"
 	"github.com/YEAHDOGS/money24/engine/predict"
 	"github.com/YEAHDOGS/money24/engine/signals"
@@ -81,6 +83,7 @@ const (
 	MIRROR_FILE       = "alpaca-mirror.json" // the last journal line placed at the broker
 	TAPE_SUBDIR       = "tape"               // every minute's 0DTE and weekly chains, for backtests
 	MEME_SUBDIR       = "meme"
+	MEME_REPLAY_FLAG  = "meme-replay"
 	PREDICT_FILE      = "predict-journal.jsonl" // the prediction desk's paper book
 	PREDICT_TIMEOUT   = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
 	SCOUT_AT_LAYOUT   = "2006-01-02 15:04"
@@ -230,6 +233,7 @@ func main() {
 	cryptoBacktestEntry := flag.String("crypto-backtest-entry", plays.REPLAY_MARKET, "offline crypto replay entry: market, limit or both")
 	cryptoBacktestCompare := flag.Bool("crypto-backtest-all", false, "compare all crypto strategies and also replay 90 days when the requested window is longer")
 	cryptoBacktestEnd := flag.String("crypto-backtest-end", "", "exclusive end of the offline crypto replay as an RFC3339 hour")
+	memeReplay := flag.String(MEME_REPLAY_FLAG, "", "replay an offline UTC day of meme records (YYYY-MM-DD), print the paper desk record and exit")
 	flag.Parse()
 
 	if *telegramLogin {
@@ -287,6 +291,18 @@ func main() {
 
 	if err := prepareDataDir(dataDir); err != nil {
 		log.Fatal(err)
+	}
+	if *memeReplay != "" {
+		result, err := memedesk.Replay(ctx, *dataDir, filepath.Join(*dataDir, MEME_SUBDIR), *memeReplay)
+		if err != nil {
+			log.Fatal(err)
+		}
+		out := json.NewEncoder(os.Stdout)
+		out.SetIndent("", "  ")
+		if err := out.Encode(result); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 	postsPath := filepath.Join(*dataDir, POSTS_FILE)
 	if *replay {
@@ -486,6 +502,18 @@ func main() {
 		json.NewEncoder(w).Encode(tapeRecorder.Status(time.Now()))
 	})
 	memeRecorder := &meme.Recorder{Dir: filepath.Join(*dataDir, MEME_SUBDIR)}
+	memeDesk, err := memedesk.Open(*dataDir)
+	if err != nil {
+		log.Printf("meme paper desk unavailable: %v", err)
+	} else {
+		defer memeDesk.Close()
+		memeDesk.MayWrite = mayLoad
+		memeRecorder.OnRecord = memeDesk.Observe
+		for pattern, handler := range memeDesk.Routes() {
+			opts.Mount[pattern] = handler
+		}
+		go memeDesk.Run(ctx)
+	}
 	memeDone := make(chan struct{})
 	go func() {
 		defer close(memeDone)

@@ -84,6 +84,8 @@ type Safety struct {
 }
 
 type HolderShare struct {
+	Address string   `json:"address,omitempty"`
+	Owner   string   `json:"owner,omitempty"`
 	Percent *float64 `json:"pct,omitempty"`
 	Insider *bool    `json:"insider,omitempty"`
 }

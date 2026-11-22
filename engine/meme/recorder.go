@@ -39,6 +39,9 @@ type Status struct {
 // Recorder collects public market observations into Dir until its context ends.
 type Recorder struct {
 	Dir string
+	// OnRecord receives each new observation after it is written, in file order.
+	// Set it before Run. The callback runs on the recorder loop and must not mutate the record.
+	OnRecord func(Record)
 
 	client    *http.Client
 	pumpURL   string
@@ -153,6 +156,9 @@ func (run *recording) save(row Record) {
 		return
 	}
 	run.apply(row)
+	if observe := run.recorder.OnRecord; observe != nil {
+		observe(row)
+	}
 }
 
 func (run *recording) stream(update streamUpdate) {
