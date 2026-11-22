@@ -1,0 +1,11 @@
+{
+  "name": "money24-killswitch",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Removes the project's billing account when the budget is reached",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  }
+}

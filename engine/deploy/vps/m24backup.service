@@ -1,0 +1,25 @@
+[Unit]
+Description=Money 24 backup to Cloudflare R2
+After=network-online.target money24-gate.service
+Wants=network-online.target
+Requires=money24-gate.service
+ConditionPathExists=/var/lib/money24/.ready
+# env creates this only when every R2 setting is present; otherwise back up with pull-backup.
+ConditionPathExists=/etc/money24-r2.enabled
+
+[Service]
+Type=oneshot
+User=money24
+EnvironmentFile=/etc/money24.env
+Environment=GOMEMLIMIT=48MiB
+ExecStart=/opt/money24/current/m24backup --data /var/lib/money24/data --guard-state /var/lib/m24guard/state.json
+TimeoutStartSec=4h
+MemoryMax=96M
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/money24/data/news
+UMask=0077

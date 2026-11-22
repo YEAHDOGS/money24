@@ -1,0 +1,22 @@
+[Unit]
+Description=Money 24 Cloudflare Tunnel
+After=network-online.target m24d.service money24-gate.service
+Wants=network-online.target m24d.service
+Requires=money24-gate.service
+ConditionPathExists=/var/lib/money24/.ready
+
+[Service]
+DynamicUser=yes
+EnvironmentFile=/etc/money24.env
+Environment=GOMEMLIMIT=64MiB
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate --edge-ip-version auto --metrics 127.0.0.1:8026 run
+Restart=on-failure
+RestartSec=5
+MemoryMax=96M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

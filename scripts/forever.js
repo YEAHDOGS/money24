@@ -16,6 +16,7 @@ import { connect } from 'node:net';
 import { userInfo } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DESK_PATH, WEB_ENV } from './desk-build.js';
 
 const SCRIPT = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SCRIPT), '..');
@@ -45,7 +46,6 @@ const FLAG = { noBuild: '--no-build', stop: '--stop', status: '--status', instal
 // Both services exit on their own when this pipe closes, so a supervisor that dies leaves nothing behind.
 const EXIT_WITH_STDIN = '--exit-with-stdin';
 // The desk lives under this path, here (http://127.0.0.1:8025/desk/) and on money24.dogs.red/desk/.
-const DESK_PATH = '/desk';
 const RUNNER_FLAGS = ['--web', WEB_DIR, '--base', DESK_PATH, '--keep-awake'];
 const ENV_RUNNER_ARGS = 'M24D_ARGS'; // replaces RUNNER_FLAGS, space-separated
 const ENV_PUBLIC_HOST = 'M24D_PUBLIC_HOST'; // a tunnel's hostname, added to the hosts the runner answers to
@@ -61,8 +61,6 @@ const TUNNEL_PORT = 8026; // cloudflared's own status page: /ready answers 200 o
 const TUNNEL_HEALTH_PATH = '/ready';
 const TUNNEL_ARGS = ['tunnel', '--no-autoupdate', '--metrics', `${HOST}:${TUNNEL_PORT}`, 'run'];
 const LOCAL_HOSTS = [`${HOST}:${RUNNER_PORT}`, `localhost:${RUNNER_PORT}`];
-// The pages call their own origin: the runner for trading, the runner's /news/ for news, and never the demo.
-const WEB_ENV = { M24_BASE: `${DESK_PATH}/`, VITE_TRADING_API: DESK_PATH, VITE_NEWS_API: `${DESK_PATH}/news`, VITE_SELF_HOSTED: '1' };
 const BACKOFF_START_MS = 1000;
 const BACKOFF_MAX_MS = 60000;
 const HEALTHY_AFTER_MS = 600000; // a run this long resets the wait before the next restart

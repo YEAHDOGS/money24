@@ -1,0 +1,24 @@
+[Unit]
+Description=Money 24 paper trading desk
+After=network-online.target newsd.service money24-gate.service
+Wants=network-online.target newsd.service
+Requires=money24-gate.service
+ConditionPathExists=/var/lib/money24/.ready
+
+[Service]
+User=money24
+EnvironmentFile=/etc/money24.env
+Environment=GOMEMLIMIT=220MiB
+ExecStart=/opt/money24/current/m24d --addr 127.0.0.1:8025 --data /var/lib/money24/data/trading --web /opt/money24/current/web --base /desk
+Restart=on-failure
+RestartSec=5
+MemoryMax=320M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/money24/data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
