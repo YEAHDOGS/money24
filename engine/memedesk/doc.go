@@ -1,7 +1,10 @@
 // Package memedesk evaluates Pump.fun observations and simulates USD fills.
 // The runner feeds it newly written recorder rows in receipt order. A local,
-// append-only journal stores the observations, rulebook changes and clock
-// ticks needed to reconstruct decisions, fills and price paths. The status
+// append-only journal stores recorder positions, rulebook changes and clock
+// ticks in the order they were applied. On first open, legacy observations
+// become references where the recorder has the same data. Any observations
+// found only in the legacy journal stay inline. Replay reconstructs decisions,
+// fills and price paths. The status
 // endpoint exposes totals, open positions and recent candidates and exits.
 // Edit meme-strategies.json in the runner data folder or use the protected
 // PUT /api/memedesk/strategies endpoint to update the rulebook.

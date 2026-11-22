@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/calendar"
+	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 	"github.com/YEAHDOGS/money24/engine/market"
 )
 
@@ -134,15 +135,16 @@ type SetupStats struct {
 
 // ScoutStatus is the board: the scout's state, the open plays best first, the latest closed ones and each setup's record.
 type ScoutStatus struct {
-	At      time.Time    `json:"at"`
-	State   string       `json:"state"`
-	Why     string       `json:"why,omitempty"`
-	Scanned []string     `json:"scanned"`
-	Open    []Candidate  `json:"open"`
-	Closed  []Candidate  `json:"closed"`
-	Stats   []SetupStats `json:"stats"`
-	NextAt  time.Time    `json:"next_at"`
-	EveryMs int64        `json:"every_ms"`
+	BytesOnDisk int64        `json:"bytes_on_disk"`
+	At          time.Time    `json:"at"`
+	State       string       `json:"state"`
+	Why         string       `json:"why,omitempty"`
+	Scanned     []string     `json:"scanned"`
+	Open        []Candidate  `json:"open"`
+	Closed      []Candidate  `json:"closed"`
+	Stats       []SetupStats `json:"stats"`
+	NextAt      time.Time    `json:"next_at"`
+	EveryMs     int64        `json:"every_ms"`
 }
 
 // scoutDesk is the scout's memory between passes.
@@ -161,8 +163,12 @@ type scoutDesk struct {
 // ScoutStatus returns the board.
 func (s *Service) ScoutStatus() ScoutStatus {
 	s.scout.lastMu.Lock()
-	defer s.scout.lastMu.Unlock()
-	return s.scout.last
+	status := s.scout.last
+	s.scout.lastMu.Unlock()
+	if s.Store != nil {
+		status.BytesOnDisk = s.Store.bytesOnDisk() + diskusage.Files(filepath.Join(s.Store.dir, SCOUT_FILE))
+	}
+	return status
 }
 
 // loadScout reads the record back once, so the stats survive a restart.

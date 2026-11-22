@@ -125,7 +125,7 @@ func (run *recording) apply(row Record) {
 			token.nextSafety = row.At.Add(SAFETY_RETRY)
 		}
 	}
-	if row.At.Format(DAY_LAYOUT) != run.status.Day {
+	if row.At.UTC().Format(DAY_LAYOUT) != run.status.Day {
 		return
 	}
 	switch row.Kind {

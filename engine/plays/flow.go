@@ -90,15 +90,16 @@ type FlowNote struct {
 
 // FlowStatus is the flow desk's last pass, for Home: nothing it decides is hidden.
 type FlowStatus struct {
-	At      time.Time  `json:"at"`
-	State   string     `json:"state"` // looking, off, closed, full, paused or error
-	Why     string     `json:"why,omitempty"`
-	Today   int        `json:"today"`
-	Open    int        `json:"open"`
-	DayPnL  float64    `json:"day_pnl"`
-	Notes   []FlowNote `json:"notes"`
-	NextAt  time.Time  `json:"next_at"`
-	EveryMs int64      `json:"every_ms"`
+	BytesOnDisk int64      `json:"bytes_on_disk"`
+	At          time.Time  `json:"at"`
+	State       string     `json:"state"` // looking, off, closed, full, paused or error
+	Why         string     `json:"why,omitempty"`
+	Today       int        `json:"today"`
+	Open        int        `json:"open"`
+	DayPnL      float64    `json:"day_pnl"`
+	Notes       []FlowNote `json:"notes"`
+	NextAt      time.Time  `json:"next_at"`
+	EveryMs     int64      `json:"every_ms"`
 }
 
 type flowDesk struct {
@@ -109,8 +110,10 @@ type flowDesk struct {
 // FlowStatus returns the flow desk's last pass.
 func (s *Service) FlowStatus() FlowStatus {
 	s.flow.mu.Lock()
-	defer s.flow.mu.Unlock()
-	return s.flow.last
+	status := s.flow.last
+	s.flow.mu.Unlock()
+	status.BytesOnDisk = s.Store.bytesOnDisk()
+	return status
 }
 
 // flowPick is one contract the crowd is buying, with what it traded today.

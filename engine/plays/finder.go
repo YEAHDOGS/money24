@@ -161,14 +161,15 @@ type FinderNote struct {
 
 // FinderStatus is the finder's last pass, for the Rules tab: nothing it does is hidden.
 type FinderStatus struct {
-	At      time.Time    `json:"at"`
-	State   string       `json:"state"` // looking, off, closed (the session), full (the day's count), paused (the day's loss) or error
-	Why     string       `json:"why,omitempty"`
-	Today   int          `json:"today"`   // plays it opened today
-	DayPnL  float64      `json:"day_pnl"` // every play closed today, in dollars
-	Notes   []FinderNote `json:"notes"`   // the stories loud enough to be looked at, loudest first
-	NextAt  time.Time    `json:"next_at"`
-	EveryMs int64        `json:"every_ms"`
+	BytesOnDisk int64        `json:"bytes_on_disk"`
+	At          time.Time    `json:"at"`
+	State       string       `json:"state"` // looking, off, closed (the session), full (the day's count), paused (the day's loss) or error
+	Why         string       `json:"why,omitempty"`
+	Today       int          `json:"today"`   // plays it opened today
+	DayPnL      float64      `json:"day_pnl"` // every play closed today, in dollars
+	Notes       []FinderNote `json:"notes"`   // the stories loud enough to be looked at, loudest first
+	NextAt      time.Time    `json:"next_at"`
+	EveryMs     int64        `json:"every_ms"`
 }
 
 // finderLog holds the last pass for the API.
@@ -186,8 +187,10 @@ func (l *finderLog) set(st FinderStatus) {
 // FinderStatus returns the finder's last pass.
 func (s *Service) FinderStatus() FinderStatus {
 	s.finder.mu.Lock()
-	defer s.finder.mu.Unlock()
-	return s.finder.last
+	status := s.finder.last
+	s.finder.mu.Unlock()
+	status.BytesOnDisk = s.Store.bytesOnDisk()
+	return status
 }
 
 // stories reads the tradable stories from newsd, loudest first.

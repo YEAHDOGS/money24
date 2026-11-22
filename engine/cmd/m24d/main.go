@@ -37,6 +37,7 @@ import (
 	"github.com/YEAHDOGS/money24/engine/calendar"
 	"github.com/YEAHDOGS/money24/engine/coinbase"
 	"github.com/YEAHDOGS/money24/engine/dexscreener"
+	"github.com/YEAHDOGS/money24/engine/internal/diskusage"
 	"github.com/YEAHDOGS/money24/engine/kalshitape"
 	"github.com/YEAHDOGS/money24/engine/market"
 	"github.com/YEAHDOGS/money24/engine/meme"
@@ -85,7 +86,6 @@ const (
 	ROUTE_BROKER       = "GET /api/broker"
 	MIRROR_FILE        = "alpaca-mirror.json" // the last journal line placed at the broker
 	TAPE_SUBDIR        = "tape"               // every minute's 0DTE and weekly chains, for backtests
-	MEME_SUBDIR        = "meme"
 	MEME_REPLAY_FLAG   = "meme-replay"
 	PREDICT_FILE       = "predict-journal.jsonl" // the prediction desk's paper book
 	PREDICT_TIMEOUT    = 30 * time.Second        // a page of a thousand Kalshi markets is a few megabytes
@@ -302,7 +302,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if *memeReplay != "" {
-		result, err := memedesk.Replay(ctx, *dataDir, filepath.Join(*dataDir, MEME_SUBDIR), *memeReplay)
+		result, err := memedesk.Replay(ctx, *dataDir, filepath.Join(*dataDir, meme.DATA_SUBDIR), *memeReplay)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -354,7 +354,8 @@ func main() {
 		}
 		defer release()
 	}
-	journal, err := signals.OpenJournal(filepath.Join(*dataDir, JOURNAL_FILE))
+	journalPath := filepath.Join(*dataDir, JOURNAL_FILE)
+	journal, err := signals.OpenJournal(journalPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -445,7 +446,10 @@ func main() {
 	opts.Mount[calendar.ROUTE] = calendar.Handler()
 	opts.Mount[ROUTE_ACCOUNT] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(runner.Account(time.Now()))
+		json.NewEncoder(w).Encode(struct {
+			signals.Account
+			BytesOnDisk int64 `json:"bytes_on_disk"`
+		}{runner.Account(time.Now()), diskusage.Files(journalPath)})
 	})
 	newsURL := cmp.Or(os.Getenv(ENV_NEWSD), DEFAULT_NEWSD)
 	if *web != "" {
@@ -518,7 +522,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(kalshiTape.Status())
 	})
-	memeRecorder := &meme.Recorder{Dir: filepath.Join(*dataDir, MEME_SUBDIR)}
+	memeRecorder := &meme.Recorder{Dir: filepath.Join(*dataDir, meme.DATA_SUBDIR)}
 	memeDesk, err := memedesk.Open(*dataDir)
 	if err != nil {
 		log.Printf("meme paper desk unavailable: %v", err)
