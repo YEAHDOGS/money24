@@ -11,6 +11,7 @@ Rules for every AI agent working in this repository.
 <!-- /setup:project -->
 
 ## Cloudflare environments
+- **For now, Money 24 keeps its data off Cloudflare.** Only minimal D1 records, the static Pages site and the desk's Tunnel and Worker touch it. No R2, no news, no backups, no cloud machine. Everything else stays on the owner's PC, and the account stays on the free plan.
 - Use Cloudflare Workers and D1 for serverless logic and relational data, with R2 for object storage when needed. Use Cloudflare bindings and D1 APIs directly. Stay inside the free tier, cache responses, lazy load, and keep data locally so each visitor makes as few requests as possible.
 - Server code lives in `api/`: Pages Functions in `api/functions/`, SQL migrations in `api/migrations/`, Wrangler config in `api/wrangler.jsonc`. The optional Tauri shell lives in `src/tauri/`. The Go trading engine lives in `engine/`; its local SQLite migrations live in `engine/migrations/` as versioned SQL, embedded in the binary.
 - Database changes require versioned SQL migrations. SQL migrations are the source of truth; do not duplicate database schemas in application code.
