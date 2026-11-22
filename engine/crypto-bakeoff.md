@@ -46,3 +46,32 @@ windows. No parameters are adjusted after seeing the results.
 Fee source: https://docs.alpaca.markets/us/docs/crypto-fees
 
 Candle source: https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles
+
+## Replay on 2026-11-22
+
+From `engine/` in PowerShell:
+
+```powershell
+$replayDir = Join-Path ([IO.Path]::GetTempPath()) ("m24-crypto-" + [guid]::NewGuid().ToString("N"))
+go run -buildvcs=false ./cmd/m24d --data $replayDir --crypto-backtest 365 --crypto-backtest-all --crypto-backtest-entry both --crypto-backtest-end 2026-11-22T04:00:00Z
+```
+
+The 90-day window started 2026-08-24 04:00 UTC and split at 2026-10-23
+04:00 UTC. The 365-day window started 2025-11-22 04:00 UTC and split at
+2026-07-23 12:00 UTC. Both ended at 2026-11-22 04:00 UTC. Coinbase returned
+8,875 of 8,880 expected hours per pair, including the first window's warm-up.
+The downloader requests at most 300 hourly candles at a time, filters to the
+requested interval, and deduplicates the shared page boundary.
+
+No strategy and entry mode passed. All eight combinations lost money in both
+full windows. The 365-day market runs of breakout and four-hour trend lost
+37.60% and 40.25%, respectively. RSI reversion had 19–25 trades over 365 days
+and fell 4.40–4.54%. Weekend fade gained 0.63–0.79% in the first two thirds
+of the 365-day window, then lost 1.39–1.44% in the final third. Weekend fade
+made only one trade in the full 90-day window.
+
+The 90-day window overlaps the 365-day window. The replay uses Coinbase
+trades as a proxy for Alpaca fills and models neither spread, slippage beyond
+opening gaps, nor queue priority. The live paper desk runs its usual play
+checks, including liquidity and spread, and uses its existing execution and
+fee assumptions. The entry-mode flag applies only to the offline replay.
