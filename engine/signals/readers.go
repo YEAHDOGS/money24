@@ -17,6 +17,7 @@ type SignalReaders struct {
 	public   *http.Client
 	telegram *telegramReader
 	discord  *discordReader
+	failures followFailures // each source whose last read failed, for GET /api/follow
 }
 
 func NewSignalReaders(client *http.Client, data string) *SignalReaders {
@@ -101,6 +102,9 @@ func (r *SignalReaders) followSource(ctx context.Context, catalog *Catalog, rec 
 		}
 		if err != nil && ctx.Err() == nil {
 			log.Printf(PUBLIC_FOLLOW_ERROR, source.ID(), err)
+		}
+		if ctx.Err() == nil && !errors.Is(err, errDiscordEmpty) {
+			r.failures.note(source.ID(), err, time.Now())
 		}
 		if waitForReader(ctx, interval) != nil {
 			return

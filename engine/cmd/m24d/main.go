@@ -443,6 +443,9 @@ func main() {
 	}
 	opts.Mount[market.ROUTE_PREFIX] = market.Handler(prices)
 	opts.Mount[calendar.ROUTE] = calendar.Handler()
+	// What the desktop app's pocket window reads: the supervisor's state file and each followed kind of source.
+	opts.Mount[ROUTE_SUPERVISOR] = supervisorRoute()
+	opts.Mount[signals.FOLLOW_ROUTE] = readers.FollowRoute(catalog, recorder)
 	opts.Mount[ROUTE_ACCOUNT] = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(runner.Account(time.Now()))
