@@ -102,26 +102,81 @@ pattern.
 
 ## The prediction desk (paper, live): `engine/predict`, the Odds tab
 
-Built 2026-11-21. A paper book of Kalshi event contracts at Kalshi's real, live prices. It runs
-inside m24d, around the clock, and places no order anywhere.
+Built 2026-11-21. A paper book of Kalshi event contracts at Kalshi's real, live prices, running
+inside m24d around the clock. It places no order anywhere.
 
 - **Prices:** Kalshi's public market data. No key needed.
 - **Fills:** against the real order book (Kalshi lists bids only; a NO bid at p is a YES offer at
   1 − p), whole contracts, with Kalshi's taker fee `ceil(0.07 × C × P × (1 − P))` on every fill.
   A few series charge less; the desk charges the standard rate everywhere.
-- **Settlement:** at the real result, $1 a contract to the winning side.
-- **The rule (first one):** favorites near the close. Every 5 minutes, binary markets whose trading
-  ends within 6 hours (and more than 5 minutes away), with the favorite's ask at 85–95¢, its spread
-  at most 3¢ and 200+ contracts traded in 24 hours. Parlay combos are left out.
-- **Limits:** $1,000 paper capital, $20 a market, 25 open, one per event, 5 new a pass, $200 of new
-  stake a day, and no new positions after $100 of settled losses in a New York day.
-- **The honest record:** every favorite the rule finds is followed to its result, traded or not,
-  and kept by price band (85–88¢, 88–91¢, 91–95¢) with its win rate, the win rate that breaks even
-  after the fee, and what a dollar in every one made. That record, not the trades, says whether
-  the rule works.
-- **Files:** `predict-journal.jsonl` in m24d's data folder. `GET /api/predict` serves the desk.
-- **Live check:** `M24D_LIVE=1 go test ./predict -run Live -v` runs one real pass into a throwaway book.
+- **Settlement:** at the real result, $1 a contract to the winning side. Positions are held to
+  settlement: a fee going in, none coming out.
+- **The honest record:** every market a strategy's rules take is followed to its result, traded or
+  not, as if one contract were bought at that moment's price with the fee. Per strategy: win rate,
+  the win rate that breaks even, what a dollar made, and (for strategies that give chances) the
+  average chance they gave, to check those chances can be trusted.
+- **Files:** `predict-journal.jsonl` and `predict-strategies.json` in m24d's data folder.
+  `GET /api/predict` serves the desk.
+- **Live check:** `M24D_LIVE=1 go test ./predict -run Live -v` runs every default strategy once
+  into a throwaway book.
 - **Known gap:** markets in different events can still move together (bitcoin, ether and solana
-  price markets closing the same hour). The one-per-event limit does not catch that yet.
+  closing the same hour; New York, Newark and Trenton weather). One position per event does not
+  catch that yet.
 - **Next:** Kalshi demo orders with the keys in `.env` (`KALSHI_KEY_ID`, `KALSHI_PRIVATE_KEY_PATH`,
-  `KALSHI_ENV=demo`), once the record says the rule is worth it.
+  `KALSHI_ENV=demo`), once a strategy's record says it is worth it.
+
+### Strategies are plug-ins
+
+- **The rulebook** is `predict-strategies.json` in m24d's data folder, written with the defaults
+  on first start. It holds the paper capital, the daily loss limit across the desk, the desk's
+  **mode** (low, medium or high: strategies riskier than the mode keep their record but buy
+  nothing), and every strategy: id, kind, name, on/off, risk, how often it looks, its entry rules
+  (price range, spread, volume, time left, least edge, least chance, most edge), its limits (stake
+  per market, open positions, new per pass, stake per day), and the kind's own settings.
+- **Edit the file** to add, remove, retune or switch off a strategy. The desk re-reads it within a
+  minute. A broken file keeps the last good one running and shows the mistake on the Odds tab.
+  `PUT /api/predict/strategies` replaces it too (local desk or webhook secret only).
+- **One kind, many strategies:** the two weather strategies are the same code with different
+  settings. Copy an entry, change its id and settings, and both run side by side with records of
+  their own.
+- **A new kind** is one Go file in `engine/predict` that calls `Register` from `init` with a
+  `New(params)` returning a `Strategy`: `Scope()` (which series, or every market closing within N
+  hours), `Prepare()` (fetch its data once a pass) and `Evaluate(market)` (the side to buy, and the
+  chance it gives YES when it has one). The desk does the rest: entry rules, the record, fills,
+  limits, settlement and the page.
+
+### The strategies running now
+
+| Strategy | Kind | Risk | What it does |
+|---|---|---|---|
+| Favorites near the close | `favorites` | medium | Any market closing within 6 hours: buys the side priced 85–95¢. Record kept by price band. |
+| Weather: what's already recorded | `weather` | low | Only ranges the station's record has already decided, with a degree to spare: a high already past a range, a low already below one, a finished day well inside one. |
+| Weather: forecast edge | `weather` | medium | Today and tomorrow: buys where its chance beats the price by 8¢ after the fee, and skips gaps over 25¢ as more likely its own mistake. |
+
+**The weather model:** 24 US stations, the ones Kalshi's rules name (Central Park for New York,
+Midway for Chicago). A day's value is the larger (for a high) or smaller (for a low) of what the
+station has recorded so far, from the National Weather Service, and each of 82 forecast runs
+(GEFS and ECMWF ensembles via Open-Meteo) for the hours left, each with a spread for rounding and
+for the time still to come. Kalshi's weather markets settle on The Weather Company's number, which
+can differ from the station's readings by a degree; the known margin is there for that.
+
+**What the first live passes showed (2026-11-21, 10pm):** decided ranges were already priced at
+98–99¢, above the known strategy's 97¢ cap: the market already prices what is known. The forecast
+strategy found about 35 candidates a pass. Next for weather: learn each station's own bias against
+the forecasts from the recorded results.
+
+### The strategy menu: where else the same approach works
+
+Same shape as weather: public data, a number Kalshi settles on, and a model that turns the data
+into a chance for each range.
+
+| Family | Kalshi markets | Data | Known side | Forecast side |
+|---|---|---|---|---|
+| Prices at a set time | Bitcoin, ether, solana hourly and daily ranges; S&P 500 and Nasdaq daily ranges | Coinbase live prices; option-implied volatility (the tape already records SPX chains) | Minutes before the close, price far from a range | Volatility math: the chance price ends in each range |
+| Economic releases | CPI, jobs report, weekly jobless claims, GDP | Cleveland Fed inflation nowcast, Atlanta Fed GDPNow, claims history | None before the release | The nowcast against the range prices |
+| Fed decisions | Rate decision, number of cuts | Fed funds futures (market-implied odds) | None | Kalshi against the futures' own odds |
+| Daily counts | TSA checkpoint numbers, gas and diesel prices | TSA daily numbers, AAA daily averages, EIA weekly | Most of the week already published | Weekly patterns and holidays |
+| Counted events | Posts by a public figure, box office, chart positions | Live counters, early numbers | The count already past a range | Pace models |
+| Structural | Any | Kalshi itself | Results already out while the market still trades | Favorite–long-shot bias (running); Kalshi against Polymarket |
+
+Sports and corporate-deal markets stay off the low and medium levels: too much that cannot be known.
