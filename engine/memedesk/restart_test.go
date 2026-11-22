@@ -30,7 +30,9 @@ func TestMiddayRestartMatchesUninterruptedDesk(t *testing.T) {
 		snapshot(TEST_MINT, expired, 0.75),
 		snapshot(TEST_MINT, expired.Add(SIMULATED_LATENCY), 0.70),
 	}
-	run := func(restart bool) Status {
+	// Each run returns the whole engine, not only its status, so hidden state
+	// such as pending timers and safety context must survive the restart too.
+	run := func(restart bool) *engine {
 		dir := t.TempDir()
 		recorderDir := filepath.Join(dir, meme.DATA_SUBDIR)
 		d, err := Open(dir)
@@ -50,7 +52,7 @@ func TestMiddayRestartMatchesUninterruptedDesk(t *testing.T) {
 		}
 		d.tick(entry)
 		if restart {
-			midday := d.model.status(true)
+			midday := d.model
 			if err := d.Close(); err != nil {
 				t.Fatal(err)
 			}
@@ -61,8 +63,15 @@ func TestMiddayRestartMatchesUninterruptedDesk(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := d.model.status(true); !reflect.DeepEqual(midday, got) {
-				t.Fatalf("midday restore changed the desk: got %+v, want %+v", got, midday)
+			if !reflect.DeepEqual(midday, d.model) {
+				t.Fatalf("midday restore changed the desk: got %+v, want %+v", d.model.status(true), midday.status(true))
+			}
+			journal, err := os.ReadFile(filepath.Join(dir, JOURNAL_FILE))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Contains(journal, []byte(`"record":`)) || !bytes.Contains(journal, []byte(JOURNAL_NEXT)) {
+				t.Fatalf("journal should hold recorder references only: %s", journal)
 			}
 		}
 		defer d.Close()
@@ -72,14 +81,14 @@ func TestMiddayRestartMatchesUninterruptedDesk(t *testing.T) {
 		d.Observe(rows[TEST_RESTART_SPLIT+1], positions[1])
 		d.Observe(rows[TEST_RESTART_SPLIT+2], positions[2])
 		d.tick(expired.Add(FOLLOW_WINDOW))
-		return d.model.status(true)
+		return d.model
 	}
 
-	want, got := run(false), run(true)
-	if !reflect.DeepEqual(want, got) {
-		t.Fatalf("resumed desk diverged: got %+v, want %+v", got, want)
+	want, resumed := run(false), run(true)
+	if !reflect.DeepEqual(want, resumed) {
+		t.Fatalf("resumed desk diverged: got %+v, want %+v", resumed.status(true), want.status(true))
 	}
-	for _, s := range got.Strategies {
+	for _, s := range resumed.status(true).Strategies {
 		if s.Record.Candidates != 2 || s.Record.Pending != 0 || s.Record.Following != 0 {
 			t.Fatalf("wrong observation coverage after restart: %+v", s.Record)
 		}
