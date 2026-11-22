@@ -75,7 +75,10 @@ func measure(opts options, starting bool) (cloudguard.State, cloudguard.Verdict,
 	inspector := cloudguard.NewInspector()
 	facts, factsErr := inspector.Instance()
 	if factsErr == nil && cloudguard.DiskCheckDue(previous, sample) {
-		factsErr = inspector.Disks(&facts)
+		// A failed disk check leaves the metadata checks standing; starting still needs one success per boot.
+		if err := inspector.Disks(&facts); err != nil {
+			fmt.Printf("m24guard: disk check: %v\n", err)
+		}
 	}
 	state, verdict, err := cloudguard.Step(previous, cloudguard.Input{
 		Sample: sample, LimitBytes: opts.limit, Facts: facts, FactsErr: factsErr, Starting: starting,

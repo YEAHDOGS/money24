@@ -73,8 +73,10 @@ export function setupKillswitch(gcloud, s) {
     { note: 'lets the Pub/Sub trigger call the function' });
   gcloud.must(['artifacts', 'repositories', 'set-cleanup-policies', ARTIFACT_REPO, `--location=${s.region}`,
     `--policy=${CLEANUP_POLICY}`, '--no-dry-run'], { note: 'keep two images, under the free 0.5 GB' });
+  // No project filter: the budget watches the whole billing account, so a cost anywhere on it trips
+  // the switch, and a mistyped filter can never leave the budget watching nothing.
   const budget = [`--display-name=${BUDGET_NAME}`, `--budget-amount=${s.budgetUsd}USD`, '--calendar-period=month',
-    `--filter-projects=projects/${s.project}`, '--credit-types-treatment=include-specified-credits',
+    '--credit-types-treatment=include-specified-credits',
     `--filter-credit-types=${COUNTED_CREDITS}`, ...THRESHOLDS.map((value) => `--threshold-rule=percent=${value}`),
     `--notifications-rule-pubsub-topic=projects/${s.project}/topics/${TOPIC}`];
   const budgets = gcloud.json(['billing', 'budgets', 'list', `--billing-account=${s.billingAccount}`], []);

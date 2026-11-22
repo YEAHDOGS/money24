@@ -1,9 +1,15 @@
 // Runs gcloud for the cloud kit. Every command passes the free-tier allowlist first,
 // in --dry-run too, and secrets only ever travel over stdin.
 import { spawnSync } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { assertAllowed } from './freetier.js';
 
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..'); // paths in commands are repo-relative
 const IS_WINDOWS = process.platform === 'win32';
+// A new service account takes a few seconds to reach IAM; grants right after creating one retry.
+const GRANT_ATTEMPTS = 5;
+const GRANT_WAIT_MS = 10000;
 const MAX_COMMAND_OUTPUT = 4 * 1024 * 1024;
 // Characters cmd.exe leaves alone inside double quotes. Arguments are fixed or validated names.
 const WINDOWS_SAFE_ARG = /^[a-zA-Z0-9_:/ .,=@+-]+$/;
@@ -18,7 +24,7 @@ export function display(args) {
 }
 
 function spawn(args, input) {
-  const options = { input, encoding: 'utf8', maxBuffer: MAX_COMMAND_OUTPUT, windowsHide: true };
+  const options = { cwd: ROOT, input, encoding: 'utf8', maxBuffer: MAX_COMMAND_OUTPUT, windowsHide: true };
   if (!IS_WINDOWS) return spawnSync('gcloud', args, options);
   // The Windows SDK entry point is a .cmd file, so the command line goes through cmd.exe.
   if (args.some((arg) => !WINDOWS_SAFE_ARG.test(arg))) throw new Error('Invalid gcloud argument.');
@@ -91,7 +97,14 @@ export class Gcloud {
     } else {
       this.must(create, { note: `create ${what}` });
     }
-    for (const grant of grants) this.must(grant, { project: false, note: 'least-privilege grant' });
+    for (const grant of grants) {
+      for (let attempt = 1; ; attempt++) {
+        const result = this.run(grant, { project: false, note: 'least-privilege grant', quiet: attempt < GRANT_ATTEMPTS });
+        if (this.dry || result.ok) break;
+        if (attempt === GRANT_ATTEMPTS) throw new Error(`gcloud ${grant.slice(0, 2).join(' ')} failed.`);
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, GRANT_WAIT_MS);
+      }
+    }
   }
 
   /** Calls a Google REST API with the signed-in user's token. The token is never printed. */
