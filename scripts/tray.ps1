@@ -3,6 +3,9 @@
 # menu opens the desk, shows each service's state, opens the logs, restarts or stops everything.
 # Started by forever.js with Windows PowerShell (built in, no install); it exits on its own when the
 # supervisor is gone. Paper trading only; nothing here can place a real order.
+# When the desktop app is built (-App), the app is the tray and this one stands in only after its Quit:
+# "Open the desk" then exits with $OPEN_APP_CODE, and the supervisor opens the desk in the app. While any
+# copy of the app runs, this icon hides, so there is never a second Money 24 icon.
 param(
   [Parameter(Mandatory = $true)][int]$Supervisor,
   [Parameter(Mandatory = $true)][string]$Root,
@@ -10,7 +13,8 @@ param(
   [Parameter(Mandatory = $true)][string]$Health,
   [Parameter(Mandatory = $true)][string]$Logs,
   [string]$Icon = '',
-  [string]$Task = 'Money24'
+  [string]$Task = 'Money24',
+  [string]$App = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,11 +30,20 @@ $TITLE = 'Money 24'
 $WELCOME = 'Money 24 is running. Right-click this icon to open the desk, see status, or stop it.'
 $FOREVER = Join-Path $Root 'scripts\forever.js'
 $NODE = (Get-Command node -ErrorAction SilentlyContinue).Source
+$OPEN_APP_CODE = 10 # forever.js: open the desk in the desktop app
+$script:exitCode = 0
+$APP_NAME = if ($App) { [System.IO.Path]::GetFileNameWithoutExtension($App) } else { '' }
 
 $tray = New-Object System.Windows.Forms.NotifyIcon
 $tray.Icon = if ($Icon -and (Test-Path $Icon)) { New-Object System.Drawing.Icon $Icon } else { [System.Drawing.SystemIcons]::Application }
 $tray.Text = $TIP_STARTING
-$tray.Visible = $true
+
+# The desktop app shows its own icon: while a copy of it runs, this one stays out of the tray.
+function Update-Visibility {
+  $appRunning = $APP_NAME -and (Get-Process -Name $APP_NAME -ErrorAction SilentlyContinue)
+  $tray.Visible = -not $appRunning
+}
+Update-Visibility
 
 # Runs forever.js with a flag in a hidden, separate process, so stopping the supervisor never stops the
 # command that asked for it.
@@ -45,6 +58,17 @@ function Show-Status {
   [System.Windows.Forms.MessageBox]::Show($text.Trim(), "$TITLE status", 'OK', 'Information') | Out-Null
 }
 
+# With the desktop app built, the desk opens in its window: this icon goes and the supervisor opens the app.
+function Open-Desk {
+  if (-not ($App -and (Test-Path $App))) {
+    Start-Process $Desk
+    return
+  }
+  $script:exitCode = $OPEN_APP_CODE
+  $tray.Visible = $false
+  [System.Windows.Forms.Application]::Exit()
+}
+
 function Restart-Money24 {
   $installed = $false
   try { schtasks /Query /TN $Task 2>$null | Out-Null; $installed = ($LASTEXITCODE -eq 0) } catch { }
@@ -56,7 +80,7 @@ function Restart-Money24 {
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $open = $menu.Items.Add('Open the desk')
 $open.Font = New-Object System.Drawing.Font($open.Font, [System.Drawing.FontStyle]::Bold)
-$open.add_Click({ Start-Process $Desk })
+$open.add_Click({ Open-Desk })
 $menu.Items.Add('Status of every service').add_Click({ Show-Status })
 $menu.Items.Add('Open the logs folder').add_Click({ Start-Process explorer.exe $Logs })
 $menu.Items.Add('-') | Out-Null
@@ -66,8 +90,8 @@ $menu.Items.Add('Stop Money 24').add_Click({
   if ($answer -eq 'Yes') { Start-Forever '--stop' }
 })
 $tray.ContextMenuStrip = $menu
-$tray.add_DoubleClick({ Start-Process $Desk })
-$tray.ShowBalloonTip(5000, $TITLE, $WELCOME, [System.Windows.Forms.ToolTipIcon]::Info)
+$tray.add_DoubleClick({ Open-Desk })
+if ($tray.Visible) { $tray.ShowBalloonTip(5000, $TITLE, $WELCOME, [System.Windows.Forms.ToolTipIcon]::Info) }
 
 # Every few seconds: gone supervisor means gone icon; otherwise the tooltip says whether the runner answers.
 $timer = New-Object System.Windows.Forms.Timer
@@ -80,6 +104,7 @@ $timer.add_Tick({
     [System.Windows.Forms.Application]::Exit()
     return
   }
+  Update-Visibility
   try {
     $request = [System.Net.WebRequest]::Create($Health)
     $request.Timeout = $HEALTH_TIMEOUT_MS
@@ -93,3 +118,5 @@ $timer.add_Tick({
 $timer.Start()
 
 [System.Windows.Forms.Application]::Run()
+$tray.Dispose()
+exit $script:exitCode
