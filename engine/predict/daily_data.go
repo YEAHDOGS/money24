@@ -134,9 +134,18 @@ func parseAAA(body string) (regular []DailyPoint, diesel []DailyPoint, err error
 		if len(cells) < 3 {
 			continue
 		}
-		for i, name := range cells {
-			if name == AAA_COL_REGULAR || name == AAA_COL_DIESEL {
-				cols[name] = i
+		// The header is the one row naming both grades; later tables on the page (record
+		// highs, state averages) reuse the grade names in other columns and must not
+		// move these. Take the header once, from that row only.
+		if len(cols) == 0 {
+			rowCols := map[string]int{}
+			for i, name := range cells {
+				if name == AAA_COL_REGULAR || name == AAA_COL_DIESEL {
+					rowCols[name] = i
+				}
+			}
+			if len(rowCols) == 2 {
+				cols = rowCols
 			}
 		}
 		switch cells[0] {

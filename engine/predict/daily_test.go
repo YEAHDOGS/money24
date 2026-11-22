@@ -106,7 +106,9 @@ func TestParseAAAReadsRegularAndDiesel(t *testing.T) {
 	body := `<p>National average as of 11/21/26</p><table class="table-mob"><thead><tr><th></th><th>Regular</th><th>Mid-Grade</th><th>Premium</th><th>Diesel</th><th>E85</th></tr></thead>` +
 		`<tbody><tr><td>Current Avg.</td><td>$3.6594</td><td>$4.1987</td><td>$4.5875</td><td>$5.8649</td><td>$2.7613</td></tr>` +
 		`<tr><td>Yesterday Avg.</td><td>$3.6898</td><td>$4.2238</td><td>$4.6181</td><td>$5.8982</td><td>$2.7945</td></tr>` +
-		`<tr><td>Week Ago Avg.</td><td>$3.8406</td><td>$4.3688</td><td>$4.7645</td><td>$6.0366</td><td>$2.9545</td></tr></tbody></table>`
+		`<tr><td>Week Ago Avg.</td><td>$3.8406</td><td>$4.3688</td><td>$4.7645</td><td>$6.0366</td><td>$2.9545</td></tr></tbody></table>` +
+		// The real page's record-high table reuses the grade names in other columns.
+		`<table><tr><td>Diesel</td><td></td><td></td><td>$6.5276</td><td>9/22/26</td></tr></table>`
 	regular, diesel, err := parseAAA(body)
 	if err != nil {
 		t.Fatal(err)
