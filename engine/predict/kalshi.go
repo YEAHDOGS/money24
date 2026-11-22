@@ -33,8 +33,11 @@ const (
 	STATUS_OPEN_QUERY = "open"
 	MVE_EXCLUDE       = "exclude" // multivariate combos (parlays) are left out: thin, and priced as bundles
 	MARKET_BINARY     = "binary"
+	STATUS_FINALIZED  = "finalized"
+	STATUS_SETTLED    = "settled"
 	RESULT_YES        = "yes"
 	RESULT_NO         = "no"
+	RESULT_SCALAR     = "scalar"
 	SIDE_YES          = "yes"
 	SIDE_NO           = "no"
 	DOLLAR            = 1.0
@@ -46,9 +49,6 @@ const (
 	ENV_KALSHI_ENV    = "KALSHI_ENV"
 	KALSHI_ENV_DEMO   = "demo"
 )
-
-// FINISHED are the market states in which the result is known.
-var FINISHED = map[string]bool{"determined": true, "finalized": true, "settled": true}
 
 // Market is one Kalshi market as the desk uses it. Prices are dollars a contract, 0 to 1.
 type Market struct {
@@ -115,9 +115,12 @@ func (m Market) Range() (lo, hi float64, ok bool) {
 	return 0, 0, false
 }
 
-// Finished says whether the market's result is known.
+// Finished says whether the market has a final, payable result.
 func (m Market) Finished() bool {
-	return FINISHED[m.Status] && (m.Result == RESULT_YES || m.Result == RESULT_NO)
+	if m.Status != STATUS_FINALIZED && m.Status != STATUS_SETTLED {
+		return false
+	}
+	return m.Result == RESULT_YES || m.Result == RESULT_NO || (m.Result == RESULT_SCALAR && m.HasValue)
 }
 
 // Ask is what one contract of a side costs at the top of the book, and Bid what it sells for.
@@ -198,8 +201,8 @@ func (w wireMarket) market() Market {
 		Status: w.Status, Result: w.Result, CloseAt: closeAt, YesBid: number(w.YesBid), YesAsk: number(w.YesAsk),
 		NoBid: number(w.NoBid), NoAsk: number(w.NoAsk), Volume24h: number(w.Volume24h),
 		Strike: w.StrikeType, Floor: w.FloorStrike, Cap: w.CapStrike}
-	if w.Settlement != "" {
-		m.Value, m.HasValue = number(w.Settlement), true
+	if value, err := strconv.ParseFloat(strings.TrimSpace(w.Settlement), 64); err == nil && value >= 0 && value <= DOLLAR {
+		m.Value, m.HasValue = value, true
 	}
 	return m
 }
