@@ -140,7 +140,7 @@ func TestReadStoryValidates(t *testing.T) {
 	}))
 	defer srv.Close()
 	o := Ollama{Host: srv.URL, HTTP: srv.Client()}
-	in := StoryInput{Headlines: []string{"Nvidia board weighs ousting Huang"}, Watchlist: []string{"NVDA", "AMD"}, Instrument: "NVDA"}
+	in := StoryInput{Headlines: []string{"Nvidia board weighs ousting Huang"}, Watchlist: map[string]string{"NVDA": "nvidia", "AMD": "amd"}, Instrument: "NVDA"}
 	r, _, err := o.ReadStory(t.Context(), TEST_MODEL, "", in)
 	if err != nil {
 		t.Fatal(err)

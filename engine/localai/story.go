@@ -40,9 +40,9 @@ Use only the headlines. Do not invent facts.`
 
 // StoryInput is what the model reads.
 type StoryInput struct {
-	Headlines  []string `json:"headlines"`
-	Watchlist  []string `json:"watchlist"`
-	Instrument string   `json:"instrument"`
+	Headlines  []string          `json:"headlines"`
+	Watchlist  map[string]string `json:"watchlist"` // ticker -> what it is ("NVDA": "nvidia")
+	Instrument string            `json:"instrument"`
 }
 
 // StoryReading is what the model said about one story.
@@ -72,7 +72,7 @@ func storySchema() map[string]any {
 
 // valid checks the reading against its shape, since some runners do not enforce the schema, and keeps
 // only tickers that were on the list.
-func (r *StoryReading) valid(watchlist []string) error {
+func (r *StoryReading) valid(watchlist map[string]string) error {
 	if r.Events != EVENTS_ONE && r.Events != EVENTS_SEVERAL {
 		return fmt.Errorf("events is %q", r.Events)
 	}
@@ -85,7 +85,7 @@ func (r *StoryReading) valid(watchlist []string) error {
 	kept := []string{}
 	for _, t := range r.Tickers {
 		t = strings.ToUpper(strings.TrimSpace(t))
-		if slices.Contains(watchlist, t) && !slices.Contains(kept, t) {
+		if _, ok := watchlist[t]; ok && !slices.Contains(kept, t) {
 			kept = append(kept, t)
 		}
 	}
