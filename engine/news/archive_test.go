@@ -266,3 +266,57 @@ func TestArchiveHTTP(t *testing.T) {
 		}
 	}
 }
+
+func TestArchiveGroups(t *testing.T) {
+	store, zone := archiveFixture(t)
+	ctx := context.Background()
+	_, err := store.db.ExecContext(ctx, `INSERT INTO stories (id, first_seen, last_seen, title, category, angle, articles, outlets, attention, validity)
+		VALUES (7, 0, 0, 'Rates story', 'macro', 'mixed', 2, 2, 50, 50);
+		INSERT INTO story_events (event_id, story_id) SELECT id, 7 FROM events WHERE url IN ('https://a.example/1', 'https://b.example/1')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	start, _ := dayStart(TEST_DAY, zone)
+	day := ArchiveQuery{From: start, To: start.AddDate(0, 0, 1)}
+
+	bySource, count, err := store.archiveGroups(ctx, day, GROUP_BY_SOURCE)
+	if err != nil || count != 2 || len(bySource) != 2 {
+		t.Fatalf("by outlet: %+v, %d, %v", bySource, count, err)
+	}
+	if bySource[0].Key != "Outlet A" || bySource[0].N != 2 || bySource[0].Title != "Oil slips on supply" {
+		t.Errorf("biggest outlet with its newest headline: %+v", bySource[0])
+	}
+
+	byStory, _, err := store.archiveGroups(ctx, day, GROUP_BY_STORY)
+	if err != nil || len(byStory) != 2 {
+		t.Fatalf("by story: %+v, %v", byStory, err)
+	}
+	if byStory[0].Key != "7" || byStory[0].Name != "Rates story" || byStory[0].N != 2 || byStory[1].Key != STORY_NONE {
+		t.Errorf("stories: %+v", byStory)
+	}
+	for story, want := range map[string]int{"7": 2, STORY_NONE: 1} {
+		q := day
+		q.Story = story
+		page, _, err := store.archivePage(ctx, q)
+		if err != nil || len(page) != want {
+			t.Errorf("story %s: %d articles, want %d (%v)", story, len(page), want, err)
+		}
+		if story == "7" && (page[0].Story == nil || page[0].Story.Title != "Rates story") {
+			t.Errorf("an article names its story: %+v", page[0].Story)
+		}
+	}
+
+	svc := &Service{store: store, hub: NewHub(), monitor: NewMonitor(nil), stories: &storyBook{zone: zone}}
+	handler := svc.Handler(HTTPOptions{})
+	for target, want := range map[string]int{
+		ARCHIVE_GROUPS_PATH + "?day=" + TEST_DAY + "&by=story&q=rates": http.StatusOK,
+		ARCHIVE_GROUPS_PATH + "?day=" + TEST_DAY + "&by=feed":          http.StatusBadRequest,
+		ARCHIVE_PATH + "?day=" + TEST_DAY + "&story=12abc":             http.StatusBadRequest,
+	} {
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, target, nil))
+		if w.Code != want {
+			t.Errorf("%s: %d, want %d: %s", target, w.Code, want, w.Body)
+		}
+	}
+}

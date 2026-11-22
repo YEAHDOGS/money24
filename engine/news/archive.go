@@ -61,6 +61,7 @@ type ArchiveQuery struct {
 	Source   string
 	Kind     string
 	Tag      string
+	Story    string // a story id, or STORY_NONE for articles in no story
 	Limit    int
 	BeforeAt int64 // the cursor: the last article of the previous page
 	BeforeID int64
@@ -104,6 +105,13 @@ func (q ArchiveQuery) filters() (string, []any) {
 	}
 	if q.Tag != "" {
 		where, args = append(where, `EXISTS (SELECT 1 FROM json_each(e.tags) WHERE value = ?)`), append(args, q.Tag)
+	}
+	switch q.Story {
+	case "":
+	case STORY_NONE:
+		where = append(where, `NOT EXISTS (SELECT 1 FROM story_events x WHERE x.event_id = e.id)`)
+	default:
+		where, args = append(where, `EXISTS (SELECT 1 FROM story_events x WHERE x.event_id = e.id AND x.story_id = ?)`), append(args, q.Story)
 	}
 	if q.Search != "" {
 		where, args = append(where, `e.id IN (SELECT rowid FROM events_fts WHERE events_fts MATCH ?)`), append(args, q.Search)

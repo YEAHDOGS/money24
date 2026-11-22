@@ -62,6 +62,7 @@ func (s *Service) Handler(opts HTTPOptions) http.Handler {
 	mux.HandleFunc("GET /api/calendar", a.calendar)
 	mux.HandleFunc("GET "+ARCHIVE_PATH, a.archive)
 	mux.HandleFunc("GET "+ARCHIVE_DAYS_PATH, a.archiveDays)
+	mux.HandleFunc("GET "+ARCHIVE_GROUPS_PATH, a.archiveGroups)
 	mux.HandleFunc("GET /api/stories", a.storyBoard)
 	mux.HandleFunc("GET /api/stories/map", a.storyMap)
 	mux.HandleFunc("GET /api/stories/{id}", a.storyDetail)

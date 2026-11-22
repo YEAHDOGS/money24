@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	ARCHIVE_PATH      = "/api/archive"
-	ARCHIVE_DAYS_PATH = "/api/archive/days"
+	ARCHIVE_PATH        = "/api/archive"
+	ARCHIVE_DAYS_PATH   = "/api/archive/days"
+	ARCHIVE_GROUPS_PATH = "/api/archive/groups"
 	// The archive changes only as new articles arrive; a minute's copy saves a reload on every page turn.
 	CACHE_ARCHIVE = "private, max-age=60"
 )
@@ -22,6 +23,8 @@ var (
 	ERR_BAD_SPAN   = fmt.Errorf("from and to must be YYYY-MM-DD, from on or before to, at most %d days apart", ARCHIVE_MAX_DAYS)
 	ERR_BAD_CURSOR = errors.New("before must be the next cursor of a previous page")
 	ERR_LONG_VALUE = fmt.Errorf("a filter is longer than %d characters", FILTER_MAX_CHARS)
+	ERR_BAD_STORY  = errors.New("story must be a story id or none")
+	ERR_BAD_GROUP  = errors.New("by must be source or story")
 )
 
 // ArchiveDays is how many articles each New York day holds. Days with none are left out.
@@ -58,6 +61,17 @@ func writeArchive(w http.ResponseWriter, v any) {
 	h.Set("Content-Type", "application/json")
 	h.Set("Cache-Control", CACHE_ARCHIVE)
 	json.NewEncoder(w).Encode(v)
+}
+
+// ArchiveGroups is a day's outlets or stories under the given filters. More is how many smaller
+// groups the list leaves out; Total counts every matching article.
+type ArchiveGroups struct {
+	Day    string         `json:"day"`
+	Zone   string         `json:"zone"`
+	By     string         `json:"by"`
+	Total  int            `json:"total"`
+	Groups []ArchiveGroup `json:"groups"`
+	More   int            `json:"more"`
 }
 
 // archiveDays answers GET /api/archive/days?from=YYYY-MM-DD&to=YYYY-MM-DD: articles per New York day.
@@ -100,45 +114,56 @@ func (a *api) archiveDays(w http.ResponseWriter, r *http.Request) {
 	writeArchive(w, out)
 }
 
-// archive answers GET /api/archive?day=YYYY-MM-DD&q=&source=&kind=&tag=&limit=&before=: one New York
-// day's articles, newest first, searched by the words of their title and excerpt.
-func (a *api) archive(w http.ResponseWriter, r *http.Request) {
-	zone := a.svc.stories.zone // the archive keeps New York days, as the market does
+// archiveQuery reads a day and its filters from the address: ?day=YYYY-MM-DD&q=&source=&kind=&tag=&story=&limit=&before=.
+func archiveQuery(r *http.Request, zone *time.Location) (ArchiveQuery, error) {
 	q := r.URL.Query()
 	start, err := dayStart(q.Get("day"), zone)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
+		return ArchiveQuery{}, err
 	}
 	for _, key := range []string{"source", "kind", "tag"} {
 		if len(q.Get(key)) > FILTER_MAX_CHARS {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": ERR_LONG_VALUE.Error()})
-			return
+			return ArchiveQuery{}, ERR_LONG_VALUE
 		}
+	}
+	if !validStory(q.Get("story")) {
+		return ArchiveQuery{}, ERR_BAD_STORY
 	}
 	query := ArchiveQuery{
 		From: start, To: start.AddDate(0, 0, 1),
 		Search: searchExpr(q.Get("q")),
-		Source: strings.TrimSpace(q.Get("source")), Kind: q.Get("kind"), Tag: q.Get("tag"),
+		Source: strings.TrimSpace(q.Get("source")), Kind: q.Get("kind"), Tag: q.Get("tag"), Story: q.Get("story"),
 		Limit: int(queryInt(r, "limit", ARCHIVE_DEFAULT_LIMIT)),
 	}
-	if cursor := q.Get("before"); cursor != "" {
-		at, id, ok := strings.Cut(cursor, CURSOR_SEP)
-		query.BeforeAt, _ = strconv.ParseInt(at, 10, 64)
-		query.BeforeID, _ = strconv.ParseInt(id, 10, 64)
-		if !ok || query.BeforeAt <= 0 || query.BeforeID <= 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": ERR_BAD_CURSOR.Error()})
-			return
-		}
+	cursor := q.Get("before")
+	if cursor == "" {
+		return query, nil
 	}
+	at, id, ok := strings.Cut(cursor, CURSOR_SEP)
+	query.BeforeAt, _ = strconv.ParseInt(at, 10, 64)
+	query.BeforeID, _ = strconv.ParseInt(id, 10, 64)
+	if !ok || query.BeforeAt <= 0 || query.BeforeID <= 0 {
+		return ArchiveQuery{}, ERR_BAD_CURSOR
+	}
+	return query, nil
+}
 
+// archive answers GET /api/archive: one New York day's articles, newest first, searched by the
+// words of their title and excerpt and narrowed by outlet, kind, tag or story.
+func (a *api) archive(w http.ResponseWriter, r *http.Request) {
+	zone := a.svc.stories.zone // the archive keeps New York days, as the market does
+	query, err := archiveQuery(r, zone)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
 	ctx := r.Context()
 	articles, next, err := a.svc.store.archivePage(ctx, query)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	page := ArchivePage{Day: start.Format(DAY_LAYOUT), Zone: zone.String(), Articles: articles, Next: next}
+	page := ArchivePage{Day: query.From.Format(DAY_LAYOUT), Zone: zone.String(), Articles: articles, Next: next}
 	if query.BeforeAt == 0 {
 		total, err := a.svc.store.archiveTotal(ctx, query)
 		if err != nil {
@@ -153,4 +178,32 @@ func (a *api) archive(w http.ResponseWriter, r *http.Request) {
 		page.Total, page.Facets = &total, &facets
 	}
 	writeArchive(w, page)
+}
+
+// archiveGroups answers GET /api/archive/groups?by=source|story with the same day and filters as
+// /api/archive: the day's outlets or stories, biggest first, each with its newest headline.
+func (a *api) archiveGroups(w http.ResponseWriter, r *http.Request) {
+	zone := a.svc.stories.zone
+	query, err := archiveQuery(r, zone)
+	by := r.URL.Query().Get("by")
+	if _, known := GROUP_KEYS[by]; err == nil && !known {
+		err = ERR_BAD_GROUP
+	}
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	ctx := r.Context()
+	groups, count, err := a.svc.store.archiveGroups(ctx, query, by)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	total, err := a.svc.store.archiveTotal(ctx, query)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeArchive(w, ArchiveGroups{Day: query.From.Format(DAY_LAYOUT), Zone: zone.String(), By: by, Total: total,
+		Groups: groups, More: count - len(groups)})
 }
