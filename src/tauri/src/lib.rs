@@ -177,10 +177,11 @@ pub(crate) fn open_desk(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
-/// The pocket's "Open the desk" button.
+/// The pocket's "Open the desk" button. Async on purpose: on Windows, a synchronous command that
+/// creates a window deadlocks WebView2, and the new window stays black.
 #[cfg(desktop)]
 #[tauri::command]
-fn open_desk_command(app: AppHandle) -> Result<(), String> {
+async fn open_desk_command(app: AppHandle) -> Result<(), String> {
     open_desk(&app).map_err(|e| e.to_string())
 }
 
