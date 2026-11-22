@@ -36,6 +36,8 @@ src/tauri/gen/
 
 # Go engine builds and the Tauri sidecar copies made from them
 engine/dist/
+engine/*.exe
+engine/*.exe~
 src/tauri/binaries/
 
 # Local secrets for docker compose
