@@ -40,18 +40,22 @@ type Desk struct {
 
 func Open(dataDir string) (*Desk, error) {
 	d := &Desk{model: newEngine(), path: filepath.Join(dataDir, RULEBOOK_FILE)}
-	file, err := os.OpenFile(filepath.Join(dataDir, JOURNAL_FILE), os.O_CREATE|os.O_APPEND|os.O_RDWR, JOURNAL_MODE)
+	path := filepath.Join(dataDir, JOURNAL_FILE)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, JOURNAL_MODE)
 	if err != nil {
 		return nil, err
 	}
-	d.journal = file
-	if err := restoreJournal(file, d.model); err != nil {
-		file.Close()
+	restoreErr := restoreJournal(file, d.model)
+	if err := errors.Join(restoreErr, file.Close()); err != nil {
+		return nil, err
+	}
+	d.journal, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY, JOURNAL_MODE)
+	if err != nil {
 		return nil, err
 	}
 	d.reload(time.Now())
 	if d.model.rulebook.CapitalUSD == 0 {
-		file.Close()
+		d.journal.Close()
 		return nil, errors.Join(d.rulebookErr, d.journalErr)
 	}
 	return d, nil

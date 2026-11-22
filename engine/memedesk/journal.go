@@ -2,7 +2,6 @@ package memedesk
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,6 +80,6 @@ func appendJournal(file *os.File, line journalLine) error {
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(file, bytes.NewReader(append(data, '\n')))
+	_, err = file.Write(append(data, '\n'))
 	return err
 }

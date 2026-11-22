@@ -179,7 +179,7 @@ func (c Config) check() error {
 	var last, sum float64
 	for _, rung := range x.TakeProfit {
 		sum += rung.Fraction
-		if rung.Gain <= last || !positive(rung.Fraction) || sum > 1 {
+		if rung.Gain <= last || !positive(rung.Fraction) || sum > 1+FRACTION_EPSILON {
 			return errors.New("take-profit targets must rise and sell at most the original position")
 		}
 		last = rung.Gain
@@ -220,7 +220,8 @@ func readRulebook(path string) (Rulebook, bool, error) {
 	if err != nil {
 		return rb, false, err
 	}
-	return rb, rb.offerDefaults(), nil
+	changed := rb.offerDefaults()
+	return rb, changed, nil
 }
 
 func saveRulebook(path string, rb Rulebook) error {

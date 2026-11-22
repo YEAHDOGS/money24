@@ -15,6 +15,7 @@ const (
 	SIMULATED_LATENCY = 3 * time.Second
 	ENTRY_WINDOW      = 5 * time.Minute
 	QUOTE_POOL_SHARE  = 0.5
+	FRACTION_EPSILON  = 1e-12
 	EXIT_STOP         = "hard_stop"
 	EXIT_TIME         = "time_limit"
 	EXIT_TARGET       = "take_profit"
@@ -163,6 +164,9 @@ func (p *Position) execute(row meme.Record, at time.Time) {
 		rung := p.policy.TakeProfit[p.nextRung]
 		p.nextRung++
 		units := min(p.Units, p.Buy.Units*rung.Fraction)
+		if p.nextRung == len(p.policy.TakeProfit) && p.Units-units <= p.Buy.Units*FRACTION_EPSILON {
+			units = p.Units
+		}
 		p.sell(sellFill(row.Market, units, at, EXIT_TARGET))
 		p.exitReason = ""
 		if p.Units > 0 {

@@ -60,29 +60,42 @@ type Candidate struct {
 }
 
 type Record struct {
-	Candidates           int            `json:"candidates"`
-	Launches             int            `json:"launches"`
-	Graduations          int            `json:"graduations"`
-	Pending              int            `json:"pending"`
-	Following            int            `json:"following"`
-	Passed               int            `json:"passed"`
-	Refused              int            `json:"refused"`
-	Faded                int            `json:"faded"`
-	Reasons              map[string]int `json:"reasons"`
-	BenchmarkUnavailable int            `json:"benchmark_unavailable"`
-	BenchmarkStarted     int            `json:"benchmark_started"`
-	BenchmarkClosed      int            `json:"benchmark_closed"`
-	BenchmarkCensored    int            `json:"benchmark_censored"`
-	BenchmarkPnLUSD      float64        `json:"benchmark_closed_pnl_usd"`
-	PassedBenchmarkUSD   float64        `json:"passed_benchmark_closed_pnl_usd"`
-	LossesAvoided        int            `json:"losses_avoided"`
-	LossesAvoidedUSD     float64        `json:"losses_avoided_usd"`
-	WinnersMissed        int            `json:"winners_missed"`
-	WinnersMissedUSD     float64        `json:"winners_missed_usd"`
-	PaperEntries         int            `json:"paper_entries"`
-	PaperClosed          int            `json:"paper_closed"`
-	PaperWins            int            `json:"paper_wins"`
-	PaperPnLUSD          float64        `json:"paper_closed_pnl_usd"`
+	Candidates           int                       `json:"candidates"`
+	Launches             int                       `json:"launches"`
+	Graduations          int                       `json:"graduations"`
+	Pending              int                       `json:"pending"`
+	Following            int                       `json:"following"`
+	Passed               int                       `json:"passed"`
+	Refused              int                       `json:"refused"`
+	Faded                int                       `json:"faded"`
+	Reasons              map[string]int            `json:"reasons"`
+	BenchmarkUnavailable int                       `json:"benchmark_unavailable"`
+	BenchmarkStarted     int                       `json:"benchmark_started"`
+	BenchmarkClosed      int                       `json:"benchmark_closed"`
+	BenchmarkOpen        int                       `json:"benchmark_open"`
+	BenchmarkCensored    int                       `json:"benchmark_censored"`
+	BenchmarkPnLUSD      float64                   `json:"benchmark_closed_pnl_usd"`
+	PassedBenchmarkUSD   float64                   `json:"passed_benchmark_closed_pnl_usd"`
+	LossesAvoided        int                       `json:"losses_avoided"`
+	LossesAvoidedUSD     float64                   `json:"losses_avoided_usd"`
+	WinnersMissed        int                       `json:"winners_missed"`
+	WinnersMissedUSD     float64                   `json:"winners_missed_usd"`
+	RefusalOutcomes      map[string]RefusalOutcome `json:"refusal_outcomes,omitempty"`
+	UnpricedFinished     int                       `json:"unpriced_finished"`
+	PaperEntries         int                       `json:"paper_entries"`
+	PaperClosed          int                       `json:"paper_closed"`
+	PaperWins            int                       `json:"paper_wins"`
+	PaperPnLUSD          float64                   `json:"paper_closed_pnl_usd"`
+	PaperRealizedUSD     float64                   `json:"paper_realized_pnl_usd"`
+}
+
+// RefusalOutcome breaks out closed benchmarks by reason. One decision can
+// have multiple reasons, so the per-reason totals can overlap.
+type RefusalOutcome struct {
+	LossesAvoided    int     `json:"losses_avoided"`
+	LossesAvoidedUSD float64 `json:"losses_avoided_usd"`
+	WinnersMissed    int     `json:"winners_missed"`
+	WinnersMissedUSD float64 `json:"winners_missed_usd"`
 }
 
 type strategyState struct {
@@ -138,6 +151,7 @@ func (s *strategyState) decided(c *candidate, d Decision, at time.Time) {
 	}
 	if c.Benchmark != nil {
 		s.record.BenchmarkStarted++
+		s.record.BenchmarkOpen++
 	} else if d.Benchmark {
 		s.record.BenchmarkUnavailable++
 	}
@@ -172,6 +186,7 @@ func (s *strategyState) settleBenchmark(c *candidate) {
 	r := &s.record
 	pnl := c.Benchmark.PnLUSD
 	r.BenchmarkClosed++
+	r.BenchmarkOpen--
 	r.BenchmarkPnLUSD += pnl
 	if c.Decision.Action == DECISION_PASS {
 		r.PassedBenchmarkUSD += pnl
@@ -185,6 +200,23 @@ func (s *strategyState) settleBenchmark(c *candidate) {
 	} else if pnl > 0 {
 		r.WinnersMissed++
 		r.WinnersMissedUSD += pnl
+	}
+	if len(c.Decision.Reasons) == 0 {
+		return
+	}
+	if r.RefusalOutcomes == nil {
+		r.RefusalOutcomes = make(map[string]RefusalOutcome)
+	}
+	for _, reason := range c.Decision.Reasons {
+		outcome := r.RefusalOutcomes[reason]
+		if pnl < 0 {
+			outcome.LossesAvoided++
+			outcome.LossesAvoidedUSD -= pnl
+		} else if pnl > 0 {
+			outcome.WinnersMissed++
+			outcome.WinnersMissedUSD += pnl
+		}
+		r.RefusalOutcomes[reason] = outcome
 	}
 }
 
@@ -231,6 +263,7 @@ func (e *engine) status(details bool) Status {
 		result := StrategyStatus{Config: state.config, Configured: state.configured, CanBuy: state.canBuy,
 			Record: state.record, Open: []Position{}, Recent: []Position{}}
 		result.Record.Reasons = maps.Clone(state.record.Reasons)
+		result.Record.RefusalOutcomes = maps.Clone(state.record.RefusalOutcomes)
 		for _, mint := range slices.Sorted(maps.Keys(state.open)) {
 			p := state.open[mint].Paper
 			result.Open = append(result.Open, copyPosition(p))

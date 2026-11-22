@@ -345,8 +345,10 @@ func (e *engine) updatePositions(c *candidate, row meme.Record) {
 	before := len(p.Sales)
 	p.update(row, e.clock)
 	for _, fill := range p.Sales[before:] {
+		realized := fill.NetUSD - fill.Units/p.Buy.Units*p.Buy.NetUSD
 		e.cashDelta += fill.NetUSD
-		e.dayRealized += fill.NetUSD - fill.Units/p.Buy.Units*p.Buy.NetUSD
+		e.dayRealized += realized
+		s.record.PaperRealizedUSD += realized
 		e.checkLossStop()
 	}
 	if !p.ClosedAt.IsZero() {
@@ -362,14 +364,19 @@ func (e *engine) checkLossStop() {
 
 func (e *engine) finishWatching(c *candidate) {
 	c.followed = true
+	record := &e.states[c.rule.config.ID].record
 	if c.Benchmark != nil && c.Benchmark.ClosedAt.IsZero() {
 		c.Benchmark.MarkStale = true
-		e.states[c.rule.config.ID].record.BenchmarkCensored++
+		record.BenchmarkCensored++
+		record.BenchmarkOpen--
 	}
 	if c.paperOpen() {
 		c.Paper.MarkStale = true
 	}
-	e.states[c.rule.config.ID].record.Following--
+	if c.Path.FirstUSD == 0 {
+		record.UnpricedFinished++
+	}
+	record.Following--
 	e.trim(e.tokens[c.Mint])
 }
 
