@@ -33,7 +33,43 @@ const (
 	TELEGRAM_SESSION_WRITE   = "could not save the private Telegram session"
 	TELEGRAM_SESSION_TEMP    = ".telegram.session-*"
 	TELEGRAM_UTF8_BOM        = "\ufeff"
+
+	// Where Telegram says it sent the login code. It chooses; the client cannot.
+	TELEGRAM_CODE_UNKNOWN     = "Telegram did not say where it sent the code."
+	TELEGRAM_CODE_APP         = "The code was sent inside the Telegram app, as a message from \"Telegram\" (blue check) on your other signed-in devices."
+	TELEGRAM_CODE_SMS         = "The code was sent by SMS."
+	TELEGRAM_CODE_CALL        = "The code comes by phone call."
+	TELEGRAM_CODE_EMAIL       = "The code was sent to your login email (%s)."
+	TELEGRAM_CODE_SETUP_EMAIL = "No code was sent: Telegram requires a login email to be set up first, in the Telegram app under Settings > Privacy and Security."
+	TELEGRAM_CODE_FRAGMENT    = "The code was sent through Fragment, for anonymous numbers: %s"
+	TELEGRAM_CODE_RESEND      = " A new code can be requested after %d seconds."
 )
+
+// telegramCodeWhere says where Telegram chose to deliver the login code, so the owner knows where to look.
+func telegramCodeWhere(sent *tg.AuthSentCode) string {
+	if sent == nil {
+		return TELEGRAM_CODE_UNKNOWN
+	}
+	where := TELEGRAM_CODE_UNKNOWN
+	switch t := sent.Type.(type) {
+	case *tg.AuthSentCodeTypeApp:
+		where = TELEGRAM_CODE_APP
+	case *tg.AuthSentCodeTypeSMS, *tg.AuthSentCodeTypeSMSWord, *tg.AuthSentCodeTypeSMSPhrase, *tg.AuthSentCodeTypeFirebaseSMS:
+		where = TELEGRAM_CODE_SMS
+	case *tg.AuthSentCodeTypeCall, *tg.AuthSentCodeTypeFlashCall, *tg.AuthSentCodeTypeMissedCall:
+		where = TELEGRAM_CODE_CALL
+	case *tg.AuthSentCodeTypeEmailCode:
+		where = fmt.Sprintf(TELEGRAM_CODE_EMAIL, t.EmailPattern)
+	case *tg.AuthSentCodeTypeSetUpEmailRequired:
+		where = TELEGRAM_CODE_SETUP_EMAIL
+	case *tg.AuthSentCodeTypeFragmentSMS:
+		where = fmt.Sprintf(TELEGRAM_CODE_FRAGMENT, t.URL)
+	}
+	if timeout, ok := sent.GetTimeout(); ok {
+		where += fmt.Sprintf(TELEGRAM_CODE_RESEND, timeout)
+	}
+	return where
+}
 
 // TelegramLogin authorizes an existing account, then saves its session for the runner.
 func TelegramLogin(ctx context.Context, data, codeFile, passwordFile string, output io.Writer) error {
@@ -58,8 +94,9 @@ func TelegramLogin(ctx context.Context, data, codeFile, passwordFile string, out
 			return errors.New(TELEGRAM_LOGIN_FAILED)
 		}
 	}
-	code := auth.CodeAuthenticatorFunc(func(ctx context.Context, _ *tg.AuthSentCode) (string, error) {
+	code := auth.CodeAuthenticatorFunc(func(ctx context.Context, sent *tg.AuthSentCode) (string, error) {
 		fmt.Fprintln(output, TELEGRAM_CODE_PROMPT)
+		fmt.Fprintln(output, telegramCodeWhere(sent))
 		return readTelegramCredential(ctx, codeFile)
 	})
 	user := telegramLoginFiles{UserAuthenticator: auth.CodeOnly(phone, code), passwordFile: passwordFile, output: output}
