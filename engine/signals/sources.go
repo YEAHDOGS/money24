@@ -13,6 +13,7 @@ import (
 const (
 	TYPE_X           = "x"
 	TYPE_TELEGRAM    = "telegram"
+	TYPE_REDDIT      = "reddit"
 	TYPE_WEBHOOK     = "webhook"
 	TYPE_LEADERBOARD = "leaderboard"
 	TYPE_EDGAR       = "edgar"

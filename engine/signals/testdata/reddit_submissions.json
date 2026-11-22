@@ -1,0 +1,16 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": "t3_a1",
+    "children": [{
+      "kind": "t3",
+      "data": {
+        "name": "t3_a1",
+        "created_utc": 1767366000.0,
+        "permalink": "/r/fixturecoin/comments/a1/btc/",
+        "title": "BTC > 42",
+        "selftext": "Entry 42\nTarget 50"
+      }
+    }]
+  }
+}

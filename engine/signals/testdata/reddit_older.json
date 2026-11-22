@@ -1,0 +1,20 @@
+{
+  "kind": "Listing",
+  "data": {
+    "after": null,
+    "children": [
+      { "kind": "t3", "data": {
+        "name": "t3_a1", "created_utc": 1767366000.0,
+        "permalink": "/r/fixturecoin/comments/a1/btc/", "title": "Overlap"
+      }},
+      { "kind": "t3", "data": {
+        "name": "t3_a0", "created_utc": 1767358800.0,
+        "permalink": "/r/fixturecoin/comments/a0/btc/", "title": "Older call"
+      }},
+      { "kind": "t3", "data": {
+        "name": "t3_archive", "created_utc": 1735689600.0,
+        "permalink": "/r/fixturecoin/comments/archive/btc/", "title": "Outside the time window"
+      }}
+    ]
+  }
+}

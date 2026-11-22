@@ -38,7 +38,7 @@ const (
 	TRUST_LOAD_ROUTE   = "POST /api/trust/load"
 )
 
-var ErrNotLoadable = errors.New("only X sources can load history")
+var ErrNotLoadable = errors.New("history is available for X, Telegram and Reddit sources")
 
 // PriceBar is one candle of market history.
 type PriceBar struct {
@@ -288,27 +288,44 @@ func (t *Tracker) Ranking(ctx context.Context) []Trust {
 	return out
 }
 
-// Load pulls an X source's public sample of posts into the record and returns how many were new.
+// Load pulls a public sample of posts into the record and returns how many were new.
 // Old posts are only recorded: they never reach the runner, so they cannot open a trade.
 func (t *Tracker) Load(ctx context.Context, client *http.Client, id string) (int, error) {
-	handle, isX := strings.CutPrefix(id, X_SOURCE_PREFIX)
-	if !isX {
+	kind, handle, _ := strings.Cut(id, ":")
+	source := Source{Type: kind, Handle: handle}
+	for _, configured := range t.catalog.Sources {
+		if strings.EqualFold(configured.ID(), id) {
+			source = configured
+			break
+		}
+	}
+	var posts []RawPost
+	var err error
+	switch source.Type {
+	case TYPE_X:
+		var tweets []Tweet
+		tweets, err = FetchTimeline(ctx, client, source.Handle)
+		for _, tw := range tweets {
+			posts = append(posts, RawPost{SourceID: source.ID(), PostID: tw.ID, PostedAt: tw.At, URL: tw.URL, Text: tw.Text})
+		}
+	case TYPE_TELEGRAM, TYPE_REDDIT:
+		posts, err = fetchPublicPosts(ctx, client, source, PUBLIC_HISTORY_POSTS, time.Now().Add(-PUBLIC_HISTORY_DAYS), PUBLIC_HISTORY_PAGES)
+	default:
 		return 0, ErrNotLoadable
 	}
-	tweets, err := FetchTimeline(ctx, client, handle)
 	if err != nil {
 		return 0, err
 	}
-	added, now := 0, time.Now()
-	for _, tw := range tweets {
-		if t.rec.Has(id, tw.ID) {
-			continue
-		}
-		sig := Signal{SourceID: id, PostID: tw.ID, Raw: tw.Text, SeenAt: now, PostedAt: tw.At, URL: tw.URL}
-		if err := t.rec.Record(sig); err != nil {
+	added, now := 0, time.Now().UTC()
+	for _, post := range posts {
+		post.SeenAt = now
+		fresh, err := t.rec.recordNew(post)
+		if err != nil {
 			return added, err
 		}
-		added++
+		if fresh {
+			added++
+		}
 	}
 	return added, nil
 }
@@ -318,7 +335,7 @@ func (t *Tracker) Load(ctx context.Context, client *http.Client, id string) (int
 //
 //	GET  /api/trust               every source's record, ranked
 //	GET  /api/trust/source?id=    one source's record and each entry it called
-//	POST /api/trust/load?id=      pull an X source's public sample of posts into the record
+//	POST /api/trust/load?id=      pull a public sample of posts into the record
 func (t *Tracker) Routes(client *http.Client, allowed func(*http.Request) bool) map[string]http.Handler {
 	return map[string]http.Handler{
 		TRUST_ROUTE: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { writeJSON(w, t.Ranking(r.Context())) }),

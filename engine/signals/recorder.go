@@ -81,8 +81,29 @@ func (r *Recorder) Record(sig Signal) error {
 		PostID: sig.PostID, ThreadID: sig.ThreadID, URL: sig.URL, Manual: sig.Manual, Text: sig.Raw}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.posts[postIndex(p)] = p
-	return r.enc.Encode(p)
+	return r.appendPost(postIndex(p), p)
+}
+
+// recordNew claims a post id and appends it together, so backfill and polling share dedupe.
+func (r *Recorder) recordNew(p RawPost) (bool, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	key := postIndex(p)
+	if _, ok := r.posts[key]; ok {
+		return false, nil
+	}
+	if err := r.appendPost(key, p); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *Recorder) appendPost(key string, p RawPost) error {
+	if err := r.enc.Encode(p); err != nil {
+		return err
+	}
+	r.posts[key] = p
+	return nil
 }
 
 // Has reports whether a post is already on record, so a history load never stores it twice.
