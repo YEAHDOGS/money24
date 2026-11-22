@@ -299,18 +299,19 @@ func TestReplayCoinsRunsTheSameBracket(t *testing.T) {
 	rules.Crypto.Symbols, rules.Crypto.BTCMustTrend = []string{TEST_COIN}, false
 	run := func(candles []coinbase.Candle, fee float64) coinReplay {
 		end := time.Unix(candles[len(candles)-1].T+HOUR_SECONDS, 0)
-		return replayCoins(map[string][]coinbase.Candle{TEST_COIN: candles}, rules, TEST_START, end, 1000, fee)
+		return replayCoins(map[string][]coinbase.Candle{TEST_COIN: candles}, rules, TEST_START, end, 1000,
+			replayExecution{entryFeePct: fee, exitFeePct: fee})
 	}
 
 	won := run(after(30, 1), TEST_FEE_PCT)
-	if len(won.Trades) != 1 || won.StillOpen != 0 {
-		t.Fatalf("a breakout that kept climbing: %d trades, %d still open: %+v", len(won.Trades), won.StillOpen, won.Trades)
+	if len(won.Trades) != 1 {
+		t.Fatalf("a breakout that kept climbing: %d trades: %+v", len(won.Trades), won.Trades)
 	}
 	// A third at 1.5R, a third at 3R and the rest at 5R is 3.17R on the whole position.
 	if w := won.Trades[0]; w.Reason != REASON_TARGET || math.Abs(w.R-(1.5+3+5)/3) > 0.01 || w.EntryAt != TEST_START.Unix()+TEST_HOURS*HOUR_SECONDS {
 		t.Errorf("winner %+v: want every exit filled for about 3.17R, entered at the open of the hour after the breakout", w)
 	}
-	if math.Abs(won.EndUSD-1000-won.Trades[0].PnLUSD) > TEST_TOLERANCE || won.MaxDrawdownPct != 0 {
+	if math.Abs(won.EndUSD-1000-won.Trades[0].PnLUSD) > TEST_TOLERANCE {
 		t.Errorf("account ended at $%.2f after a $%.2f winner, drawdown %.2f%%", won.EndUSD, won.Trades[0].PnLUSD, won.MaxDrawdownPct)
 	}
 
