@@ -65,6 +65,7 @@ type Action struct {
 	Side     string    `json:"side"`
 	Qty      string    `json:"qty,omitempty"`
 	Limit    string    `json:"limit,omitempty"`
+	Desk     float64   `json:"desk_price,omitempty"` // the price the desk's own book used, to set beside the broker's fill
 	ClientID string    `json:"client_id,omitempty"`
 	Status   string    `json:"status,omitempty"`
 	Note     string    `json:"note,omitempty"`
@@ -162,7 +163,7 @@ func (m *Mirror) enter(ctx context.Context, e signals.Entry) {
 	if coin {
 		tif = TIF_GTC
 	}
-	a.Qty, a.Limit = strconv.FormatFloat(e.Plan.Qty, 'f', -1, 64), limitFor(e.Signal, e.Plan.Entry, coin)
+	a.Qty, a.Limit, a.Desk = strconv.FormatFloat(e.Plan.Qty, 'f', -1, 64), limitFor(e.Signal, e.Plan.Entry, coin), e.Plan.Entry
 	o, err := m.Client.Place(ctx, Order{ClientOrderID: a.ClientID, Symbol: symbol, Qty: a.Qty, Side: SIDE_BUY, Type: TYPE_LIMIT, TimeInForce: tif, LimitPrice: a.Limit})
 	switch {
 	case errors.Is(err, ErrDupe):
@@ -202,6 +203,9 @@ func (m *Mirror) exit(ctx context.Context, e signals.Entry) {
 		return
 	}
 	closing := e.Action == ACTION_CLOSE || e.Action == ACTION_VOID
+	if e.Result != nil {
+		a.Desk = e.Result.Price
+	}
 	if entry, err := m.Client.ByClientID(ctx, m.clientID(e.PlanID, ENTRY_SUFFIX)); err == nil && closing {
 		switch entry.Status {
 		case STATUS_NEW, STATUS_PARTIAL, STATUS_ACCEPTED, STATUS_PENDING:

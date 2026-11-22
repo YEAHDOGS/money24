@@ -56,6 +56,9 @@ type Service struct {
 	crypto cryptoDesk
 	// flow is the flow desk's last pass.
 	flow flowDesk
+	// scout is the scout's board and record; ScoutDry keeps a dry run from writing the record.
+	scout    scoutDesk
+	ScoutDry bool
 }
 
 // Item is a play with its report, as the UI reads it.
@@ -288,6 +291,7 @@ func writeErr(w http.ResponseWriter, status int, err error) {
 //	GET    /api/plays/finder          the stock finder's last pass
 //	GET    /api/plays/crypto          the crypto desk's last pass: what it decided about every coin
 //	GET    /api/plays/flow            the flow desk's last pass: the top contract on every name it reads
+//	GET    /api/plays/scout           the scout's board: open plays best first, closed ones, each setup's record
 func (s *Service) Routes() map[string]http.Handler {
 	guard := func(h http.HandlerFunc) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -509,6 +513,9 @@ func (s *Service) Routes() map[string]http.Handler {
 		}),
 		"GET /api/plays/finder": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, s.FinderStatus())
+		}),
+		"GET /api/plays/scout": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusOK, s.ScoutStatus())
 		}),
 		"GET /api/plays/flow": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, s.FlowStatus())

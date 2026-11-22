@@ -15,6 +15,8 @@ const TIMES = '×';
 const MS_PER_MINUTE = 60000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
+const PERCENT = 100;
+const SIDE_BUY = 'buy';
 /** What a row is, for its mark: money going in, a gain, a loss, or nothing traded. */
 export const TONE = { buy: 'buy', win: 'win', loss: 'loss', skip: 'skip' };
 
@@ -74,6 +76,31 @@ export function activity(journal, limit) {
     if (row) rows.push(row);
   }
   return rows;
+}
+
+/**
+ * @typedef {{ id: string, at: string, side: string, symbol: string, qty: string, desk: number, fill: number,
+ *   status: string, note: string, error: string, worsePct: number }} BrokerRow
+ * worsePct: how much worse the broker's fill was than the desk's own price, in percent (negative: better).
+ */
+
+/**
+ * What the broker did with each desk trade, newest first: the desk's price beside the broker's fill.
+ * @param {any} broker GET /api/broker, null without a broker
+ * @param {number} limit the most rows
+ * @returns {BrokerRow[]}
+ */
+export function brokerRows(broker, limit) {
+  const orders = new Map((broker?.orders ?? []).map((/** @type {any} */ o) => [o.client_order_id, o]));
+  return (broker?.actions ?? []).slice(0, limit).map((/** @type {any} */ a) => {
+    const order = orders.get(a.client_id);
+    const fill = Number(order?.filled_avg_price) || 0;
+    const desk = a.desk_price || 0;
+    const buy = a.side === SIDE_BUY;
+    const worsePct = fill && desk ? ((buy ? fill / desk : desk / fill) - 1) * PERCENT : NaN;
+    return { id: `${a.line_id}-${a.side}`, at: order?.filled_at || a.at, side: a.side, symbol: a.symbol, qty: a.qty ?? '',
+      desk, fill, status: order?.status || a.status || '', note: a.note ?? '', error: a.error ?? '', worsePct };
+  });
 }
 
 /**

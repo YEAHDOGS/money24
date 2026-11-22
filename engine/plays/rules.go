@@ -132,6 +132,8 @@ type Rules struct {
 	Crypto *CryptoRules `json:"crypto,omitempty"`
 	// Flow is how the flow desk follows the most traded options. Nil in an older rulebook: the defaults apply.
 	Flow *FlowRules `json:"flow,omitempty"`
+	// Scout is how the scout looks for short-term option plays every minute. Nil in an older rulebook: the defaults apply.
+	Scout *ScoutRules `json:"scout,omitempty"`
 }
 
 // DOGSRules is the default rulebook.
@@ -185,6 +187,7 @@ func DOGSRules() Rules {
 		Finder:             DefaultFinder(),
 		Crypto:             DefaultCrypto(),
 		Flow:               DefaultFlow(),
+		Scout:              DefaultScout(),
 	}
 }
 
@@ -223,6 +226,9 @@ func (r Rules) merged() Rules {
 	}
 	if r.Flow == nil {
 		r.Flow = d.Flow
+	}
+	if r.Scout == nil {
+		r.Scout = d.Scout
 	}
 	if r.Crypto == nil {
 		r.Crypto = d.Crypto

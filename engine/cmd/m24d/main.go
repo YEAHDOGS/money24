@@ -75,7 +75,8 @@ const (
 	ROUTE_BROKER     = "GET /api/broker"
 	MIRROR_FILE      = "alpaca-mirror.json" // the last journal line placed at the broker
 	TAPE_SUBDIR      = "tape"               // every minute's 0DTE and weekly chains, for backtests
-	BACKTEST_TIMEOUT = 10 * time.Minute     // a replay pages months of hourly candles for every coin
+	SCOUT_AT_LAYOUT  = "2006-01-02 15:04"
+	BACKTEST_TIMEOUT = 10 * time.Minute // a replay pages months of hourly candles for every coin
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -148,6 +149,28 @@ func settlement(sig signals.Signal, sold time.Time) time.Time {
 	return calendar.NextSettlement(sold)
 }
 
+// scoutDryRun shows what the scout would have found at one past minute of the latest session, without
+// writing its record. at is New York time, "2006-01-02 15:04".
+func scoutDryRun(playsDir, at string) error {
+	asOf, err := time.ParseInLocation(SCOUT_AT_LAYOUT, at, calendar.NEW_YORK)
+	if err != nil {
+		return fmt.Errorf("--scout-at wants %q in New York time: %w", SCOUT_AT_LAYOUT, err)
+	}
+	store, err := plays.OpenStore(playsDir)
+	if err != nil {
+		return err
+	}
+	prices := market.NewClient()
+	service := &plays.Service{Store: store, HTTP: http.DefaultClient, Resolver: plays.Resolver{HTTP: http.DefaultClient, Market: prices},
+		NewsURL: cmp.Or(os.Getenv(ENV_NEWSD), DEFAULT_NEWSD), ScoutDry: true}
+	ctx, cancel := context.WithTimeout(context.Background(), BACKTEST_TIMEOUT)
+	defer cancel()
+	board := service.ScanAt(ctx, asOf, asOf)
+	out := json.NewEncoder(os.Stdout)
+	out.SetIndent("", "  ")
+	return out.Encode(board)
+}
+
 // replayCrypto runs the crypto desk's rule over past candles with the rulebook in the data folder
 // and the catalog's starting capital, and prints what it would have done.
 func replayCrypto(playsDir string, days int, capitalUSD float64) error {
@@ -173,6 +196,7 @@ func main() {
 	web := flag.String("web", os.Getenv(ENV_WEB), "folder of built pages to serve at / with the news under /news/, so one address shows everything")
 	base := flag.String("base", os.Getenv(ENV_BASE), "path the runner also answers under, the one the pages were built for (/desk)")
 	awake := flag.Bool("keep-awake", false, "stop this machine from idle-sleeping while the runner runs (Windows)")
+	scoutAt := flag.String("scout-at", "", "show what the scout would have found at a past minute of the latest session (\"2026-11-20 11:00\", New York time) and exit")
 	cryptoBacktest := flag.Int("crypto-backtest", 0, "replay the crypto desk's rule over this many days of hourly candles, print the result and exit")
 	flag.Parse()
 
@@ -240,6 +264,12 @@ func main() {
 	catalog, err := signals.LoadCatalog(*sourcesFile)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *scoutAt != "" {
+		if err := scoutDryRun(filepath.Join(*dataDir, PLAYS_SUBDIR), *scoutAt); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 	if *cryptoBacktest > 0 {
 		if err := replayCrypto(filepath.Join(*dataDir, PLAYS_SUBDIR), *cryptoBacktest, catalog.GoLive.PaperCapitalUSD); err != nil {
@@ -366,6 +396,8 @@ func main() {
 	go playService.RunCrypto(ctx)
 	// The flow desk follows the most premium traded in the most traded options, through the stock session.
 	go playService.RunFlow(ctx)
+	// The scout looks for short-term option plays every minute of the session and follows each to its outcome.
+	go playService.RunScout(ctx)
 	// The broker: with Alpaca paper keys in .env, every desk trade is also placed as a real paper order,
 	// so the desk's prices can be checked against what the market actually filled.
 	broker, err := alpaca.FromEnv()

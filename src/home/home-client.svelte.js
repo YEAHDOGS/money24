@@ -27,7 +27,8 @@ const DAYS_AHEAD = 8; // today and the week after it, for the day strip
 const MARKS_MAX = 8; // open plays that get a mark; the rulebook caps plays running at once below this
 const SLIDES_MAX = 6; // stories in the banner
 const HEADLINES_MAX = 60; // headlines in the list; the news page has the rest
-const MARKS_MS = 60000; // the open plays' prices, only while one is running and the page is on screen
+const MARKS_MS = 60000;
+const SCOUT_MS = 60000; // the scout's own pace: one pass a minute // the open plays' prices, only while one is running and the page is on screen
 const RETRY_MS = 10000; // while a service is offline
 const BOOK_DEBOUNCE_MS = 1500; // a burst of journal lines reads the plays and the account once
 const DESK_LAG_MS = 5000; // a desk's pass is read this long after the desk said it would run
@@ -89,6 +90,10 @@ export class HomeClient {
   finder = $state.raw(null);
   /** The options flow desk's last pass (engine/plays/flow.go); null when unknown. */
   flow = $state.raw(null);
+  /** The broker side (engine/alpaca): account, orders and what the mirror did; null without a broker. */
+  broker = $state.raw(null);
+  /** The scout's board (engine/plays/scout.go): read only while the Scout tab is open. */
+  scout = $state.raw(null);
   /** When the demo snapshot was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
 
@@ -114,7 +119,7 @@ export class HomeClient {
   #marksLoop = new Poller(() => this.#loadMarks(), () => (this.status === STATUS.demo ? 0 : MARKS_MS));
   /** @type {EventSource | null} */
   #stream = null;
-  #timers = { book: 0, desk: 0, retry: 0, newsRetry: 0 };
+  #timers = { book: 0, desk: 0, retry: 0, newsRetry: 0, scout: 0 };
   #loadedAt = 0;
 
   start() {
@@ -178,6 +183,20 @@ export class HomeClient {
     this.#loadNews();
   };
 
+  /**
+   * Reads the scout's board while its tab is open, once a minute (the scout's own pace) and only while
+   * the page is on screen. Closing the tab stops it.
+   */
+  watchScout(/** @type {boolean} */ on) {
+    clearTimeout(this.#timers.scout);
+    if (!on || this.status === STATUS.demo) return;
+    const read = async () => {
+      if (!document.hidden) this.scout = await getJSON(`${this.#base}/api/plays/scout`).catch(() => this.scout);
+      this.#timers.scout = setTimeout(read, SCOUT_MS);
+    };
+    read();
+  }
+
   /** Picks a news category. A live stories service is asked for that category's own top stories. */
   pick(/** @type {string} */ id) {
     this.category = id;
@@ -215,11 +234,13 @@ export class HomeClient {
 
   /** The plays and the account, after the journal said something happened. */
   async #loadBook() {
-    const [items, account] = await Promise.all([
+    const [items, account, broker] = await Promise.all([
       getJSON(`${this.#base}/api/plays`).catch(() => null), getJSON(`${this.#base}/api/account`).catch(() => null),
+      getJSON(`${this.#base}/api/broker`).catch(() => null),
     ]);
     if (items) this.items = items;
     if (account) this.account = account;
+    if (broker) this.broker = broker;
     await this.#loadMarks();
   }
 
@@ -229,10 +250,11 @@ export class HomeClient {
    */
   async #loadDesk() {
     const read = (/** @type {string} */ path) => getJSON(this.#base + path).catch(() => null);
-    const [account, calendar, crypto, finder, flow] = await Promise.all([
-      read('/api/account'), read(`/api/day?days=${DAYS_AHEAD}`), read('/api/plays/crypto'), read('/api/plays/finder'), read('/api/plays/flow'),
+    const [account, calendar, crypto, finder, flow, broker] = await Promise.all([
+      read('/api/account'), read(`/api/day?days=${DAYS_AHEAD}`), read('/api/plays/crypto'), read('/api/plays/finder'), read('/api/plays/flow'), read('/api/broker'),
     ]);
     this.flow = flow;
+    this.broker = broker;
     this.account = account;
     this.days = calendar?.days ?? [];
     this.crypto = crypto;
