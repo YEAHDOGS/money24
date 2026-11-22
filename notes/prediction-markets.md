@@ -152,6 +152,8 @@ inside m24d around the clock. It places no order anywhere.
 | Favorites near the close | `favorites` | medium | Any market closing within 6 hours: buys the side priced 85–95¢. Record kept by price band. |
 | Weather: what's already recorded | `weather` | low | Only ranges the station's record has already decided, with a degree to spare: a high already past a range, a low already below one, a finished day well inside one. |
 | Weather: forecast edge | `weather` | medium | Today and tomorrow: buys where its chance beats the price by 8¢ after the fee, and skips gaps over 25¢ as more likely its own mistake. |
+| Daily counts: already published | `dailycounts` | low | Only AAA gas/diesel and TSA markets whose settling date AAA or the TSA has already published: the published value decides, at 100% or 0%. |
+| Daily counts: next publication | `dailycounts` | medium | The settling value centred on the latest published AAA/TSA value, with a normal spread from the recent day-to-day moves widened by the square root of the days still to run. Buys where its chance beats the price by 8¢ after the fee, and skips gaps over 25¢. |
 
 **The weather model:** 24 US stations, the ones Kalshi's rules name (Central Park for New York,
 Midway for Chicago). A day's value is the larger (for a high) or smaller (for a low) of what the
@@ -164,6 +166,20 @@ can differ from the station's readings by a degree; the known margin is there fo
 98–99¢, above the known strategy's 97¢ cap: the market already prices what is known. The forecast
 strategy found about 35 candidates a pass. Next for weather: learn each station's own bias against
 the forecasts from the recorded results.
+
+**The daily-counts model (added 2026-11-21):** Kalshi's own series records name the settlement
+sources — AAA at gasprices.aaa.com for `KXAAAGASD`, `KXAAAGASW`, `KXDIESELD` and `KXDIESELW`
+(the weekly-labelled ones settle on one named day's AAA value too), and the TSA Passenger
+Volumes page for `KXTSAD`. Both are free with no key and are the exact settling numbers, so
+no substitute source is used. AAA publishes only today, yesterday and a week ago; the TSA
+page lists 300+ days. Dropped after checking live: `KXTSA` (older duplicate of `KXTSAD`, no
+open markets), `KXTSAW` (weekly average whose averaging window the rules never define, and
+no volume), the fifty state gas series (same model state by state; national only for now),
+and the EIA weekly series (a different weekly number from the AAA daily value settled on).
+First live check: 110 open markets, an opinion on every one; no settling date was already
+published, so the known strategy correctly found nothing, and the forecast strategy took one
+TSA position (NO on at least 2.3M screened on Nov 21 at 12.8¢, model 68% YES from the Nov 19
+count of 2,609,107 with a ±459,565 daily-move spread over the 2 unpublished days).
 
 ### The strategy menu: where else the same approach works
 
