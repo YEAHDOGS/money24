@@ -19,7 +19,7 @@ All entries share the existing default universe and risk settings. The 12 USD
 pairs are BTC, ETH, SOL, XRP, DOGE, ADA, AVAX, LINK, LTC, BCH, DOT and SUI.
 Altcoins require BTC above its hourly SMA50. The stop is two hourly ATR(14)
 from entry, clamped to 1.5–6%. The ladder exits in thirds at 1.5R, 3R and 5R
-with the default stop ratchet. The time stop is 72 hours, with an early exit
+with the default fixed stop. The time stop is 72 hours, with an early exit
 after 12 hours if the open would fail to recover the entry cost after fees.
 Position sizing starts with $1,000 cash and risks 1% of equity at the stop,
 capped at 25% of equity per position with a $10 minimum and half sizing on
