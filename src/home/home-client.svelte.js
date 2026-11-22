@@ -27,8 +27,9 @@ const DAYS_AHEAD = 8; // today and the week after it, for the day strip
 const MARKS_MAX = 8; // open plays that get a mark; the rulebook caps plays running at once below this
 const SLIDES_MAX = 6; // stories in the banner
 const HEADLINES_MAX = 60; // headlines in the list; the news page has the rest
-const MARKS_MS = 60000;
-const SCOUT_MS = 60000; // the scout's own pace: one pass a minute // the open plays' prices, only while one is running and the page is on screen
+const MARKS_MS = 60000; // the open plays' prices, only while one is running and the page is on screen
+const PREDICT_MS = 60000; // the prediction desk looks every five minutes; a minute keeps its countdown honest
+const SCOUT_MS = 60000; // the scout's own pace: one pass a minute
 const RETRY_MS = 10000; // while a service is offline
 const BOOK_DEBOUNCE_MS = 1500; // a burst of journal lines reads the plays and the account once
 const DESK_LAG_MS = 5000; // a desk's pass is read this long after the desk said it would run
@@ -94,6 +95,8 @@ export class HomeClient {
   broker = $state.raw(null);
   /** The scout's board (engine/plays/scout.go): read only while the Scout tab is open. */
   scout = $state.raw(null);
+  /** The prediction desk (engine/predict): read only while the Odds tab is open. */
+  predict = $state.raw(null);
   /** When the demo snapshot was recorded (ISO time), empty off the demo */
   demoTakenAt = $state('');
 
@@ -119,7 +122,7 @@ export class HomeClient {
   #marksLoop = new Poller(() => this.#loadMarks(), () => (this.status === STATUS.demo ? 0 : MARKS_MS));
   /** @type {EventSource | null} */
   #stream = null;
-  #timers = { book: 0, desk: 0, retry: 0, newsRetry: 0, scout: 0 };
+  #timers = { book: 0, desk: 0, retry: 0, newsRetry: 0, scout: 0, predict: 0 };
   #loadedAt = 0;
 
   start() {
@@ -193,6 +196,17 @@ export class HomeClient {
     const read = async () => {
       if (!document.hidden) this.scout = await getJSON(`${this.#base}/api/plays/scout`).catch(() => this.scout);
       this.#timers.scout = setTimeout(read, SCOUT_MS);
+    };
+    read();
+  }
+
+  /** Reads the prediction desk while its tab is open and the page is on screen. Closing the tab stops it. */
+  watchPredict(/** @type {boolean} */ on) {
+    clearTimeout(this.#timers.predict);
+    if (!on || this.status === STATUS.demo) return;
+    const read = async () => {
+      if (!document.hidden) this.predict = await getJSON(`${this.#base}/api/predict`).catch(() => this.predict);
+      this.#timers.predict = setTimeout(read, PREDICT_MS);
     };
     read();
   }

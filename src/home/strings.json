@@ -81,7 +81,7 @@
   "desk": {
     "title": "The desk",
     "tabsLabel": "What the desk shows",
-    "tabs": { "scout": "Scout", "activity": "Activity", "scan": "Last scan", "broker": "Broker" },
+    "tabs": { "scout": "Scout", "predict": "Odds", "activity": "Activity", "scan": "Last scan", "broker": "Broker" },
     "setups": {
       "opening_range_breakout": "Opening range",
       "vwap_reclaim": "VWAP reclaim",
@@ -96,6 +96,23 @@
     "scoutStat": "{found} found · {closed} closed · {won}% won · {avg} avg",
     "scoutStatNote": "Every play the scout finds is followed to its stop, first target or time exit, traded or not.",
     "scoutOutcomes": { "target": "target", "stop": "stopped", "time": "time exit" },
+    "predict": {
+      "head": "{venue} · live prices · paper",
+      "keysSet": "Kalshi keys set",
+      "keysNone": "no Kalshi keys (paper needs none)",
+      "account": "cash {cash} · in play {open}, bids {mark} · settled {realized} · {won} of {settled} won",
+      "band": "{from}–{to}¢",
+      "bandStat": "{watched} followed · {settled} settled · {won}% won · needs {needs}% · {edge} a dollar",
+      "bandWaiting": "{watched} followed · waiting for the first results",
+      "bandNote": "Every favorite the rule finds is followed to its result, traded or not, as if one contract were bought at its price with Kalshi's fee. Needs: the win rate that breaks even.",
+      "plan": "{side} · {qty} × {price} · {cost} + {fee} fee · closes {close}",
+      "sides": { "yes": "YES", "no": "NO" },
+      "bid": "bid now",
+      "won": "won",
+      "lost": "lost",
+      "loading": "Reading the prediction desk…",
+      "empty": "Nothing bought yet. The desk looks at Kalshi every {every} minutes, around the clock, for favorites at {min}–{max}¢ closing within {hours} hours."
+    },
     "scoutEmpty": "Nothing found yet. The scout looks every minute of the stock session.",
     "brokerChip": "Alpaca {mode}",
     "brokerNote": "Every desk trade is also placed at the broker, so its real fills can be set beside the desk's own prices.",

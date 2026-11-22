@@ -11,13 +11,15 @@
   import { fill, clock, pnl, price, signedPct } from '../plays/play-format.js';
   import { TONE, activity, brokerRows, until } from './desk.js';
   import { PLAYS_PAGE, PLAY_PARAM, pageLink } from './home-links.js';
+  import PredictRows from './PredictRows.svelte';
 
   const ACTIVITY_MAX = 40; // rows shown; the trading desk page has the whole journal
   const TAB_ACTIVITY = 'activity';
   const TAB_SCAN = 'scan';
   const TAB_BROKER = 'broker';
   const TAB_SCOUT = 'scout';
-  const TABS = [TAB_SCOUT, TAB_ACTIVITY, TAB_SCAN, TAB_BROKER];
+  const TAB_PREDICT = 'predict';
+  const TABS = [TAB_SCOUT, TAB_PREDICT, TAB_ACTIVITY, TAB_SCAN, TAB_BROKER];
   const OUTCOME_OPEN = 'open';
   const BULLISH = 'bullish';
   const CLOSED_SHOWN = 8;
@@ -35,11 +37,12 @@
   const TONE_DOT = { [TONE.buy]: 'bg-paper', [TONE.win]: 'bg-ok', [TONE.loss]: 'bg-bad', [TONE.skip]: 'bg-muted/50' };
 
   /**
-   * @type {{ journal: any[], flow: any, crypto: any, finder: any, broker?: any, scout?: any, onScout?: (open: boolean) => void, status: string, now: number }}
+   * @type {{ journal: any[], flow: any, crypto: any, finder: any, broker?: any, scout?: any, onScout?: (open: boolean) => void, predict?: any, onPredict?: (open: boolean) => void, status: string, now: number }}
    * flow, crypto, finder: each desk's last pass, null from a runner that has none. broker: the broker
-   * side (GET /api/broker), null without one. status: the runner's connection.
+   * side (GET /api/broker), null without one. predict: the prediction desk (GET /api/predict), read
+   * only while its tab is open. status: the runner's connection.
    */
-  let { journal, flow, crypto, finder, broker = null, scout = null, onScout = () => {}, status, now } = $props();
+  let { journal, flow, crypto, finder, broker = null, scout = null, onScout = () => {}, predict = null, onPredict = () => {}, status, now } = $props();
 
   let tab = $state(TAB_SCOUT);
 
@@ -51,10 +54,14 @@
   /** The scout's open plays best first, then the newest closed ones with how they ended. */
   const plays = $derived([...(scout?.open ?? []), ...(scout?.closed ?? []).slice(0, CLOSED_SHOWN)]);
 
-  // The board is read only while its tab is open.
+  // Each board is read only while its tab is open.
   $effect(() => {
     onScout(tab === TAB_SCOUT);
     return () => onScout(false);
+  });
+  $effect(() => {
+    onPredict(tab === TAB_PREDICT);
+    return () => onPredict(false);
   });
 
   /** "11:45 AM" in New York, where the session is clocked. */
@@ -167,6 +174,8 @@
       {:else}
         <li class="px-3 py-4 text-sm text-muted lg:px-4">{status === STATUS_OFFLINE ? strings.offline : scout?.why || strings.desk.scoutEmpty}</li>
       {/each}
+    {:else if tab === TAB_PREDICT}
+      <PredictRows {predict} {status} {now} />
     {:else if tab === TAB_BROKER}
       {#each fills as row, i (row.id)}
         <li class="overflow-hidden">

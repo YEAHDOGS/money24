@@ -99,3 +99,29 @@ Why filed: Money 24's prediction arm doesn't need to be built from zero —
 #9 (multi-agent analysis) and #8 (Claude terminal via MCP) map onto the
 agent design, #2 is training/backtest data, #3 is the backtest-harness
 pattern.
+
+## The prediction desk (paper, live): `engine/predict`, the Odds tab
+
+Built 2026-11-21. A paper book of Kalshi event contracts at Kalshi's real, live prices. It runs
+inside m24d, around the clock, and places no order anywhere.
+
+- **Prices:** Kalshi's public market data. No key needed.
+- **Fills:** against the real order book (Kalshi lists bids only; a NO bid at p is a YES offer at
+  1 − p), whole contracts, with Kalshi's taker fee `ceil(0.07 × C × P × (1 − P))` on every fill.
+  A few series charge less; the desk charges the standard rate everywhere.
+- **Settlement:** at the real result, $1 a contract to the winning side.
+- **The rule (first one):** favorites near the close. Every 5 minutes, binary markets whose trading
+  ends within 6 hours (and more than 5 minutes away), with the favorite's ask at 85–95¢, its spread
+  at most 3¢ and 200+ contracts traded in 24 hours. Parlay combos are left out.
+- **Limits:** $1,000 paper capital, $20 a market, 25 open, one per event, 5 new a pass, $200 of new
+  stake a day, and no new positions after $100 of settled losses in a New York day.
+- **The honest record:** every favorite the rule finds is followed to its result, traded or not,
+  and kept by price band (85–88¢, 88–91¢, 91–95¢) with its win rate, the win rate that breaks even
+  after the fee, and what a dollar in every one made. That record, not the trades, says whether
+  the rule works.
+- **Files:** `predict-journal.jsonl` in m24d's data folder. `GET /api/predict` serves the desk.
+- **Live check:** `M24D_LIVE=1 go test ./predict -run Live -v` runs one real pass into a throwaway book.
+- **Known gap:** markets in different events can still move together (bitcoin, ether and solana
+  price markets closing the same hour). The one-per-event limit does not catch that yet.
+- **Next:** Kalshi demo orders with the keys in `.env` (`KALSHI_KEY_ID`, `KALSHI_PRIVATE_KEY_PATH`,
+  `KALSHI_ENV=demo`), once the record says the rule is worth it.
