@@ -26,11 +26,9 @@ const (
 )
 
 var (
-	TAG_PATTERN   = regexp.MustCompile(`<[^>]*>`)
-	SPACE_PATTERN = regexp.MustCompile(`[\s\p{Zs}]+`)
 	// One related article in a bundled item: its link, its headline, then its outlet.
 	BUNDLE_ARTICLE = regexp.MustCompile(`<a href="([^"]+)"[^>]*>(.*?)</a>(?:&nbsp;|\s)*<font[^>]*>(.*?)</font>`)
-	TIME_LAYOUTS  = []string{
+	TIME_LAYOUTS   = []string{
 		time.RFC1123Z, time.RFC1123, time.RFC3339, time.RFC3339Nano,
 		"Mon, 2 Jan 2006 15:04:05 -0700", "Mon, 2 Jan 2006 15:04:05 MST",
 		"Mon, 02 Jan 2006 15:04 -0700", "2 Jan 2006 15:04:05 -0700",
@@ -50,7 +48,12 @@ type Event struct {
 	Lang        string     `json:"lang,omitempty"`
 	Country     string     `json:"country,omitempty"`
 	Tags        []string   `json:"tags"`
-	Image       string     `json:"image,omitempty"` // a link to the outlet's own picture for the article
+	Image       string     `json:"image,omitempty"`      // a link to the outlet's own picture for the article
+	Author      string     `json:"author,omitempty"`     // the byline the feed gives, names joined by commas
+	OutletURL   string     `json:"outlet_url,omitempty"` // the outlet's own site, as the item names it or the link's origin
+	// The archive's fields, left out of the live feed to keep it light; the archive API serves them.
+	Excerpt string `json:"-"` // up to EXCERPT_MAX_CHARS of plain text from the feed's own content or description
+	FeedURL string `json:"-"` // the exact address the item was fetched from
 }
 
 // Market is one prediction market and its current odds.
@@ -84,13 +87,16 @@ var POLLERS = map[string]poller{
 // --- RSS 2.0, RSS 1.0 (RDF) and Atom ---
 
 type feedItem struct {
-	Title       string   `xml:"title"`
-	Links       []string `xml:"link"`
-	Description string   `xml:"description"`
-	PubDate     string   `xml:"pubDate"`
-	Date        string   `xml:"date"` // dc:date
-	GUID        string   `xml:"guid"`
-	Outlet      string   `xml:"source"` // the publisher, on a feed that carries many (Google News)
+	Title       string       `xml:"title"`
+	Links       []string     `xml:"link"`
+	Description string       `xml:"description"`
+	Encoded     string       `xml:"encoded"` // content:encoded, the article's body when the feed carries it
+	PubDate     string       `xml:"pubDate"`
+	Date        string       `xml:"date"` // dc:date
+	GUID        string       `xml:"guid"`
+	Outlet      feedSource   `xml:"source"` // the publisher, on a feed that carries many (Google News)
+	Authors     []feedPerson `xml:"author"`
+	Creators    []string     `xml:"creator"` // dc:creator
 	// The article's picture, in whichever of the three usual places the feed puts it.
 	Thumbnails []feedMedia `xml:"http://search.yahoo.com/mrss/ thumbnail"`
 	Media      []feedMedia `xml:"http://search.yahoo.com/mrss/ content"`
@@ -137,12 +143,13 @@ type atomLink struct {
 }
 
 type atomEntry struct {
-	Title     string     `xml:"title"`
-	Links     []atomLink `xml:"link"`
-	Summary   string     `xml:"summary"`
-	Content   string     `xml:"content"`
-	Updated   string     `xml:"updated"`
-	Published string     `xml:"published"`
+	Title     string       `xml:"title"`
+	Links     []atomLink   `xml:"link"`
+	Summary   atomText     `xml:"summary"`
+	Content   atomText     `xml:"content"`
+	Updated   string       `xml:"updated"`
+	Published string       `xml:"published"`
+	Authors   []feedPerson `xml:"author"`
 }
 
 type feedDoc struct {
@@ -183,17 +190,29 @@ func parseFeed(body []byte, src Source) ([]Event, error) {
 			events = append(events, bundleEvents(src, it, link)...)
 			continue
 		}
-		if e, ok := newEvent(src, it.Title, link, it.Description, firstNonEmpty(it.PubDate, it.Date)); ok {
-			e.Image = it.picture()
-			events = append(events, e)
+		e, ok := newEvent(src, it.Title, link, it.Description, firstNonEmpty(it.PubDate, it.Date))
+		if !ok {
+			continue
 		}
+		e.Image = it.picture()
+		e.Author = byline(it.Authors, it.Creators)
+		e.Excerpt = excerpt(firstNonEmpty(it.Encoded, it.Description))
+		// A feed that republishes others names the real outlet per item; that is the article's network.
+		e.Source = firstNonEmpty(clean(it.Outlet.Name, 0), e.Source)
+		e.OutletURL = firstNonEmpty(webURL(it.Outlet.URL), origin(e.URL))
+		events = append(events, e)
 	}
 	for _, en := range doc.Entries {
-		e, ok := newEvent(src, en.Title, atomHref(en.Links), firstNonEmpty(en.Summary, en.Content),
+		summary, content := en.Summary.value(), en.Content.value()
+		e, ok := newEvent(src, en.Title, atomHref(en.Links), firstNonEmpty(summary, content),
 			firstNonEmpty(en.Published, en.Updated))
-		if ok {
-			events = append(events, e)
+		if !ok {
+			continue
 		}
+		e.Author = byline(en.Authors, nil)
+		e.Excerpt = excerpt(firstNonEmpty(content, summary))
+		e.OutletURL = origin(e.URL)
+		events = append(events, e)
 	}
 	return events, nil
 }
@@ -201,12 +220,16 @@ func parseFeed(body []byte, src Source) ([]Event, error) {
 // bundleEvents reads one item of a feed that bundles many outlets: the item itself, published by the
 // outlet it names, and the related coverage listed in its description, one article per outlet.
 // Their summaries are dropped: they are the same list of other outlets' headlines, not the article.
+// The link is the aggregator's redirect (news.google.com); the article's own address is not in the
+// feed and would take a request per article to learn, so only the outlet's site is kept beside it.
 func bundleEvents(src Source, it feedItem, link string) []Event {
 	published := firstNonEmpty(it.PubDate, it.Date)
-	outlet := clean(it.Outlet, 0)
+	outlet := clean(it.Outlet.Name, 0)
 	events := []Event{}
 	if e, ok := newEvent(src, strings.TrimSuffix(clean(it.Title, 0), TITLE_DASH+outlet), link, "", published); ok {
 		e.Source = firstNonEmpty(outlet, src.Label)
+		e.OutletURL = webURL(it.Outlet.URL)
+		e.Author = byline(it.Authors, it.Creators)
 		events = append(events, e)
 	}
 	for _, m := range BUNDLE_ARTICLE.FindAllStringSubmatch(it.Description, MAX_BUNDLE) {
@@ -237,6 +260,7 @@ func newEvent(src Source, title, link, summary, published string) (Event, bool) 
 		Title:       title,
 		URL:         link,
 		Summary:     clean(summary, SUMMARY_MAX_CHARS),
+		FeedURL:     src.URL,
 	}, true
 }
 
@@ -270,16 +294,25 @@ func pollGDELT(ctx context.Context, src Source, f *Fetcher, tagger *Tagger) (Bat
 	if err != nil || body == nil {
 		return Batch{Unchanged: err == nil}, err
 	}
+	events, err := parseGDELT(body, src)
+	if err != nil {
+		return Batch{}, err
+	}
+	tagAll(events, tagger)
+	return Batch{Events: events}, nil
+}
+
+func parseGDELT(body []byte, src Source) ([]Event, error) {
 	trimmed := bytes.TrimSpace(body)
 	if len(trimmed) == 0 {
-		return Batch{}, nil // GDELT answers an empty body when nothing matched
+		return nil, nil // GDELT answers an empty body when nothing matched
 	}
 	if trimmed[0] != '{' {
-		return Batch{}, fmt.Errorf("gdelt: %s", snippet(trimmed))
+		return nil, fmt.Errorf("gdelt: %s", snippet(trimmed))
 	}
 	var doc gdeltDoc
 	if err := json.Unmarshal(trimmed, &doc); err != nil {
-		return Batch{}, fmt.Errorf("gdelt parse: %w", err)
+		return nil, fmt.Errorf("gdelt parse: %w", err)
 	}
 
 	events := []Event{}
@@ -288,13 +321,14 @@ func pollGDELT(ctx context.Context, src Source, f *Fetcher, tagger *Tagger) (Bat
 		if !ok {
 			continue
 		}
+		// GDELT gives no byline and no text: only the outlet's domain, language and country.
 		e.Source = firstNonEmpty(a.Domain, src.Label)
+		e.OutletURL = origin(e.URL)
 		e.Lang = a.Language
 		e.Country = a.SourceCountry
 		events = append(events, e)
 	}
-	tagAll(events, tagger)
-	return Batch{Events: events}, nil
+	return events, nil
 }
 
 // --- Polymarket: what is tradable right now, and at what odds ---
@@ -376,11 +410,10 @@ func tagAll(events []Event, tagger *Tagger) {
 
 // clean strips HTML, decodes entities, collapses whitespace and truncates to limit runes (0 = no limit).
 func clean(s string, limit int) string {
-	s = html.UnescapeString(TAG_PATTERN.ReplaceAllString(s, " "))
-	s = strings.TrimSpace(SPACE_PATTERN.ReplaceAllString(s, " "))
+	s = plainText(s)
 	runes := []rune(s)
 	if limit > 0 && len(runes) > limit {
-		return string(runes[:limit]) + "…"
+		return string(runes[:limit]) + ELLIPSIS
 	}
 	return s
 }

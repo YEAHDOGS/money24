@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Filings</title>
+  <entry>
+    <title>8-K - Example Corp</title>
+    <link rel="alternate" href="https://filings.example.gov/8k/1"/>
+    <updated>2026-11-20T16:30:00-05:00</updated>
+    <author><name>Example Corp</name><email>ir@example.com</email></author>
+    <author><name>Filing Agent</name></author>
+    <summary type="html">&lt;b&gt;Item 2.02&lt;/b&gt; Results of operations</summary>
+    <content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><p>Example Corp reported <em>record</em> revenue.</p></div></content>
+  </entry>
+  <entry>
+    <title>Plain entry</title>
+    <link href="https://filings.example.gov/8k/2"/>
+    <published>2026-11-20T10:00:00Z</published>
+    <summary>Only a summary here.</summary>
+  </entry>
+</feed>

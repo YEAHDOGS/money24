@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/migrations"
@@ -31,7 +32,12 @@ type StoredEvent struct {
 }
 
 // Store is the local SQLite database: events, markets, settings and the data-usage ledger.
-type Store struct{ db *sql.DB }
+type Store struct {
+	db *sql.DB
+	mu sync.Mutex
+	// feedURLs caches each feed address's feed_urls id: one lookup per address per run.
+	feedURLs map[string]int64
+}
 
 // OpenStore opens (or creates) news.db inside dir and applies pending migrations.
 func OpenStore(ctx context.Context, dir string) (*Store, error) {
@@ -43,7 +49,7 @@ func OpenStore(ctx context.Context, dir string) (*Store, error) {
 	if err := db.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
-	store := &Store{db: db}
+	store := &Store{db: db, feedURLs: map[string]int64{}}
 	return store, store.migrate(ctx)
 }
 
@@ -120,19 +126,36 @@ func (s *Store) insertEvents(ctx context.Context, events []Event) ([]StoredEvent
 		}
 		return a.Before(*b)
 	})
+	feedIDs, err := s.feedURLIDs(ctx, events)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 	stmt, err := tx.PrepareContext(ctx, `INSERT INTO events
-		(seen_at, published_at, feed, source, kind, title, url, summary, lang, country, tags, image)
-		VALUES (?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''))
+		(seen_at, published_at, feed, source, kind, title, url, summary, lang, country, tags, image,
+			author, excerpt, outlet_url, feed_url_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, NULLIF(?, ''),
+			NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, 0))
 		ON CONFLICT (url) DO NOTHING RETURNING id`)
 	if err != nil {
 		return nil, err
 	}
 	defer stmt.Close()
+	// An article stored before a field was kept gets it when its feed shows it again. Only blanks
+	// are filled, and the row is left alone when there is nothing new, so a repeat costs no write.
+	fill, err := tx.PrepareContext(ctx, `UPDATE events SET image = COALESCE(image, NULLIF(?1, '')),
+			author = COALESCE(author, NULLIF(?2, '')), excerpt = COALESCE(excerpt, NULLIF(?3, '')),
+			outlet_url = COALESCE(outlet_url, NULLIF(?4, '')), feed_url_id = COALESCE(feed_url_id, NULLIF(?5, 0))
+		WHERE url = ?6 AND ((image IS NULL AND ?1 != '') OR (author IS NULL AND ?2 != '')
+			OR (excerpt IS NULL AND ?3 != '') OR (outlet_url IS NULL AND ?4 != '') OR (feed_url_id IS NULL AND ?5 != 0))`)
+	if err != nil {
+		return nil, err
+	}
+	defer fill.Close()
 
 	seen := time.Now().UTC()
 	added := []StoredEvent{}
@@ -140,13 +163,11 @@ func (s *Store) insertEvents(ctx context.Context, events []Event) ([]StoredEvent
 		tags, _ := json.Marshal(e.Tags)
 		var id int64
 		err := stmt.QueryRowContext(ctx, seen.UnixMilli(), millis(e.PublishedAt), e.Feed, e.Source, e.Kind,
-			e.Title, e.URL, e.Summary, e.Lang, e.Country, string(tags), e.Image).Scan(&id)
+			e.Title, e.URL, e.Summary, e.Lang, e.Country, string(tags), e.Image,
+			e.Author, e.Excerpt, e.OutletURL, feedIDs[e.FeedURL]).Scan(&id)
 		if errors.Is(err, sql.ErrNoRows) {
-			// Already stored. An article saved before pictures were kept gets its picture now.
-			if e.Image != "" {
-				if _, err := tx.ExecContext(ctx, `UPDATE events SET image = ? WHERE url = ? AND image IS NULL`, e.Image, e.URL); err != nil {
-					return nil, err
-				}
+			if _, err := fill.ExecContext(ctx, e.Image, e.Author, e.Excerpt, e.OutletURL, feedIDs[e.FeedURL], e.URL); err != nil {
+				return nil, err
 			}
 			continue
 		}
@@ -156,6 +177,33 @@ func (s *Store) insertEvents(ctx context.Context, events []Event) ([]StoredEvent
 		added = append(added, StoredEvent{ID: id, SeenAt: seen, Event: e})
 	}
 	return added, tx.Commit()
+}
+
+// feedURLIDs returns the feed_urls id of every feed address in events, adding the ones not stored yet.
+func (s *Store) feedURLIDs(ctx context.Context, events []Event) (map[string]int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ids := map[string]int64{}
+	for _, e := range events {
+		if e.FeedURL == "" || ids[e.FeedURL] != 0 {
+			continue
+		}
+		if id, ok := s.feedURLs[e.FeedURL]; ok {
+			ids[e.FeedURL] = id
+			continue
+		}
+		_, err := s.db.ExecContext(ctx, `INSERT INTO feed_urls (feed, url, first_seen) VALUES (?, ?, ?)
+			ON CONFLICT (url) DO NOTHING`, e.Feed, e.FeedURL, time.Now().UnixMilli())
+		if err != nil {
+			return nil, err
+		}
+		var id int64
+		if err := s.db.QueryRowContext(ctx, `SELECT id FROM feed_urls WHERE url = ?`, e.FeedURL).Scan(&id); err != nil {
+			return nil, err
+		}
+		s.feedURLs[e.FeedURL], ids[e.FeedURL] = id, id
+	}
+	return ids, nil
 }
 
 // upsertMarkets refreshes each market and records an odds snapshot for history.
@@ -213,7 +261,8 @@ func (s *Store) events(ctx context.Context, q EventQuery) ([]StoredEvent, error)
 		q.Limit = MAX_RECENT_LIMIT
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT id, seen_at, published_at, feed, source, kind, title, url,
-		COALESCE(summary, ''), COALESCE(lang, ''), COALESCE(country, ''), tags, COALESCE(image, '')
+		COALESCE(summary, ''), COALESCE(lang, ''), COALESCE(country, ''), tags, COALESCE(image, ''),
+		COALESCE(author, ''), COALESCE(outlet_url, '')
 		FROM events
 		WHERE (?1 = 0 OR id < ?1) AND id > ?2 AND (?3 = '' OR kind = ?3)
 			AND (?4 = '' OR EXISTS (SELECT 1 FROM json_each(events.tags) WHERE value = ?4))
@@ -230,7 +279,7 @@ func (s *Store) events(ctx context.Context, q EventQuery) ([]StoredEvent, error)
 		var published sql.NullInt64
 		var tags string
 		if err := rows.Scan(&e.ID, &seen, &published, &e.Feed, &e.Source, &e.Kind, &e.Title, &e.URL,
-			&e.Summary, &e.Lang, &e.Country, &tags, &e.Image); err != nil {
+			&e.Summary, &e.Lang, &e.Country, &tags, &e.Image, &e.Author, &e.OutletURL); err != nil {
 			return nil, err
 		}
 		e.SeenAt = time.UnixMilli(seen).UTC()
