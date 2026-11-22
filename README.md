@@ -9,21 +9,27 @@ forex, around the clock according to the news, signals, trackers, and AI analysi
 
 ## What's the deal?
 
-I have only ever lost money from the markets. But I see AI trading as my best shot at fixing that. The way this is gonna float is to tread lightly. Pins, needles, stop losses, gradual development. Trading, backtesting on collected data, and experimentation.
+The main goal of money24: for, at this time, just me (to avoid liquidity and sizing issues), add $1,000 to money24, and make on average $100 daily, 10% or less daily gains. This is the goal all backtests are trained for.
 
-This repo is currently in heavy development, and I Brandon Dcruz am not liable for anything you do with it at this point in development. There's further terms at the bottom.
+[Kalshi](https://kalshi.com) is our platform for Predictions and Futures trading. [Alpaca](https://alpaca.markets) is our platform for Crypto trading. [WeBull](https://www.webull.com) and [Robinhood](https://robinhood.com) are our main platform for Stock and Options trading, as well as Alpaca. [IBKR](https://www.interactivebrokers.com) is how we trade FOREX.
+
+I have only ever lost money from the markets. But I see AI trading as my best shot at fixing that. The way this is gonna float is to tread lightly. Pins, needles, stop losses, gradual development. Trading, backtesting on collected data, and experimentation. AI provides a way to dynamically adjust algorithms automatically according to incoming information. As AI gets better at better ([Jev with structures sub-100ms responses](https://typesafe.ai/blog/introducing-system-one-models-and-jev), or [AI built directly into the CPU silicon, sub-100ms full responses](https://taalas.com/), or [new CPU architectures built around AI, incredibly fast as well](https://architectlabs.com/blog/frostbite) ), AI algorithmic trading will only continue to grow. Eventually, the only way to profit in any equities market will be with an agentic AI trading bot setup. That's where money24 comes in. A level beyond agentic trading accounts: an entirely hands-off solution to trading, passive income moving 24/7.
+
+I think between AI advancement, greed, and world happenings, all markets are subject to change. For now, NYSE stock/options trading, futures, and forex are traded on weekdays 8am (market open) to 3pm (market close). Crypto and prediction markets are traded on weekends, and weekdays too but these are the only markets open on weekends.
+
+This repo is currently in heavy development and experimentation, and I Brandon Dcruz am not liable for anything you do with it at this point in development. The code in this repo is open source and can be used freely without contribution. Any hosted money24 service besides the demo is currently locked exclusively to me, and attempting to breach this lock is against our Terms of Service. There's further terms at the bottom.
 
 You can see some of the rules that have kept my day trading portfolio afloat here. I'm trying to set money24 up around 'Plays'. Essentially, a set entry, and set exits and stop losses, at set times for set prices. Like a targeted hit, all outcomes planned for in advance. Driven by your AI subscription, and local DOGS services (newsd: fetches articles from public sources, m24d: connects to your brokerage API and executes the trades, +more).
 
 Picture this: On Friday November 13th the FAA ordered a full ground stop for all commercial airline flights, for 4 hours. They then had a press conference and instead of saying anything about the people who were impacted by this, they said they needed 50 billion dollars immediately.
 
-That night I angrily tweeted. That morning, Saturday while markets were closed, I asked Google Gemini, 'give me the stocks most likely to be impacted by the only full FAA grounding since 9/11'. Immediately, it came back, LHX (L3 Harris, the contractor company that caused the outage), DAL (Delta Airlines), AAL (American Airlines), UAL (United Airlines), and more. I asked for Put option contracts with hightened trading volumes, people with the same idea as me (Put option aka shorting a company, betting it will go down, best when you know the company is about to quickly swiftly tank down, the faster the better. what, you didn't know companies stock hurting was a good thing? yes, it's very good. It's about velocity. If a stock goes up very swiftly (call options), or down very switfly (put options), you can profit. Or lose the entire investment, in seconds. Millions of corporations around the world rely on this way of trading, because regulation and trade economics, and taxes, are so bad. Hopefully we can teach about trading with money24 too.). Wham!
+That night, I angrily tweeted, like most Americans did. That morning, Saturday while stock markets were closed, I asked [Google Gemini](https://gemini.google.com), 'give me the stocks most likely to be impacted by the only full FAA grounding since 9/11'. Immediately, it came back, LHX ([L3 Harris](https://www.l3harris.com), the contractor company that caused the outage), DAL ([Delta Airlines](https://www.delta.com)), AAL ([American Airlines](https://www.aa.com)), UAL ([United Airlines](https://www.united.com)), and more. I asked for Put option contracts with hightened trading volumes, people with the same idea as me (Put option aka shorting a company, betting it will go down, best when you know the company is about to swiftly tank down, the faster the better. what, you didn't know companies' stock hurting was a good thing? yes, it's very good. It's about velocity. If a stock goes up very swiftly (call options), or down very switfly (put options), you can profit. Or lose the entire investment, in seconds. Millions of corporations around the world rely on this way of trading, because regulation and trade economics, and taxes, are so bad and strangulating on the economy. The discrepancy between the price of the banana the consumer pays at [Market Basket](https://www.shopmarketbasket.com), and the cost it takes for [Chiquita](https://www.chiquita.com) to get the banana to the store, that's where these equities markets have always existed, for decades. Most insurance companies for instance would be totally bankrupt and unavailable without options trading. Yes, [Geico](https://www.geico.com) is literally one of the whales we must follow to profit here. Hopefully we can teach about trading with money24 too.). Wham!
 
 ![Woah!](public/woof.jpg)
 
 Like chess, like clockwork, money from the sky. Short window, and many things can go wrong. But money24 is aimed at trying to capture this, entirely hands off. And this is me prompting Gemini manually, we need to automate this. Across all the 6 markets of the 7 seas on God's green earth.
 
-I won't lie. This is the riskiest form of trading there is. Even here, I traded these gains, but did not fund myself. I think this is doable. I've watched claude fable cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
+I won't lie. This is the riskiest form of trading there is. Even here, I traded these gains, but did not fund myself. I think this is doable. I've watched [claude fable](https://claude.ai) cook up a million lines of code in seconds. Yeah, even if money24 doesn't succeed, just like a gta6 fan port on pc, the ai money machine is inevitable. Because the money machine has always existed, just not for people.
 
 Once this is complete we can assess an overall risk of money24 as a product. I need help though. If you're reading this, email brando@dogs.red immediately, and help me build man's holy grail. The hybrid car that drives itself. Open source.
 
@@ -47,19 +53,19 @@ That said, I pasted the above paragraph into Gemini, and the ai laughed at me, a
 
 "Financial markets are driven by liquidity, positioning, and expectations rather than simple 1:1 fundamentals. Scheduled catalysts—such as FOMC rate decisions, CPI prints, and corporate earnings—trigger sharp volatility spikes and repricing based on forward guidance rather than past numbers. While seasonal liquidity patterns exist (such as thin holiday order books, quarter-end rebalancing, and tax-loss harvesting), simple calendar myths are unreliable. money24 operates across global markets and commodities 24/7 by adapting to real-time order flow, volatility regimes, and risk limits rather than trading on rigid assumptions."
 
-Man fuck this world. Vocabulary doesn't pay my fucking bills. And I've seen what I've seen. I don't care. Truthfully I'm guessing the reason a project like this hasn't come to life successfully yet is because AIs are trained to spit out that shit there. I think there's a serious risk this way of trading exposes to the world, total global financial collapse, and I'm guessing AIs and LLMs are hardcoded to make the money machine an uphill battle. Whatever. Gemini has added more rules to [notes/gemini-unwritten-rules.md]. We will be orchestrating everything together, because all the markets impact each other in different ways too. This is exactly why agentic ai trading is a golden strategy! Because what used to take 2 decades of hard work, loss, and study, now is more accessible than ever. That's why today is the perfect day to get money24 off the runway.
+Man fuck this world. Vocabulary doesn't pay my fucking bills. And I've seen what I've seen. I don't care. Truthfully I'm guessing the reason a project like this hasn't come to life successfully yet is because AIs are trained to spit out that shit there. I think there's a serious risk this way of trading exposes to the world, total global financial collapse, and I'm guessing AIs and LLMs are hardcoded to make the money machine an uphill battle. Whatever. Gemini has added more rules to [notes/gemini-unwritten-rules.md](notes/gemini-unwritten-rules.md). We will be orchestrating everything together, because all the markets impact each other in different ways too. This is exactly why agentic ai trading is a golden strategy! Because what used to take 2 decades of hard work, loss, and study, now is more accessible than ever. That's why today is the perfect day to get money24 off the runway.
 
 ## What's in here
 
 | Part | What it does | Where | Status |
 |---|---|---|---|
-| Landing / client (`src/`) | Svelte 5 + Vite + Tailwind v4 landing page, plus the live feed at `feed.html` | Cloudflare Pages · Tauri desktop | Live |
-| `newsd` (`engine/cmd/newsd`) | Polls news, filings, central-bank, macro and Polymarket feeds; tags against the watchlist; stores in SQLite; streams over SSE | Desktop sidecar · Linux server | Running |
-| `m24d` + signals (`engine/`) | The trading runner. The signals package reads callout sources (X, Telegram, wallets, webhooks), parses them and trades with our own exits | Same as `newsd` | Webhook runner; adapters next: [notes/trading-service.md](notes/trading-service.md) |
+| Landing / client (`src/`) | Svelte 5 + Vite + Tailwind v4 landing page, plus the live feed at `feed.html` | [Cloudflare Pages](https://pages.cloudflare.com) · [Tauri](https://tauri.app) desktop | Live |
+| `newsd` (`engine/cmd/newsd`) | Polls news, filings, central-bank, macro and [Polymarket](https://polymarket.com) feeds; tags against the watchlist; stores in SQLite; streams over SSE | Desktop sidecar · Linux server | Running |
+| `m24d` + signals (`engine/`) | The trading runner. The signals package reads callout sources ([X](https://x.com), [Telegram](https://telegram.org), wallets, webhooks), parses them and trades with our own exits | Same as `newsd` | Webhook runner; adapters next: [notes/trading-service.md](notes/trading-service.md) |
 
 Everything server-side is one Go module in `engine/` (see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). Each process keeps its own
-SQLite database. Cloudflare is only the control plane, later on.
+SQLite database. [Cloudflare](https://www.cloudflare.com) is only the control plane, later on.
 
 ## Run it
 
@@ -87,7 +93,7 @@ docker compose logs -f news
 docker compose down           # the news-data volume keeps the database
 ```
 
-On Windows this needs Docker Desktop. This starts `news` (8024) and `trading` (8025).
+On Windows this needs [Docker Desktop](https://www.docker.com/products/docker-desktop/). This starts `news` (8024) and `trading` (8025).
 
 ### newsd: by hand (any OS)
 
@@ -201,7 +207,7 @@ THE SERVICE IS PROVIDED ON AN **"AS IS"** AND **"AS AVAILABLE"** BASIS WITHOUT W
 You agree to defend, indemnify, and hold harmless Company and its founders, officers, employees, and affiliates from and against any and all claims, damages, losses, liabilities, regulatory inquiries, costs, and reasonable attorneys' fees arising out of or related to: (a) your trading activities or automated executions; (b) your violation of this Agreement or any applicable law or exchange rule; or (c) any dispute between you and a third-party broker or exchange.
 
 ### 6. BINDING ARBITRATION AND CLASS ACTION WAIVER
-6.1 **Mandatory Individual Arbitration.** Any dispute, claim, or controversy arising out of or relating to this Agreement or Money24 shall be resolved exclusively through final and binding individual arbitration administered by the American Arbitration Association (AAA) under its Commercial Arbitration Rules, rather than in court.  
+6.1 **Mandatory Individual Arbitration.** Any dispute, claim, or controversy arising out of or relating to this Agreement or Money24 shall be resolved exclusively through final and binding individual arbitration administered by the [American Arbitration Association](https://www.adr.org) (AAA) under its Commercial Arbitration Rules, rather than in court.  
 6.2 **Class Action & Jury Trial Waiver.** YOU AND COMPANY WAIVE ANY RIGHT TO A JURY TRIAL OR TO PARTICIPATE IN A CLASS ACTION, COLLECTIVE ACTION, OR REPRESENTATIVE PROCEEDING. All claims must be brought solely in your individual capacity.
 
 ### 7. GOVERNING LAW AND SEVERABILITY
