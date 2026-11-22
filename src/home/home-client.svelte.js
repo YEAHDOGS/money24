@@ -1,8 +1,11 @@
 // The Home page's data. From the m24d runner: plays (the open ones are the positions), the
 // journal and starting capital (the account's history), a mark for each open play,
 // quotes for the ribbon, the cash account, the trading calendar and each desk's last pass. From the newsd service: stories, or plain headlines when it has none.
-// Everything is read on a slow timer and only while the page is on screen (poller.js); the runner
-// caches market data, so many open windows cost the provider nothing extra.
+// Nothing is read on a blind timer. The page reads everything once, then the runner's journal stream
+// (GET /api/stream, server-sent events) says when something happened: a buy, a sale, a close. Each burst
+// of lines reads the plays and the account once. Only the open plays' prices are asked for on a timer,
+// and only while a play is running and the page is on screen. Each desk's pass is read when that desk
+// said its next pass would be. A page left in the background reads everything again when it comes back.
 // With no runner or news service (the public site, or ?demo) it shows the recorded snapshot
 // instead (src/lib/demo.js), read once. Home only reads: nothing here changes a play or an order.
 import { DEMO_PARAM, DEMO_STATUS, STORE_RUNNER, demoFirst, loadDemo, stored } from '../lib/demo.js';
@@ -24,9 +27,14 @@ const DAYS_AHEAD = 8; // today and the week after it, for the day strip
 const MARKS_MAX = 8; // open plays that get a mark; the rulebook caps plays running at once below this
 const SLIDES_MAX = 6; // stories in the banner
 const HEADLINES_MAX = 60; // headlines in the list; the news page has the rest
-const POLL_MS = 60000;
+const MARKS_MS = 60000; // the open plays' prices, only while one is running and the page is on screen
 const RETRY_MS = 10000; // while a service is offline
-const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', demo: DEMO_STATUS };
+const BOOK_DEBOUNCE_MS = 1500; // a burst of journal lines reads the plays and the account once
+const DESK_LAG_MS = 5000; // a desk's pass is read this long after the desk said it would run
+const DESK_MIN_MS = 30000; // and never sooner than this after the last read
+const STALE_MS = 300000; // a page back on screen after this long reads everything again
+const VISIBILITY_EVENT = 'visibilitychange';
+const STATUS = { connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', offline: 'offline', demo: DEMO_STATUS };
 const DEMO_PLAYS = 'plays.json';
 const DEMO_TRADING = 'trading.json';
 const DEMO_NEWS = 'news.json';
@@ -102,18 +110,73 @@ export class HomeClient {
   });
 
   #base = stored(STORE_RUNNER, DEFAULT_RUNNER).replace(/\/+$/, '');
-  #runnerLoop = new Poller(() => this.#loadRunner(), () => (this.status === STATUS.demo ? 0 : this.status === STATUS.live ? POLL_MS : RETRY_MS));
-  #newsLoop = new Poller(() => this.#loadNews(), () => (this.newsStatus === STATUS.demo ? 0 : this.newsStatus === STATUS.live ? POLL_MS : RETRY_MS));
+  /** Prices for the open plays: no request at all while nothing is running. */
+  #marksLoop = new Poller(() => this.#loadMarks(), () => (this.status === STATUS.demo ? 0 : MARKS_MS));
+  /** @type {EventSource | null} */
+  #stream = null;
+  #timers = { book: 0, desk: 0, retry: 0, newsRetry: 0 };
+  #loadedAt = 0;
 
   start() {
-    this.#runnerLoop.start();
-    this.#newsLoop.start();
+    document.addEventListener(VISIBILITY_EVENT, this.#onVisible);
+    this.#connect();
+    this.#loadNews();
   }
 
   stop() {
-    this.#runnerLoop.stop();
-    this.#newsLoop.stop();
+    document.removeEventListener(VISIBILITY_EVENT, this.#onVisible);
+    this.#stream?.close();
+    this.#stream = null;
+    for (const t of Object.values(this.#timers)) clearTimeout(t);
+    this.#marksLoop.stop();
   }
+
+  /** Reads everything once, then listens to the journal. Offline: tries again shortly. */
+  async #connect() {
+    clearTimeout(this.#timers.retry);
+    if (demoFirst()) {
+      await this.#demoRunner();
+      return;
+    }
+    if (!(await this.#loadRunner())) {
+      this.#timers.retry = setTimeout(() => this.#connect(), RETRY_MS);
+      return;
+    }
+    this.#listen();
+    this.#marksLoop.start();
+  }
+
+  /** The journal stream. The browser reconnects by itself and the runner backfills what was missed. */
+  #listen() {
+    this.#stream?.close();
+    const after = this.journal[this.journal.length - 1]?.id ?? 0;
+    const stream = new EventSource(`${this.#base}/api/stream?after=${after}`);
+    stream.onopen = () => { this.status = STATUS.live; };
+    stream.onmessage = (event) => {
+      const line = JSON.parse(event.data);
+      if (line.id <= (this.journal[this.journal.length - 1]?.id ?? 0)) return;
+      this.journal = [...this.journal, line];
+      clearTimeout(this.#timers.book);
+      this.#timers.book = setTimeout(() => this.#loadBook(), BOOK_DEBOUNCE_MS);
+    };
+    stream.onerror = () => {
+      if (stream.readyState !== EventSource.CLOSED) {
+        this.status = STATUS.reconnecting;
+        return;
+      }
+      this.status = STATUS.offline;
+      this.#stream = null;
+      this.#timers.retry = setTimeout(() => this.#connect(), RETRY_MS);
+    };
+    this.#stream = stream;
+  }
+
+  /** Back on screen after a long while: read everything again, so nothing shown is old. */
+  #onVisible = () => {
+    if (document.hidden || this.status === STATUS.demo || Date.now() - this.#loadedAt < STALE_MS) return;
+    this.#loadRunner();
+    this.#loadNews();
+  };
 
   /** Picks a news category. A live stories service is asked for that category's own top stories. */
   pick(/** @type {string} */ id) {
@@ -126,11 +189,8 @@ export class HomeClient {
     return [...new Set([...ribbon.symbols, ...positionSymbols(this.items)])].slice(0, QUOTES_MAX);
   }
 
+  /** Everything the page shows from the runner, read once. Returns false when the runner did not answer. */
   async #loadRunner() {
-    if (demoFirst()) {
-      await this.#demoRunner();
-      return;
-    }
     try {
       const fresh = this.status !== STATUS.live;
       const after = this.journal[this.journal.length - 1]?.id ?? 0;
@@ -144,11 +204,23 @@ export class HomeClient {
       if (catalog) this.capital = catalog.go_live?.paper_capital_usd || DEFAULT_CAPITAL;
       this.walletReady = true;
       this.status = STATUS.live;
+      this.#loadedAt = Date.now();
     } catch {
       this.status = STATUS.offline;
-      return;
+      return false;
     }
     await Promise.all([this.#loadQuotes(), this.#loadMarks(), this.#loadDesk()]);
+    return true;
+  }
+
+  /** The plays and the account, after the journal said something happened. */
+  async #loadBook() {
+    const [items, account] = await Promise.all([
+      getJSON(`${this.#base}/api/plays`).catch(() => null), getJSON(`${this.#base}/api/account`).catch(() => null),
+    ]);
+    if (items) this.items = items;
+    if (account) this.account = account;
+    await this.#loadMarks();
   }
 
   /**
@@ -165,6 +237,12 @@ export class HomeClient {
     this.days = calendar?.days ?? [];
     this.crypto = crypto;
     this.finder = finder;
+    // The next read is when the soonest desk said it would look again; a hidden page waits to be seen.
+    const due = [flow, crypto, finder].map((pass) => Date.parse(pass?.next_at ?? '')).filter(Number.isFinite);
+    clearTimeout(this.#timers.desk);
+    if (!due.length) return;
+    const wait = Math.max(DESK_MIN_MS, Math.min(...due) - Date.now() + DESK_LAG_MS);
+    this.#timers.desk = setTimeout(() => { if (!document.hidden) this.#loadDesk(); }, wait);
   }
 
   /** Short quotes for the ribbon. A failed round keeps the last ones. */
@@ -181,6 +259,7 @@ export class HomeClient {
   /** Each open play's last known value, from its curve. A play with no prices yet has none. */
   async #loadMarks() {
     const open = this.items.filter((x) => x.play.status === STATUS_OPEN).slice(0, MARKS_MAX);
+    if (!open.length && !Object.keys(this.marks).length) return;
     const curves = await Promise.all(open.map((x) => getJSON(`${this.#base}/api/plays/${encodeURIComponent(x.play.id)}/curve`).catch(() => null)));
     this.marks = Object.fromEntries(open.map((x, i) => [x.play.id, markFrom(curves[i])]));
   }
@@ -222,6 +301,8 @@ export class HomeClient {
       this.newsStatus = newsDemo() ? STATUS.demo : STATUS.live;
     } catch {
       this.newsStatus = STATUS.offline;
+      clearTimeout(this.#timers.newsRetry);
+      this.#timers.newsRetry = setTimeout(() => this.#loadNews(), RETRY_MS);
       return;
     }
     if (!this.news.categories.some((c) => c.id === this.category)) this.category = CATEGORY_ALL;
