@@ -1,8 +1,8 @@
 <script>
   /**
    * The pocket: Money 24 at a glance, in the small window over the tray (src/tauri/src/pocket.rs).
-   * A verdict at the top, then four tabs so nothing needs scrolling: the services (with any problems in
-   * plain words first), the recorders, the desks, and the open plays soonest to close, read every ten
+   * A verdict at the top, then five tabs so nothing needs scrolling: the services (with any problems in
+   * plain words first), the recorders, the desks, the open plays soonest to close, and the AI apps that must agree before a trade, read every ten
    * seconds (pocket-client.svelte.js). The pocket reopens on the tab it was left on. At the bottom, the
    * button that opens the full desk in the app's window.
    * The tray's "Stop Money 24…" opens it on the stop question instead (#stop).
@@ -22,7 +22,7 @@
   import { onMount } from 'svelte';
 
   const STOP_HASH = '#stop';
-  const TAB = { services: 'services', recorders: 'recorders', desks: 'desks', plays: 'plays' };
+  const TAB = { services: 'services', recorders: 'recorders', desks: 'desks', plays: 'plays', ai: 'ai' };
   const TAB_STORE = 'm24.pocket.tab'; // the pocket reopens on the tab it was left on
   const ESCAPE = 'Escape';
   const EMPTY = ' ';
@@ -40,6 +40,7 @@
     { id: TAB.recorders, label: strings.tabs.recorders },
     { id: TAB.desks, label: strings.tabs.desks },
     { id: TAB.plays, label: strings.tabs.plays, count: client.plays.length },
+    { id: TAB.ai, label: strings.tabs.ai },
   ]);
 
   function choose(/** @type {string} */ id) {
@@ -129,6 +130,13 @@
                   </span>
                 {/snippet}
               </StatusRow>
+            {/each}
+          </Section>
+        {:else if tab === TAB.ai}
+          <Section id="pocket-ai" title={strings.sections.ai}>
+            {#each client.ai as row, i (row.id)}<StatusRow {row} index={i} />{/each}
+            {#each client.aiNotes as note, i (note)}
+              <li class="cal-rise px-3 py-1 text-[0.68rem] leading-snug text-muted tv:text-base" style:--i={client.ai.length + i}>{note}</li>
             {/each}
           </Section>
         {:else}

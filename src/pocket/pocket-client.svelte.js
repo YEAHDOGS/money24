@@ -5,7 +5,7 @@
 import { STORE_RUNNER, demoFirst, stored } from '../lib/demo.js';
 import { native } from './native.js';
 import { Poller } from '../home/poller.js';
-import { deskRows, overall, playRows, problems, recorderRows, serviceRows } from './pocket-model.js';
+import { aiRows, aiSummary, deskRows, overall, playRows, problems, recorderRows, serviceRows } from './pocket-model.js';
 
 const DEFAULT_RUNNER_API = 'http://127.0.0.1:8025';
 const DEFAULT_NEWS_API = 'http://127.0.0.1:8024';
@@ -23,6 +23,7 @@ const ROUTES = {
   predict: '/api/predict',
   memedesk: '/api/memedesk',
   scout: '/api/plays/scout',
+  ai: '/api/ai',
 };
 // The tray sends this each time it shows the pocket (src/tauri/src/pocket.rs).
 export const SHOWN_EVENT = 'pocket-shown';
@@ -59,6 +60,8 @@ export class PocketClient {
   recorders = $derived(this.snap ? recorderRows(this.snap, this.now) : []);
   desks = $derived(this.snap ? deskRows(this.snap) : []);
   plays = $derived(this.snap ? playRows(this.snap, this.now) : []);
+  ai = $derived(this.snap ? aiRows(this.snap) : []);
+  aiNotes = $derived(this.snap ? aiSummary(this.snap, this.now) : []);
   overall = $derived(overall(this.snap, this.problems.length));
 
   #base = stored(STORE_RUNNER, DEFAULT_RUNNER).replace(/\/+$/, '');

@@ -30,7 +30,7 @@ export const TONE = { ok: 'ok', warn: 'warn', bad: 'bad', idle: 'idle' };
 
 /**
  * @typedef {{ runner: boolean, news: boolean, supervisor: any, follow: any[] | null, kalshi: any, meme: any,
- *   tape: any, predict: any, memedesk: any, scout: any }} Snapshot
+ *   tape: any, predict: any, memedesk: any, scout: any, ai: any }} Snapshot
  * Each route's answer, null when it did not answer. runner and news: their health checks answered.
  * @typedef {{ id: string, name: string, tone: string, state: string, detail: string }} Row
  * @typedef {Row & { pnl: number | null, pnlNote: string }} DeskRow
@@ -238,7 +238,49 @@ export function problems(/** @type {Snapshot} */ snap, /** @type {number} */ now
     if (s.last_error) add(`strategy-${s.config.id}`, fill(t.problems.strategy, { name: t.names.predict, strategy: s.config.name, error: s.last_error }));
   }
   if (snap.scout?.state === SCOUT_ERROR) add('scout', fill(t.problems.error, { name: t.names.scout, error: snap.scout.why ?? '' }));
+  const asked = (snap.ai?.apps ?? []).filter((/** @type {any} */ a) => a.state);
+  const answering = asked.filter((/** @type {any} */ a) => a.state === AI_STATE_OK).length;
+  if (asked.length && answering < snap.ai.need) add('ai', fill(t.problems.aiShort, { n: answering, need: snap.ai.need }));
   return out;
+}
+
+// Each AI app state from the runner (engine/aicli) and how it reads in the pocket.
+const AI_STATE = {
+  ok: { tone: TONE.ok, word: 'ok' },
+  'sign in': { tone: TONE.warn, word: 'signIn' },
+  'out of usage': { tone: TONE.warn, word: 'limit' },
+  'not installed': { tone: TONE.idle, word: 'missing' },
+  'too slow': { tone: TONE.warn, word: 'slow' },
+  failed: { tone: TONE.bad, word: 'failed' },
+};
+const AI_STATE_OK = 'ok';
+const AI_STATE_SIGN_IN = 'sign in';
+
+/** Seconds to one decimal: '3.1s'. */
+const seconds = (/** @type {number} */ ms) => `${(ms / MS_PER_SECOND).toFixed(1)}s`;
+
+/** One row per AI app: whether it answers, how fast, and the one step that fixes it when it does not. */
+export function aiRows(/** @type {Snapshot} */ snap) {
+  return (snap.ai?.apps ?? []).map((/** @type {any} */ a) => {
+    const known = AI_STATE[/** @type {keyof typeof AI_STATE} */ (a.state)];
+    const name = a.name;
+    if (!known) return { id: a.id, name, tone: TONE.idle, state: t.ai.waiting, detail: a.plan };
+    const detail = a.state === AI_STATE_OK ? fill(t.ai.okDetail, { time: seconds(a.ms), via: a.via, plan: a.plan })
+      : !a.installed ? fill(t.ai.missingDetail, { via: a.via })
+      : a.state === AI_STATE_SIGN_IN ? fill(t.ai.signInDetail, { step: a.sign_in }) : a.error ?? '';
+    return { id: a.id, name, tone: known.tone, state: t.ai[/** @type {keyof typeof t.ai} */ (known.word)], detail };
+  });
+}
+
+/** The line under the AI rows: the agreement rule and the last story put to them. */
+export function aiSummary(/** @type {Snapshot} */ snap, /** @type {number} */ now) {
+  const ai = snap.ai;
+  if (!ai) return [];
+  const last = ai.impacts?.[0];
+  const lines = [last ? fill(t.ai.rule, { need: ai.need, ago: since(last.at, now) }) : fill(t.ai.ruleNever, { need: ai.need })];
+  if (last?.agreed) lines.push(fill(t.ai.lastAgreed, { direction: last.consensus.direction, tickers: last.consensus.tickers.join(' '), time: seconds(last.decided_ms) }));
+  else if (last) lines.push(fill(t.ai.lastSplit, { need: ai.need }));
+  return lines;
 }
 
 /** The header's one-line verdict. */

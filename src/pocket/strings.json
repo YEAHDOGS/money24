@@ -1,7 +1,13 @@
 {
   "publicPage": "The pocket is part of the Money 24 desktop app. It shows the services running on your own computer.",
   "tabsLabel": "What the pocket shows",
-  "tabs": { "services": "Services", "recorders": "Recorders", "desks": "Desks", "plays": "Plays" },
+  "tabs": {
+    "services": "Services",
+    "recorders": "Recorders",
+    "desks": "Desks",
+    "plays": "Plays",
+    "ai": "AI"
+  },
   "heading": "Status",
   "paper": "Paper",
   "paperNote": "Paper trading only: nothing here places a real order.",
@@ -24,7 +30,8 @@
     "services": "Services",
     "recorders": "Recorders",
     "desks": "Desks",
-    "plays": "Active plays"
+    "plays": "Active plays",
+    "ai": "AI apps"
   },
   "names": {
     "supervisor": "Supervisor",
@@ -111,7 +118,8 @@
     "strategy": "{name}, {strategy}: {error}",
     "rulebook": "{name}'s rulebook: {error}",
     "follow": "Telegram could not read {source}: {error}",
-    "notConnected": "The meme recorder is not connected to its feed."
+    "notConnected": "The meme recorder is not connected to its feed.",
+    "aiShort": "{n} of the AI apps answer; a trade needs {need} to agree."
   },
   "openDesk": "Open the desk",
   "stop": {
@@ -123,5 +131,21 @@
     "failed": "Could not stop: {error}"
   },
   "brand": "MONEY",
-  "brandAccent": "24"
+  "brandAccent": "24",
+  "ai": {
+    "ok": "answering",
+    "signIn": "sign in",
+    "limit": "out of usage",
+    "missing": "not installed",
+    "failed": "failed",
+    "slow": "too slow",
+    "waiting": "not asked yet",
+    "okDetail": "{time} · {via}, {plan}",
+    "signInDetail": "On the desk machine: {step}",
+    "missingDetail": "Install {via}",
+    "rule": "Trades wait until {need} AIs agree. Last asked {ago} ago.",
+    "ruleNever": "Trades wait until {need} AIs agree.",
+    "lastAgreed": "Last story: {direction} {tickers}, agreed in {time}",
+    "lastSplit": "Last story: no {need} agreed"
+  }
 }
