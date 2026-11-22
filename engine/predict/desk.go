@@ -274,15 +274,20 @@ func (c *marketCache) scope(ctx context.Context, s Scope, now time.Time) ([]Mark
 	out, errs := []Market{}, []error{}
 	series := append([]string{}, s.Series...)
 	sort.Strings(series)
+	to := time.Time{}
+	if s.WithinHours > 0 {
+		to = now.Add(time.Duration(s.WithinHours * float64(time.Hour)))
+	}
 	for _, name := range series {
-		markets, ok := c.series[name]
+		key := fmt.Sprint(name, KEY_JOIN, s.WithinHours)
+		markets, ok := c.series[key]
 		if !ok {
 			var err error
-			markets, err = c.kalshi.InSeries(ctx, name)
+			markets, err = c.kalshi.InSeries(ctx, name, to)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", name, err))
 			}
-			c.series[name] = markets
+			c.series[key] = markets
 			if err := pause(ctx); err != nil {
 				return out, err
 			}
