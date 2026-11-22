@@ -38,8 +38,9 @@ var (
 	cryptoPriceSuffix = regexp.MustCompile(`^[a-zA-Z0-9.%]`)
 	cryptoAtEntry     = regexp.MustCompile(`(?i)(?:@|\bat\b)\s*\$?(?:\d|\.\d)`)
 	cryptoCoin        = regexp.MustCompile(`(?:^|[^a-zA-Z0-9])[$#]([a-zA-Z][a-zA-Z0-9]{0,9})\b`)
-	cryptoBareAfter   = regexp.MustCompile(`^[ \t:]+([A-Z][A-Z0-9]{1,9})\b`)
-	cryptoBareBefore  = regexp.MustCompile(`\b([A-Z][A-Z0-9]{1,9})[ \t:]+$`)
+	cryptoBareAfter   = regexp.MustCompile(`^[ \t:\n]+([A-Z][A-Z0-9]{1,9})\b`)
+	cryptoBareBefore  = regexp.MustCompile(`\b([A-Z][A-Z0-9]{1,9})[ \t:\n]+$`)
+	cryptoSideZone    = regexp.MustCompile(`(?i)^(?:buy|sell)\b`)
 	cryptoPrice       = regexp.MustCompile(`^(?:` + CRYPTO_PRICE + `)`)
 	cryptoEntrySep    = regexp.MustCompile(`(?i)^(?:-|~|\bto\b)[ \t]*`)
 	cryptoTargetSep   = regexp.MustCompile(`(?i)^(?:->|[-/,;|→]|\n[ \t]*(?:(?:[-•]|[0-9]{1,2}[.)])[ \t]+)?)\s*`)
@@ -82,6 +83,11 @@ func ParseCryptoCall(post RawPost) (CryptoCall, bool) {
 	}
 	head := body[:fields[0][0]]
 	directions := cryptoDirections.FindAllStringSubmatchIndex(head, -1)
+	if len(directions) == 0 && cryptoSideZone.MatchString(body[fields[0][0]:fields[0][1]]) {
+		head = body[:fields[0][1]]
+		directions = cryptoDirections.FindAllStringSubmatchIndex(head, -1)
+		head = head[:directions[0][1]]
+	}
 	if len(directions) != 1 {
 		return CryptoCall{}, false
 	}
@@ -232,8 +238,14 @@ func cryptoTargetPrices(s string) []float64 {
 			return prices
 		}
 		s = strings.TrimSpace(rest[len(sep):])
-		if s == "" || s[0] != '$' && s[0] != '.' && (s[0] < '0' || s[0] > '9') {
+		if s == "" {
 			return prices
+		}
+		if s[0] != '$' && s[0] != '.' && (s[0] < '0' || s[0] > '9') {
+			if strings.HasPrefix(sep, "\n") {
+				return prices // A new line of commentary is not part of the target list.
+			}
+			return nil
 		}
 	}
 }

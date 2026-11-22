@@ -447,5 +447,21 @@
   {
     "text": "$SOL/EUR long Entry 110 TP 120 SL 100",
     "reject": "unsupported quote"
+  },
+  {
+    "text": "SOL\nBuy zone: 120 - 125\nTake profit: 130\nStop: 115",
+    "want": {
+      "base": "SOL",
+      "quote": "USD",
+      "direction": "long",
+      "entry_low": 120,
+      "entry_high": 125,
+      "targets": [130],
+      "stop": 115
+    }
+  },
+  {
+    "text": "$SOL long | Entry: 120 | TP: 130 / to be announced | SL: 115",
+    "reject": "incomplete target ladder"
   }
 ]
