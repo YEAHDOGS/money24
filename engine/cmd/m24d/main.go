@@ -94,6 +94,7 @@ const (
 	TELEGRAM_LOGIN_FLAG    = "telegram-login"
 	TELEGRAM_CODE_FLAG     = "telegram-code-file"
 	TELEGRAM_PASSWORD_FLAG = "telegram-password-file"
+	TELEGRAM_QR_FLAG       = "telegram-login-qr"
 )
 
 // webhookSecret prefers the environment; otherwise it reuses or creates a random secret in the data dir.
@@ -234,12 +235,17 @@ func main() {
 	cryptoBacktestCompare := flag.Bool("crypto-backtest-all", false, "compare all crypto strategies and also replay 90 days when the requested window is longer")
 	cryptoBacktestEnd := flag.String("crypto-backtest-end", "", "exclusive end of the offline crypto replay as an RFC3339 hour")
 	memeReplay := flag.String(MEME_REPLAY_FLAG, "", "replay an offline UTC day of meme records (YYYY-MM-DD), print the paper desk record and exit")
+	telegramQR := flag.String(TELEGRAM_QR_FLAG, "", "sign Telegram in by QR code, with no login code: writes the code picture to this folder, waits for a scan and exits")
 	flag.Parse()
 
-	if *telegramLogin {
+	if *telegramLogin || *telegramQR != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		err := prepareDataDir(dataDir)
-		if err == nil {
+		switch {
+		case err != nil:
+		case *telegramQR != "":
+			err = signals.TelegramQRLogin(ctx, *dataDir, *telegramQR, *telegramPassword, os.Stdout)
+		default:
 			err = signals.TelegramLogin(ctx, *dataDir, *telegramCode, *telegramPassword, os.Stdout)
 		}
 		cancel()
