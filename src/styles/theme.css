@@ -102,3 +102,81 @@
   /* Work-in-progress notice (src/lib/NoticeBar.svelte): hazard stripes on the strip's ends and the dialog's edges. */
   --bg-hazard: repeating-linear-gradient(-45deg, var(--color-warn) 0 6px, var(--color-app) 6px 12px);
 }
+
+/* Light theme. src/lib/theme.js sets html[data-theme] to "light" or "dark" (the default, above); every
+   token the dark theme defines is answered again here, so no component carries a light/dark branch.
+   `white` is the page's ink, not a color: text-white, bg-white/5 and border-white/10 are text and tints
+   in the page's foreground, so in light mode they turn black. Text on a red fill uses text-app instead,
+   which flips the other way (dark on red becomes light on red). Every text token passes WCAG AA (4.5:1)
+   on --color-app and --color-card. */
+:root {
+  color-scheme: dark;
+}
+html[data-theme='light'] {
+  color-scheme: light;
+  /* The page's ink: text-white, bg-white/5 tints, borders. Black, so its 55% tints still pass AA. */
+  --color-white: #000;
+  --color-neon-red: #c40d2a;
+  --color-neon-red-faint: rgb(196 13 42 / 15%);
+  /* Page, panel and hovered panel: --color-app is also the text color on red fills. Keep META_COLORS in src/lib/theme.js in step. */
+  --color-app: #f4f4f7;
+  --color-card: #fff;
+  --color-card-hover: #eaeaf0;
+  --color-muted: #5c5c6e;
+  --color-line: rgb(0 0 0 / 12%);
+  --color-kind-news: #0a5fa3;
+  --color-kind-filing: #8a5700;
+  --color-kind-insider: #6a3cc0;
+  --color-kind-central-bank: #0a7552;
+  --color-kind-macro: #b04510;
+  --color-ok: #117a38;
+  --color-warn: #8f5b00;
+  --color-bad: #c40d2a;
+  --color-tour: #6a3cc0;
+  --color-paper: #0a63ad;
+
+  --bg-hero:
+    radial-gradient(ellipse 90% 55% at 85% -10%, rgb(196 13 42 / 14%), transparent 60%),
+    radial-gradient(ellipse 70% 50% at -10% 110%, rgb(196 13 42 / 8%), transparent 60%),
+    linear-gradient(160deg, #fbfbfd 0%, #f4f4f7 55%, #faf3f4 100%);
+  --bg-markets:
+    radial-gradient(ellipse 80% 60% at 110% 20%, rgb(196 13 42 / 10%), transparent 60%),
+    repeating-linear-gradient(115deg, transparent 0 118px, rgb(0 0 0 / 4%) 118px 119px),
+    linear-gradient(200deg, #fafafc 0%, #f4f4f7 60%, #f8f3f5 100%);
+  --bg-flow:
+    radial-gradient(ellipse 75% 50% at 10% 0%, rgb(196 13 42 / 11%), transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 86px, rgb(0 0 0 / 3.5%) 86px 87px),
+    linear-gradient(150deg, #fbfbfd 0%, #f4f4f7 58%, #f8f4f5 100%);
+  --bg-discipline:
+    radial-gradient(ellipse 85% 55% at 50% 115%, rgb(196 13 42 / 13%), transparent 62%),
+    linear-gradient(180deg, #fafafc 0%, #f4f4f7 52%, #f9f3f4 100%);
+  --bg-soon:
+    radial-gradient(ellipse 90% 60% at 15% -10%, rgb(196 13 42 / 14%), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 105% 105%, rgb(196 13 42 / 7%), transparent 60%),
+    linear-gradient(170deg, #fbfbfd 0%, #f4f4f7 55%, #f8f4f5 100%);
+  --scrim: linear-gradient(180deg, rgb(244 244 247 / 30%) 0%, transparent 35%, transparent 55%, rgb(244 244 247 / 72%) 100%);
+  --pill-border: rgb(196 13 42 / 45%);
+  --pill-bg: rgb(196 13 42 / 8%);
+  --pill-text: #a8081f;
+  --step-border: rgb(0 0 0 / 14%);
+  --step-bg: rgb(255 255 255 / 70%);
+  --tour-veil: rgb(244 244 247 / 45%);
+  /* Story art in daylight: the same four backdrops, washed out so the dark ink on them stays readable. */
+  --art-1:
+    radial-gradient(ellipse 90% 100% at 15% 10%, rgb(196 13 42 / 38%), transparent 65%),
+    linear-gradient(140deg, #f6dde1 0%, #e8e8f1 100%);
+  --art-2:
+    radial-gradient(ellipse 80% 90% at 90% 100%, rgb(10 95 163 / 30%), transparent 65%),
+    radial-gradient(ellipse 70% 70% at 0% 0%, rgb(196 13 42 / 24%), transparent 60%),
+    linear-gradient(200deg, #dbe8f5 0%, #e8e8f1 100%);
+  --art-3:
+    radial-gradient(ellipse 100% 80% at 50% 110%, rgb(176 69 16 / 34%), transparent 65%),
+    linear-gradient(170deg, #f6e5dc 0%, #e8e8f1 100%);
+  --art-4:
+    radial-gradient(ellipse 90% 90% at 100% 0%, rgb(106 60 192 / 30%), transparent 65%),
+    radial-gradient(ellipse 70% 80% at 0% 100%, rgb(10 117 82 / 22%), transparent 60%),
+    linear-gradient(150deg, #e9e0f5 0%, #e8e8f1 100%);
+  --art-lines: repeating-linear-gradient(115deg, transparent 0 14px, rgb(0 0 0 / 5%) 14px 15px);
+  --art-scrim: linear-gradient(180deg, rgb(244 244 247 / 5%) 0%, rgb(244 244 247 / 45%) 55%, rgb(244 244 247 / 92%) 100%);
+  --art-veil: linear-gradient(90deg, rgb(244 244 247 / 92%) 0%, rgb(244 244 247 / 78%) 45%, rgb(244 244 247 / 30%) 100%);
+}

@@ -79,6 +79,10 @@ function token(/** @type {string} */ name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+function readColors() {
+  return Object.fromEntries(Object.entries(TOKENS).map(([k, v]) => [k, token(v)]));
+}
+
 /** The same color, see-through. Tokens that are not plain hex come back unchanged. */
 function alpha(/** @type {string} */ color, /** @type {number} */ a) {
   if (!HEX_COLOR.test(color)) return color;
@@ -136,7 +140,7 @@ export class ChartEngine {
    */
   constructor(el, events) {
     this.#events = events;
-    this.#colors = Object.fromEntries(Object.entries(TOKENS).map(([k, v]) => [k, token(v)]));
+    this.#colors = readColors();
     const c = this.#colors;
     this.#chart = createChart(el, {
       autoSize: true,
@@ -165,6 +169,19 @@ export class ChartEngine {
 
   destroy() {
     this.#chart.remove();
+  }
+
+  /** The page changed theme: read the tokens again and repaint the chart, its studies and its drawings. */
+  retheme() {
+    const c = (this.#colors = readColors());
+    this.#chart.applyOptions({
+      layout: { textColor: c.muted, panes: { separatorColor: c.line, separatorHoverColor: c.line } },
+      grid: { vertLines: { color: c.line }, horzLines: { color: c.line } },
+      rightPriceScale: { borderColor: c.line },
+      timeScale: { borderColor: c.line },
+    });
+    if (this.bars?.length) this.#build();
+    this.#redraw();
   }
 
   /**

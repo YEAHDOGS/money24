@@ -95,6 +95,7 @@ side margins.
 - A fill pulses once **and** gains a "Filled" badge; state never travels by animation alone.
 - `prefers-reduced-motion`: animations removed, state changes instant.
 - Lists freeze their sort order while the user is hovering or focused inside them.
+- Light and dark: `html[data-theme]` is set by `src/lib/theme.js` and a pre-paint snippet in every page's `<head>`. Both palettes live in `src/styles/theme.css`; components never branch on theme. `white` is the page ink (black in light mode) and `text-app` is text on a red fill. Auto is dark from sunset to sunrise, computed on the device (shared location if given, else the time zone). The choice lives in the account menu in the header (`src/lib/AccountMenu.svelte`).
 
 ---
 

@@ -15,6 +15,7 @@
   import Scan from '@lucide/svelte/icons/scan';
   import TrendingUp from '@lucide/svelte/icons/trending-up';
   import strings from './strings.json';
+  import { THEME_EVENT } from '../lib/theme.js';
   import { compact, percent, price, signed } from './market-format.js';
   import {
     ChartEngine, STUDIES, SCALE_LINEAR, SCALE_LOG, SCALE_PERCENT, TOOL_LEVEL, TOOL_TREND, TYPE_AREA, TYPE_BARS, TYPE_CANDLES, TYPE_LINE,
@@ -87,7 +88,12 @@
     made.setStudies(studies);
     made.setScale(scale);
     engine = made;
-    return () => made.destroy();
+    const retheme = () => made.retheme();
+    window.addEventListener(THEME_EVENT, retheme);
+    return () => {
+      window.removeEventListener(THEME_EVENT, retheme);
+      made.destroy();
+    };
   });
 
   // Another symbol brings its own drawings.

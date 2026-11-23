@@ -6,6 +6,16 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#050508" />
+  <!-- Paints the last theme before first paint (no flash); src/lib/theme.js keeps it true. Keys: m24.theme, m24.theme.last. -->
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('m24.theme') || 'auto', last = (localStorage.getItem('m24.theme.last') || '').split('|'), theme = mode;
+        if (mode === 'auto') theme = last[0] && +last[1] > Date.now() ? last[0] : window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+      } catch (e) {}
+    })();
+  </script>
   <title>Money 24 News</title>
   <!-- Blocks the first paint until the app has mounted, so moving between pages never shows an empty one. -->
   <script type="module" blocking="render" src="/src/feed/main.js"></script>

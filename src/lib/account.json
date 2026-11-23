@@ -1,0 +1,16 @@
+{
+  "button": "Account and appearance",
+  "title": "Account",
+  "appearance": "Appearance",
+  "modes": {
+    "auto": { "label": "Auto", "hint": "Dark from sunset to sunrise" },
+    "light": { "label": "Light", "hint": "Always light" },
+    "dark": { "label": "Dark", "hint": "Always dark" }
+  },
+  "now": "Now {theme}, until {time}",
+  "themes": { "light": "light", "dark": "dark" },
+  "guess": "Using your time zone for sunset.",
+  "useLocation": "Use my location for exact sunset",
+  "locationOn": "Sunset from your location. It stays on this device.",
+  "locationDenied": "Location was blocked. Using your time zone."
+}

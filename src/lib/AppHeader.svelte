@@ -10,6 +10,7 @@
    */
   import nav from './app-nav.json';
   import NoticeBar from './NoticeBar.svelte';
+  import AccountMenu from './AccountMenu.svelte';
   import Tour from './tour/Tour.svelte';
   import { demoHref } from './demo.js';
   import House from '@lucide/svelte/icons/house';
@@ -110,6 +111,9 @@
           {/each}
         </ul>
       </nav>
+
+      <!-- ACCOUNT: appearance for now. Row 1 beside the status on phones, the end of the row from tablet up. -->
+      <AccountMenu />
     </div>
   </header>
 </div>

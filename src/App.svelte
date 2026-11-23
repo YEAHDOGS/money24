@@ -254,7 +254,7 @@
     overscroll-behavior: contain;
     touch-action: pan-y;
     background: var(--color-app);
-    color: white;
+    color: var(--color-white);
     scrollbar-width: none;
     scroll-behavior: smooth;
   }
@@ -355,7 +355,7 @@
     font-weight: 800;
     line-height: 1.04;
     letter-spacing: -0.01em;
-    color: white;
+    color: var(--color-white);
   }
   .market:nth-child(even) { color: var(--color-muted); }
 
@@ -421,7 +421,7 @@
     text-underline-offset: 0.25em;
     transition: color 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  .legal a:hover, .legal a:focus-visible { color: white; }
+  .legal a:hover, .legal a:focus-visible { color: var(--color-white); }
   .legal a:focus-visible { outline: 2px solid var(--color-neon-red); outline-offset: 3px; }
 
   .cue {
@@ -466,7 +466,7 @@
   }
   .dogs-mark img { height: 2.4rem; width: auto; }
   .dogs-mark:hover, .dogs-mark:focus-visible { opacity: 1; transform: scale(1.08); }
-  .dogs-mark:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+  .dogs-mark:focus-visible { outline: 2px solid var(--color-white); outline-offset: 3px; }
   @media (min-width: 768px) {
     .dogs-mark { left: 3rem; }
     .dogs-mark img { height: 3rem; }
@@ -490,13 +490,13 @@
     font-weight: 700;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: white;
+    color: var(--color-white);
     transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 150ms ease, border-color 150ms ease;
   }
   .demo-link:hover, .demo-link:focus-visible { background: var(--color-neon-red); border-color: var(--color-neon-red); }
   .demo-link:active { transform: scale(0.96); }
   .demo-link:focus-visible, .cta:focus-visible, .door:focus-visible, .source a:focus-visible {
-    outline: 2px solid white;
+    outline: 2px solid var(--color-white);
     outline-offset: 3px;
   }
   @media (min-width: 768px) {
@@ -530,13 +530,13 @@
     font-weight: 700;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: white;
+    color: var(--color-white);
     transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 150ms ease, border-color 150ms ease, color 150ms ease;
   }
-  .cta:hover, .cta:focus-visible { border-color: white; }
+  .cta:hover, .cta:focus-visible { border-color: var(--color-white); }
   .cta:active { transform: scale(0.96); }
   .cta-solid { border-color: var(--color-neon-red); background: var(--color-neon-red); }
-  .cta-solid:hover, .cta-solid:focus-visible { background: white; border-color: white; color: var(--color-app); }
+  .cta-solid:hover, .cta-solid:focus-visible { background: var(--color-white); border-color: var(--color-white); color: var(--color-app); }
 
   /* ── The spine ──────────────────────────────────────────────────────────── */
   .spine {
@@ -573,7 +573,7 @@
     background: var(--color-muted);
     transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 150ms ease;
   }
-  .spine a:hover::after, .spine a:focus-visible::after { background: white; transform: scale(1.5); }
+  .spine a:hover::after, .spine a:focus-visible::after { background: var(--color-white); transform: scale(1.5); }
   .spine a.here::after { background: var(--color-neon-red); transform: scale(2); }
   .spine a:focus-visible { outline: none; }
   /* Back to the top: an arrow above the first node. It fades out on the first panel, where it has nothing to do. */
@@ -584,7 +584,7 @@
     border: 1px solid var(--pill-border);
     border-radius: 999px;
     background: var(--step-bg);
-    color: white;
+    color: var(--color-white);
     transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease, background-color 150ms ease;
   }
   .spine a.to-top::after { content: none; }
@@ -700,7 +700,7 @@
     transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--d), background-color 300ms ease var(--d);
   }
   .panel:global(.in) .bar { transform: scaleY(1); }
-  .panel:global(.in) .bar.lit { background: white; }
+  .panel:global(.in) .bar.lit { background: var(--color-white); }
   .panel:global(.in) .mode-medium .bar.lit { background: var(--color-warn); }
   .panel:global(.in) .mode-high .bar.lit { background: var(--color-neon-red); }
   .mode-text {
