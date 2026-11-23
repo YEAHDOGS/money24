@@ -39,6 +39,7 @@ Never write the owner's name, pseudonym, alias, or any personal information anyw
 - Branch per task, named `[agent]-[month]-[feature-name]`: your agent name in lowercase, the two-digit month, and a short kebab-case feature name. Example: `codex-10-tauri-shell`.
 <!-- setup:git -->
 - Commit to your feature branch as you go, in small, described steps. When the task is verified, report the branch name so it can be reviewed, pushed and merged.
+- **A push to master does not deploy; a signed release does.** `npm run release` signs a release tag with the release key, which lives only on the owner's PC, and the Money 24 server installs it within minutes, rolling it back on its own if it does not stay healthy (docs/SERVER.md). Release only verified work on master. Never copy, move or print the release key, and never change `deploy/release-signers` unless the owner asks.
 <!-- /setup:git -->
 - Generated data, background-script output and local builds belong in `.gitignore`.
 

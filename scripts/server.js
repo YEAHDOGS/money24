@@ -16,7 +16,7 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync,
 import { connect } from 'node:net';
 import { homedir, tmpdir } from 'node:os';
 import { basename, isAbsolute, join, relative } from 'node:path';
-import { BINARIES, CONFIG_DIR, REPO_SIGNERS, ROOT, SIGNERS_FILE, newestRelease, readRelease, rollback, stage, swapIn } from './updater.js';
+import { BINARIES, CONFIG_DIR, REPO_SIGNERS, ROOT, SIGNERS_FILE, newestRelease, npm, readRelease, rollback, stage, swapIn } from './updater.js';
 
 const IS_WINDOWS = process.platform === 'win32';
 const RUN_DIR = join(ROOT, '.run');
@@ -56,7 +56,7 @@ function fail(/** @type {string} */ message) {
 
 /** Runs a command and returns what it printed, or null when it failed or is missing. */
 function output(/** @type {string} */ command, /** @type {string[]} */ args) {
-  const done = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', shell: IS_WINDOWS && command === 'npm', windowsHide: true });
+  const done = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', windowsHide: true });
   return done.status === 0 ? `${done.stdout}${done.stderr}`.trim() : null;
 }
 
@@ -89,7 +89,8 @@ function checkTools() {
   const go = output('go', ['version']);
   if (!go || !atLeast(go.replace(/^go version go/, ''), MIN_GO)) missing.push(`Go ${MIN_GO.join('.')} or newer (${go ?? 'not found'})`);
   if (!output('git', ['--version'])) missing.push('git');
-  if (!output('npm', ['--version'])) missing.push('npm');
+  const npmVersion = npm(['--version']);
+  if (spawnSync(npmVersion.command, npmVersion.args, { shell: npmVersion.shell, windowsHide: true }).status !== 0) missing.push('npm');
   if (spawnSync('ssh-keygen', ['-?'], { windowsHide: true }).error) missing.push('ssh-keygen (OpenSSH), which checks release signatures');
   if (missing.length) fail(`Missing: ${missing.join('; ')}.\nRun deploy/install.ps1 (Windows) or deploy/install.sh (Linux), which installs them.`);
 }

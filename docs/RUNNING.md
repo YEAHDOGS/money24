@@ -194,15 +194,10 @@ stays open to everyone; `/desk/` is the runner on this machine, for the owner on
 From the phone the desk works fully: the Worker adds the runner's webhook secret to every change
 (pasting a link, trading a play, editing rules), and only a request that passed the locks above gets it.
 
-Setting it up on a new machine (the desktop that will run it for good):
-
-1. Install `cloudflared` (`winget install Cloudflare.cloudflared`).
-2. Copy `.env` from the old machine: `M24D_TUNNEL_TOKEN` is the tunnel's token. The supervisor runs
-   the tunnel as a third service, `tunnel`, health-checked on `http://127.0.0.1:8026/ready`.
-3. Copy `%AppData%\Money24\` so the journal and plays come along, or the desk starts empty with a
-   new webhook secret. With a new secret, set it on the Worker: `npx wrangler secret put DESK_SECRET`
-   from `api/desk/`.
-4. `npm run forever -- --install`.
+Setting it up on the machine that will run it for good: docs/SERVER.md. One command installs it,
+brings `.env` and the data from the old machine (`npm run server -- pack` there), starts it at boot and
+keeps it on the newest signed release. The tunnel runs as a third service, `tunnel`, health-checked
+on `http://127.0.0.1:8026/ready`.
 
 Only one machine may run the tunnel's runner at a time: stop the old one first.
 
@@ -210,6 +205,9 @@ On this machine the desk is at http://127.0.0.1:8025/desk/. News settings are no
 pages; use `npm start` or the desktop app for that.
 
 ## 8. Updating
+
+A machine installed as a server (`deploy/install.ps1` or `deploy/install.sh`) updates itself to each
+signed release and rolls back one that does not run: see docs/SERVER.md. On a development copy:
 
 ```sh
 git pull

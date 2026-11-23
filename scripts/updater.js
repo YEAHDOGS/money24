@@ -50,6 +50,13 @@ const MS_PER_SECOND = 1000;
 const VITE = ['node_modules', 'vite', 'bin', 'vite.js'];
 const MOVE_TRIES = 40;
 const MOVE_WAIT_MS = 250;
+// npm's own script beside this Node (Windows installs, then Linux tarballs), run with Node itself:
+// npm on Windows is a .cmd, which would need a shell. Plain "npm" is the last resort.
+const NPM_CLI = [join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+  join(dirname(dirname(process.execPath)), 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')].find((path) => existsSync(path));
+/** How to run npm with these arguments. */
+export const npm = (/** @type {string[]} */ args) => (NPM_CLI ? { command: process.execPath, args: [NPM_CLI, ...args], shell: false }
+  : { command: 'npm', args, shell: IS_WINDOWS });
 
 /**
  * Runs a command to the end without blocking the event loop (the supervisor keeps health-checking
@@ -171,11 +178,12 @@ async function clearStage() {
 export async function stage(/** @type {Release} */ release, /** @type {(text: string) => void} */ say = () => {}) {
   await clearStage();
   const goEnv = { ...process.env, CGO_ENABLED: '0' };
+  // --ignore-scripts: no package runs its own install code; the build needs none.
+  const install = npm(['ci', '--no-audit', '--no-fund', '--ignore-scripts']);
   /** @type {[string, string, string[], { cwd?: string, env?: NodeJS.ProcessEnv, shell?: boolean }][]} */
   const steps = [
     [`Checking out ${release.tag}`, 'git', ['worktree', 'add', '--detach', '--force', STAGE_DIR, release.commit], {}],
-    // --ignore-scripts: no package runs its own install code; the build needs none.
-    ['Installing packages', 'npm', ['ci', '--no-audit', '--no-fund', '--ignore-scripts'], { cwd: STAGE_DIR, shell: IS_WINDOWS }],
+    ['Installing packages', install.command, install.args, { cwd: STAGE_DIR, shell: install.shell }],
     ...SERVICE_NAMES.map((name) => /** @type {[string, string, string[], any]} */ ([`Building ${name}`, 'go',
       ['build', '-buildvcs=false', '-trimpath', '-o', join(STAGE_OUT, name + EXE), `./cmd/${name}`], { cwd: join(STAGE_DIR, 'engine'), env: goEnv }])),
     ['Building the pages', process.execPath, [join(STAGE_DIR, ...VITE), 'build', '--outDir', join(STAGE_OUT, WEB), '--emptyOutDir', '--logLevel', 'warn'],

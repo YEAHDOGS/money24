@@ -49,6 +49,8 @@ engine/data/
 # Agent worktrees and local service runs
 .claude/
 .run/
+# server.js pack: .env, the data and key files for a move. Secrets: never commit.
+money24-move.tar.gz
 
 # Private keys (Kalshi and the like) never belong in the repo
 *.pem
