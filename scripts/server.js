@@ -56,7 +56,7 @@ function fail(/** @type {string} */ message) {
 
 /** Runs a command and returns what it printed, or null when it failed or is missing. */
 function output(/** @type {string} */ command, /** @type {string[]} */ args) {
-  const done = spawnSync(command, args, { encoding: 'utf8', shell: IS_WINDOWS && command === 'npm', windowsHide: true });
+  const done = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', shell: IS_WINDOWS && command === 'npm', windowsHide: true });
   return done.status === 0 ? `${done.stdout}${done.stderr}`.trim() : null;
 }
 
