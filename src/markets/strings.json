@@ -84,5 +84,29 @@
   "intervals": { "1m": "1m", "2m": "2m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1h", "1d": "1D", "1wk": "1W", "1mo": "1M" },
   "demo": {
     "missing": "That symbol is not in the demo. Recorded: {symbols}."
+  },
+  "levels": {
+    "title": "Levels",
+    "sub": "From the last six months of daily candles. A map of where price has turned, not a forecast.",
+    "expected": "A normal day reaches",
+    "positive": "Positive above",
+    "negative": "Negative below",
+    "neutral": "Neutral between",
+    "resistance": "Resistance",
+    "support": "Support",
+    "touches": "{n} turns",
+    "pivot": "Pivot",
+    "yearHigh": "6-month high",
+    "yearLow": "6-month low",
+    "none": "No level on this side.",
+    "bias": { "bullish": "Bullish lean", "neutral": "Neutral", "bearish": "Bearish lean" },
+    "means": {
+      "bullish": "Price is leaning up. Calls and call spreads fit while it holds above the negative line; the stop belongs under it.",
+      "neutral": "No clear lean. Plays here wait for a close past either line, or sell range-bound spreads.",
+      "bearish": "Price is leaning down. Puts and put spreads fit while it stays under the positive line; the stop belongs above it."
+    },
+    "outlets": "Levels the news outlets publish are not wired in yet.",
+    "show": "Levels",
+    "showTitle": "Draw support and resistance on the chart"
   }
 }

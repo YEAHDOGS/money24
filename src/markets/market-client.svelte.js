@@ -22,6 +22,8 @@ export const INTERVALS = {
 const DEFAULT_SYMBOL = 'NVDA';
 const DEFAULT_FOLLOWING = ['NVDA', 'SPY', 'BTC-USD'];
 const DEFAULT_RANGE = '1d';
+const DAILY_RANGE = '6mo'; // the candles a symbol's levels are worked out from
+const DAILY_INTERVAL = '1d';
 const LIVE_RANGES = new Set(['1d', '5d']); // ranges whose newest candle is still moving
 const QUOTE_POLL_MS = 15000;
 const LIST_POLL_MS = 60000;
@@ -62,6 +64,8 @@ export class MarketClient {
   summary = $state(null);
   /** @type {any} candles for the current range */
   chart = $state(null);
+  /** @type {any} six months of daily candles for the open symbol: what its levels are worked out from, whatever range the chart shows */
+  daily = $state(null);
   /** True when `chart` is a new symbol, range or interval, false when it is a live refresh. */
   chartIsNew = $state(true);
   /** @type {any[]} */
@@ -167,6 +171,7 @@ export class MarketClient {
       this.summary = file.summary;
       this.news = file.news;
       this.related = file.related;
+      this.daily = file.charts[DAILY_RANGE] ?? null;
       this.#demoChart(file, true);
     } catch {
       if (opened !== this.#opened) return;
@@ -188,6 +193,7 @@ export class MarketClient {
     this.matches = [];
     this.summary = null;
     this.chart = null;
+    this.daily = null;
     this.news = [];
     this.related = [];
     this.problem = '';
@@ -208,6 +214,8 @@ export class MarketClient {
       this.problem = status === NOT_FOUND ? PROBLEM_MISSING : PROBLEM_OFFLINE;
     }
     this.loading = false;
+    this.#get('chart', { symbol: this.symbol, range: DAILY_RANGE, interval: DAILY_INTERVAL })
+      .then((c) => { if (opened === this.#opened) this.daily = c; }).catch(() => {});
     this.#lists();
     this.#stories(opened);
     this.#get('related', { symbol: this.symbol }).then((r) => { if (opened === this.#opened) this.related = r; }).catch(() => {});

@@ -40,7 +40,7 @@
   const BUTTON_OFF = 'border-line text-white/60 hover:bg-white/5 hover:text-white';
 
   /** @type {{ symbol: string, chart: any, isNew: boolean, interval: string, intervals: string[], onInterval: (i: string) => void }} */
-  let { symbol, chart, isNew, interval, intervals, onInterval } = $props();
+  let { symbol, chart, isNew, interval, intervals, onInterval, marks = [] } = $props();
 
   /** Saved values can be missing, unreadable or from an older build: anything odd falls back. */
   function saved(/** @type {string} */ key, /** @type {any} */ fallback) {
@@ -63,6 +63,8 @@
   let type = $state(TYPES.some((t) => t.id === prefs.type) ? prefs.type : TYPE_AREA);
   let studies = $state(Array.isArray(prefs.studies) ? prefs.studies.filter((/** @type {string} */ id) => STUDIES.some((s) => s.id === id)) : DEFAULT_STUDIES);
   let scale = $state([SCALE_LOG, SCALE_PERCENT].includes(prefs.scale) ? prefs.scale : SCALE_LINEAR);
+  /** Whether the computed support and resistance lines are drawn (on by default). */
+  let showLevels = $state(prefs.levels !== false);
   let tool = $state('');
   let menuOpen = $state(false);
   /** @type {any} the bar under the crosshair and each indicator's value there */
@@ -116,7 +118,7 @@
   });
 
   function remember() {
-    save(STORE_PREFS, { type, studies, scale });
+    save(STORE_PREFS, { type, studies, scale, levels: showLevels });
   }
 
   function pickType(/** @type {string} */ id) {
@@ -136,6 +138,15 @@
     engine?.setScale(scale);
     remember();
   }
+
+  function toggleLevels() {
+    showLevels = !showLevels;
+    remember();
+  }
+
+  $effect(() => {
+    engine?.setMarks(showLevels ? $state.snapshot(marks) : []);
+  });
 
   function pickTool(/** @type {string} */ id) {
     tool = tool === id ? '' : id;
@@ -210,6 +221,7 @@
     <div class="flex gap-1 short:hidden" role="group">
       <button type="button" aria-pressed={scale === SCALE_LOG} title={strings.chart.logTitle} onclick={() => pickScale(SCALE_LOG)} class="{BUTTON} {scale === SCALE_LOG ? BUTTON_ON : BUTTON_OFF}">{strings.chart.log}</button>
       <button type="button" aria-pressed={scale === SCALE_PERCENT} title={strings.chart.percentTitle} onclick={() => pickScale(SCALE_PERCENT)} class="{BUTTON} {scale === SCALE_PERCENT ? BUTTON_ON : BUTTON_OFF}">{strings.chart.percent}</button>
+      <button type="button" aria-pressed={showLevels} title={strings.levels.showTitle} onclick={toggleLevels} class="{BUTTON} {showLevels ? BUTTON_ON : BUTTON_OFF}">{strings.levels.show}</button>
       <button type="button" title={strings.chart.fit} aria-label={strings.chart.fit} onclick={() => engine?.fit()} class="{BUTTON} {BUTTON_OFF}">
         <Scan class="size-4" aria-hidden="true" />
       </button>

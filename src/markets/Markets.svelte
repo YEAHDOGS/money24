@@ -13,6 +13,7 @@
   import { MarketClient, RANGES, INTERVALS } from './market-client.svelte.js';
   import { age, compact, marketTime, percent, price, signed } from './market-format.js';
   import ProChart from './ProChart.svelte';
+  import Levels from './Levels.svelte';
   import AppHeader from '../lib/AppHeader.svelte';
   import AppFooter from '../lib/AppFooter.svelte';
   import { DEMO_PARAM } from '../lib/demo.js';
@@ -39,6 +40,8 @@
   let tab = $state(TAB_CHART);
   let list = $state(LIST_RELATED);
   let now = $state(Date.now());
+  /** The chart's dashed support and resistance lines, filled in by the Levels card. */
+  let marks = $state([]);
 
   onMount(() => {
     client.start();
@@ -176,7 +179,7 @@
       <span class="pointer-events-none absolute bottom-0 left-0 h-0.5 w-1/8 bg-neon-red transition-transform duration-300 ease-out" style:transform="translateX({RANGES.indexOf(client.range) * PERCENT}%)"></span>
     </div>
 
-    <ProChart symbol={client.symbol} chart={client.chart} isNew={client.chartIsNew} interval={client.interval} intervals={client.demo ? [client.interval] : INTERVALS[client.range]} onInterval={(i) => client.setInterval(i)} />
+    <ProChart marks={marks} symbol={client.symbol} chart={client.chart} isNew={client.chartIsNew} interval={client.interval} intervals={client.demo ? [client.interval] : INTERVALS[client.range]} onInterval={(i) => client.setInterval(i)} />
 
     {@render statGrid('grid-cols-2 border-t border-line max-md:hidden short:hidden lg:grid-cols-3 xl:grid-cols-4 landscape-phone:hidden!')}
   </main>
@@ -186,6 +189,9 @@
     <section class="{CARD} md:hidden md:short:block landscape-phone:block! {tab === TAB_STATS ? '' : 'max-md:hidden'}">
       {@render statGrid('grid-cols-2 landscape-phone:grid-cols-1')}
     </section>
+
+    <Levels daily={client.daily} live={s?.price} onMarks={(m) => { marks = m; }} titleClass={CARD_TITLE}
+      class="{CARD} landscape-phone:block! {tab === TAB_STATS ? '' : 'max-md:hidden'}" />
 
     <section class="{CARD} landscape-phone:block! {tab === TAB_FEED ? '' : 'max-md:hidden'}" aria-label={strings.news}>
       {#if headline}

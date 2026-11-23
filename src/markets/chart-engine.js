@@ -130,6 +130,8 @@ export class ChartEngine {
   #previousClose = 0;
   #showBaseline = false;
   #colors;
+  /** Dashed lines for levels the page computed (support, resistance), kept across rebuilds. @type {{price:number, title:string, tone:string}[]} */
+  #marks = [];
   #events;
   #redraw = () => {};
   #overlay;
@@ -169,6 +171,12 @@ export class ChartEngine {
 
   destroy() {
     this.#chart.remove();
+  }
+
+  /** Dashed lines the page computed (levels), by tone: up, down or muted. */
+  setMarks(/** @type {{price:number, title:string, tone:string}[]} */ marks) {
+    this.#marks = marks;
+    if (this.bars?.length) this.#build();
   }
 
   /** The page changed theme: read the tokens again and repaint the chart, its studies and its drawings. */
@@ -292,6 +300,10 @@ export class ChartEngine {
     this.#main.priceScale().applyOptions({ scaleMargins: { top: PRICE_TOP, bottom: volumeOn ? PRICE_BOTTOM_WITH_VOLUME : PRICE_BOTTOM } });
     if (this.#showBaseline && this.#previousClose > 0) {
       this.#main.createPriceLine({ price: this.#previousClose, color: c.muted, lineStyle: LineStyle.Dotted, lineWidth: 1, axisLabelVisible: true, title: '' });
+    }
+
+    for (const m of this.#marks) {
+      this.#main.createPriceLine({ price: m.price, color: c[m.tone] ?? c.muted, lineStyle: LineStyle.Dashed, lineWidth: 1, axisLabelVisible: true, title: m.title });
     }
 
     /** Adds one study line (or histogram) and remembers its values for the legend. */
