@@ -1,0 +1,40 @@
+{
+  "title": "Strategy deck",
+  "sub": "Every way Money 24 can play, as cards. Edit them, turn them on or off, add your own.",
+  "search": "Search the deck",
+  "all": "All",
+  "add": "New card",
+  "export": "Export",
+  "import": "Import",
+  "importBad": "That file is not a deck.",
+  "imported": "{n} cards added.",
+  "empty": "No cards match.",
+  "on": "In play",
+  "off": "Benched",
+  "edit": "Edit",
+  "copy": "Copy",
+  "remove": "Remove",
+  "removeConfirm": "Remove this card?",
+  "ungraded": "Not graded yet. The scoreboard grades a card once it has traded on paper.",
+  "by": { "you": "You", "ai": "AI", "dogs": "DOGS" },
+  "kinds": {
+    "ai": "AI read",
+    "rule": "Rule",
+    "catalyst": "Catalyst",
+    "spread": "Spread",
+    "prediction": "Prediction"
+  },
+  "editor": {
+    "newTitle": "New card",
+    "editTitle": "Edit card",
+    "name": "Name",
+    "kind": "Kind",
+    "asset": "Asset (a ticker, or Any)",
+    "when": "When",
+    "then": "Then",
+    "notes": "Notes",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "defaults": { "name": "Untitled card", "asset": "Any" }
+}

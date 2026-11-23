@@ -23,7 +23,7 @@
 
   /**
    * @type {{
-   *   page: 'home' | 'plays' | 'desk' | 'markets' | 'news' | 'wallet' | 'scoreboard' | 'terms',
+   *   page: 'home' | 'plays' | 'desk' | 'deck' | 'markets' | 'news' | 'wallet' | 'scoreboard' | 'terms',
    *   tools?: import('svelte').Snippet,
    *   status?: string,
    *   service?: 'runner' | 'news',

@@ -230,3 +230,12 @@ draft), *Working* or *Scheduled* (a live play), *Filled*, *Triggered* and *Cance
   and where they end for a win or a loss.
 - **History** is the list of finished plays. One that lost says what went wrong: how it ended, the
   blocking rules it was let through as a trade, and any gap between the planned and actual loss.
+
+## 8. Crowd room, levels, the Pit and the deck (Nov 23, 2026)
+
+Built from the Nov 23 discussion tickets. UI and client logic only; the engine is untouched.
+
+- **Crowd room** (`src/plays/crowd.js`, `CrowdPanel.svelte`, shown on every play): how many of the 10,000 players a play's contract can take. Impact is per contract, so the limits are ~5% of open interest and ~1% of the contract's day volume, one contract per player, and a ±10% entry collar for late tranches. When one contract cannot hold the crowd, the verdict says how many matching contracts (other strikes, or the names that moved with it) would. Seat order is the hand-picked list, then the top tier, then lower tiers. Starting values, to be tuned on paper. The engine's `crowd_evidence` and `liquidity` rules do not know about it yet: when the engine build resumes, this becomes a blocking rule.
+- **Levels** (`src/markets/levels.js`, `Levels.svelte`): support and resistance from six months of daily candles (swing turns clustered by ATR), the pivot, a normal day's reach, the nearest lines that turn a symbol positive or negative, and a lean (bullish, neutral, bearish) from the 20/50-day averages and five-day move. Drawn on the chart (toggle). Not yet wired: levels the news outlets publish (needs newsd).
+- **The Pit** (`src/lib/pit.svelte.js`, `PitBell.svelte`): a bell in every header. It polls the runner, logs each new play and each change of phase on the device, counts unread, and can raise a system notification when the tab is in the background. The demo has no live desk, so it stays empty there.
+- **Strategy deck** (`src/deck/`, `deck.html`, filed under Plays): strategies as editable cards (AI read, rule, catalyst, spread, prediction), kept on the device, seeded with DOGS's starter cards, JSON import and export so an AI can write cards in. Grading by the scoreboard and running a card as a play need the engine.

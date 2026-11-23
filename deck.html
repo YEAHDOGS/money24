@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#050508" />
+  <!-- Paints the last theme before first paint (no flash); src/lib/theme.js keeps it true. Keys: m24.theme, m24.theme.last. -->
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('m24.theme') || 'auto', last = (localStorage.getItem('m24.theme.last') || '').split('|'), theme = mode;
+        if (mode === 'auto') theme = last[0] && +last[1] > Date.now() ? last[0] : window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <title>Money 24 Strategy Deck</title>
+  <script type="module" blocking="render" src="/src/deck/main.js"></script>
+</head>
+<body class="bg-app text-white">
+  <div id="deck"></div>
+  <noscript>The Money 24 Strategy Deck needs JavaScript to read paper strategy results.</noscript>
+</body>
+</html>

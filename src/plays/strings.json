@@ -524,6 +524,7 @@
     "demoOnly": "The demo holds one recorded backtest per play."
   },
   "journal": "Journal",
+  "deck": "Deck",
   "orders": {
     "active": "Active: trading now",
     "began": "Began",
