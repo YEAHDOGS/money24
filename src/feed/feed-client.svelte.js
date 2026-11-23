@@ -3,6 +3,7 @@
 // on its own and sends Last-Event-ID, so the engine backfills anything missed while asleep or offline.
 // With no engine (the public site with no news service set, or ?demo) it shows a recorded feed,
 // calendar and network meter instead (src/lib/demo.js).
+import { withMarketDays } from './market-days.js';
 import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
 import { StoryBoard } from './stories-client.svelte.js';
 import { ArchiveDesk } from './archive-client.svelte.js';
@@ -110,7 +111,7 @@ export class FeedClient {
     try {
       const snap = await loadDemo(DEMO_SNAPSHOT);
       this.items = [...snap.events].sort(byPublished);
-      this.calendar = snap.calendar ?? [];
+      this.calendar = withMarketDays(snap.calendar ?? []);
       this.stories.useDemo();
       this.archive.useDemo();
       this.calendarLoaded = true;
@@ -174,7 +175,7 @@ export class FeedClient {
     try {
       const res = await fetch(`${API_BASE}/api/calendar`);
       if (!res.ok) return;
-      this.calendar = await res.json();
+      this.calendar = withMarketDays(await res.json());
       this.calendarLoaded = true;
     } catch { /* the stream reports the engine as offline on its own */ }
   }

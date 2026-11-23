@@ -164,3 +164,7 @@ Today, Saturday November 21, 2026, reads: *Weekend: crypto only.* Stocks and opt
 
 *A calendar tells you what kind of day it is, not which way prices will go. Trading involves
 substantial risk of loss; this is market-structure information, not financial advice.*
+
+## Holidays on the news calendar (Nov 23, 2026)
+
+The news calendar (`newsd`: Forex Factory, Nasdaq earnings, Treasury auctions) has no market closures, so the News page adds them itself: `src/feed/market-days.js` works out every US stock market holiday and half day (the day after Thanksgiving, Christmas Eve, July 3) for the year before to two years ahead, by the same rules as `engine/calendar/sessions.go`. Keep the two in step. They show under Holidays as all-day events, closures at high impact and half days at medium.
