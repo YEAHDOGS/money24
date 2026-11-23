@@ -1,0 +1,26 @@
+{
+  "button": "The Pit: play alerts",
+  "title": "The Pit",
+  "empty": "Nothing yet. A play that starts or changes phase shows up here.",
+  "demo": "The demo has no live desk, so no play moves. On the desk, every new play and phase change lands here.",
+  "new": "New play",
+  "moved": "{from} to {to}",
+  "clear": "Mark all read",
+  "alertsOn": "Alerts are on when this tab is in the background.",
+  "alertsOff": "Alert me when this tab is in the background",
+  "alertsBlocked": "Alerts are blocked in this browser's settings.",
+  "phases": {
+    "draft": "Draft",
+    "armed": "Armed",
+    "open": "Open",
+    "working": "Working",
+    "closed": "Closed",
+    "void": "Void",
+    "cancelled": "Cancelled"
+  },
+  "status": {
+    "live": "Live",
+    "demo": "Demo",
+    "offline": "Offline"
+  }
+}

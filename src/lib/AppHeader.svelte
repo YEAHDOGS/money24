@@ -11,6 +11,7 @@
   import nav from './app-nav.json';
   import NoticeBar from './NoticeBar.svelte';
   import AccountMenu from './AccountMenu.svelte';
+  import PitBell from './PitBell.svelte';
   import Tour from './tour/Tour.svelte';
   import { demoHref } from './demo.js';
   import House from '@lucide/svelte/icons/house';
@@ -112,7 +113,8 @@
         </ul>
       </nav>
 
-      <!-- ACCOUNT: appearance for now. Row 1 beside the status on phones, the end of the row from tablet up. -->
+      <!-- THE PIT and ACCOUNT: icon buttons. Row 1 beside the status on phones, the end of the row from tablet up. -->
+      <PitBell />
       <AccountMenu />
     </div>
   </header>

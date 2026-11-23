@@ -3,6 +3,8 @@
 // The snapshot is written by scripts/demo-snapshot.js. A demo only reads: nothing in it is live.
 
 export const STORE_RUNNER = 'm24.trading.runner';
+/** The runner a desk talks to unless told otherwise (the trading desk's own address). */
+export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || 'http://127.0.0.1:8025';
 export const DEMO_PARAM = 'demo';
 export const DEMO_STATUS = 'demo';
 const DEMO_BASE = `${import.meta.env.BASE_URL}demo/`;
