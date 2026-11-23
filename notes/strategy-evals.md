@@ -282,3 +282,18 @@ So "no customers" reduces to prop capital, which requires an own strategy that h
 **Read for Money 24:** the entire commercial field has marketing where a track record should be. Money 24's design — gate (100 trades / 30 days / max DD 20%) before any live money, and a public scoreboard as the sellable asset — is aimed at exactly the gap none of these products fill. The README's own bar ("at least a dollar out the market a day") is more honest than the industry's published claims.
 
 **Status:** research delivered + filed 3 ways. Nothing bought, signed up, or traded. Full research: workspace research_notes/hands-off-agentic-ai-trading-alternative-20261121-1947/report.md.
+
+## 2026-11-23 — Capacity: how many subscribers before the desk crowds its own plays
+
+His question, off a screenshot of NVDA calls up ~+19,000% on a +35% day (board reinstates Jensen Huang as CEO): cap subscribers at 10k? Cap yearly account income at $200k? Would that keep Money 24 from influencing the market and eating itself?
+
+**Answer: headcount is the wrong unit. Impact is per contract, per strike, per minute.** What breaks a play is aggregate subscriber flow in one contract at one moment, measured against that contract's open interest and daily volume. The strikes in his screenshot carry OI of ~5,100–14,600 contracts. 1,000 subscribers putting $100 each into the $165 call at $5.75 is ~17 contracts each ≈ 17,000 contracts — more than the strike's entire open interest. The crowd becomes its own exit liquidity; late entrants pay the crowd tax and the edge inverts. Rule of thumb for staying invisible: under ~1% of a contract's daily volume and ~5% of its open interest, aggregate.
+
+**The caps that actually work:**
+1. **Per-play aggregate cap (the real one):** a play closes to new entries when total subscriber contracts in the strike hit a set % of open interest (2–5% band). Same logic the rulebook already applies to thin OI on a single trade (the DAL 80P reject), scaled to the crowd.
+2. **Per-account stake caps (supporting):** max stake per play / max concurrent plays keeps each footprint small and the product personal-scale.
+3. **Entry price collar:** the play voids if the contract has already moved more than X% from the drafting snapshot — stops the crowd (or a leak) from chasing a price that already ran.
+
+**The $200k/yr income cap does not do this job:** impact happens at entry, not at profit-taking, and earnings inside a subscriber's own brokerage account cannot be capped by the tool anyway. Stake sizing is the enforceable version of the same instinct. Scale check: 10k accounts × $200k = $2B/yr of net winnings, which no options flow pays out as a steady state — the realistic ceiling binds far earlier, which is good news: at plausible early scale (dozens–hundreds of users), the desk is nowhere near self-impact except in thin contracts the rulebook already rejects. With per-play caps in place, a 10k subscriber ceiling is survivable; without them, 300 subscribers can wreck a thin play.
+
+Filed at his question; discussion only, nothing built.
