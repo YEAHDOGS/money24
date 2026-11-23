@@ -10,6 +10,10 @@
 //   node scripts/forever.js --uninstall  no longer start at logon
 // Needs Node and Go on PATH. Settings are read from .env when there is one (see .env.example).
 // Nothing here can place a real order.
+// On a machine installed as a server (scripts/server.js install), the supervisor also keeps itself
+// up to date: it checks for a newer signed release every few minutes, builds it beside the running
+// one, switches to it and exits with EXIT_RESTART for the launcher to start the new supervisor, which
+// watches the new release's first minutes and rolls back on its own if it is not healthy (docs/SERVER.md).
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { connect } from 'node:net';
@@ -17,6 +21,7 @@ import { userInfo } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DESK_PATH, WEB_ENV } from './desk-build.js';
+import { confirm, newestRelease, readRelease, rollback, stage, swapIn } from './updater.js';
 
 const SCRIPT = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SCRIPT), '..');
@@ -42,7 +47,22 @@ const SERVICES = [
 ];
 const RUNNER = 'm24d';
 const SUPERVISOR = 'forever'; // the supervisor's own log
-const FLAG = { noBuild: '--no-build', stop: '--stop', status: '--status', install: '--install', uninstall: '--uninstall', dryRun: '--dry-run', noTray: '--no-tray' };
+const FLAG = { noBuild: '--no-build', stop: '--stop', status: '--status', install: '--install', uninstall: '--uninstall', dryRun: '--dry-run', noTray: '--no-tray', launcher: '--launcher' };
+// Exit codes the launcher (scripts/server.js run) acts on; it keeps its own copy, since importing this file runs it.
+const EXIT_RESTART = 75; // switched release or rolled back: start the supervisor again at once
+const EXIT_BUSY = 3; // already running, or the ports are taken: starting again would not help
+const LAUNCHER = join(ROOT, 'scripts', 'server.js');
+const LAUNCHER_RUN = 'run';
+// Signed updates (server installs only).
+const UPDATE_NOW_FILE = join(RUN_DIR, 'update.now'); // server.js update: check now
+const ROLLBACK_NOW_FILE = join(RUN_DIR, 'rollback.now'); // server.js rollback: go back to the release before
+const ENV_UPDATE_MINUTES = 'M24_UPDATE_MINUTES'; // how often to check; 0 or off checks only when asked
+const UPDATE_MINUTES_DEFAULT = 5;
+const UPDATES_OFF = ['0', 'off', 'no', 'false'];
+const BUILD_RETRY_MS = 60 * 60 * 1000; // a release that did not build is tried again after this long
+// A new release must keep newsd and m24d answering, with no restart, for this long (three health
+// checks), or it is rolled back.
+const PROBATION_MS = 3 * 60 * 1000 + 5000;
 // Both services exit on their own when this pipe closes, so a supervisor that dies leaves nothing behind.
 const EXIT_WITH_STDIN = '--exit-with-stdin';
 // The desk lives under this path, here (http://127.0.0.1:8025/desk/) and on money24.dogs.red/desk/.
@@ -149,9 +169,9 @@ function say(/** @type {string} */ text) {
   console.log(text);
 }
 
-function fail(/** @type {string} */ message) {
+function fail(/** @type {string} */ message, code = 1) {
   console.error(`\n${message}\n`);
-  process.exit(1);
+  process.exit(code);
 }
 
 /** "45s", "12m", "2h 3m", "3d 4h" */
@@ -425,14 +445,14 @@ function startPowerShellTray(/** @type {string} */ app) {
   });
 }
 
-/** Stops both services (cleanly first, then by force), removes the supervisor's files and exits. */
-async function shutdown(/** @type {number} */ code) {
-  if (stopping) return;
+/** Stops every service (cleanly first, then by force) and the tray. Nothing restarts them after this. */
+async function stopServices() {
   stopping = true;
   say('Stopping...');
   for (const svc of services) {
     clearTimeout(svc.timer);
     svc.child?.stdin?.end();
+    if (svc.exe) svc.child?.kill(); // cloudflared does not watch its stdin
   }
   await waitFor(() => services.every((s) => !s.child), SERVICE_GRACE_MS);
   for (const svc of services) {
@@ -440,19 +460,123 @@ async function shutdown(/** @type {number} */ code) {
     say(`${svc.name} did not stop in time: killing it`);
     svc.child.kill();
   }
+  await waitFor(() => services.every((s) => !s.child), SERVICE_GRACE_MS);
   trayChild?.kill();
-  for (const file of [PID_FILE, STOP_FILE, STATE_FILE]) rmSync(file, { force: true });
-  say('Stopped.');
+}
+
+/** Removes the supervisor's files and exits. */
+function finish(/** @type {number} */ code) {
+  for (const file of [PID_FILE, STOP_FILE, STATE_FILE, UPDATE_NOW_FILE, ROLLBACK_NOW_FILE]) rmSync(file, { force: true });
+  say(code === EXIT_RESTART ? 'Stopped, for the launcher to start the supervisor again.' : 'Stopped.');
   process.exit(code);
+}
+
+async function shutdown(/** @type {number} */ code) {
+  if (stopping) return;
+  await stopServices();
+  finish(code);
+}
+
+/** Set while an update is checked, built or switched to, or a rollback runs, so two never overlap. */
+let updating = false;
+/** @type {Map<string, number>} releases that did not build, and when they were tried */
+const failedBuilds = new Map();
+
+/**
+ * Checks for a newer signed release; when there is one, builds it beside the running release while
+ * the services keep running, then stops them, switches, and exits for the launcher to start the new
+ * supervisor. A release that does not build leaves everything as it was.
+ */
+async function updateNow(/** @type {boolean} */ asked) {
+  if (updating || stopping) return;
+  updating = true;
+  try {
+    const found = await newestRelease(say);
+    if (found.error) {
+      say(`Update check: ${found.error}`);
+      return;
+    }
+    const release = found.release;
+    if (!release) {
+      if (asked) say(`Update check: ${readRelease()?.tag} is the newest signed release`);
+      return;
+    }
+    if (!asked && Date.now() - (failedBuilds.get(release.tag) ?? 0) < BUILD_RETRY_MS) return;
+    say(`Update: ${release.tag} is signed by the pinned release key. Building it beside the running release...`);
+    const built = await stage(release, (text) => log(SUPERVISOR, `update ${release.tag}: ${text}`));
+    if (!built.ok) {
+      failedBuilds.set(release.tag, Date.now());
+      say(`Update: ${release.tag} did not build, so the running release stays. ${built.reason}`);
+      return;
+    }
+    say(`Update: switching to ${release.tag}`);
+    await stopServices();
+    await swapIn(release);
+    finish(EXIT_RESTART);
+  } catch (err) {
+    say(`Update failed: ${err instanceof Error ? err.message : err}`);
+    if (stopping) finish(EXIT_RESTART); // the services were stopped: the launcher starts whatever is in place
+  } finally {
+    updating = false;
+  }
+}
+
+/** Goes back to the release before (a failed probation, or server.js rollback) and exits for the launcher. */
+async function rollbackNow(/** @type {string} */ reason) {
+  if (updating || stopping) return;
+  updating = true;
+  say(`Rolling back: ${reason}`);
+  await stopServices();
+  try {
+    if (!(await rollback(reason))) say('There is no earlier release to go back to: starting this one again.');
+  } catch (err) {
+    say(`Rollback failed: ${err instanceof Error ? err.message : err}`);
+  }
+  finish(EXIT_RESTART);
+}
+
+/**
+ * On a server install: the update timer, the update and rollback requests, and the probation of a
+ * release just switched to. The tunnel is left out of probation: Cloudflare being slow is no fault of
+ * the release.
+ */
+function startUpdates() {
+  const state = readRelease();
+  if (!state) return;
+  const minutes = serviceEnv[ENV_UPDATE_MINUTES] ?? String(UPDATE_MINUTES_DEFAULT);
+  const every = UPDATES_OFF.includes(minutes.toLowerCase()) ? 0 : Number(minutes) * SECONDS_PER_MINUTE * MS_PER_SECOND;
+  say(`Release ${state.tag}${state.pending ? ', on probation' : ''}. ${every ? `Checking for signed updates every ${span(every)}.` : 'Automatic updates are off.'}`);
+  if (every > 0) setInterval(() => updateNow(false), every);
+  setInterval(() => {
+    if (existsSync(ROLLBACK_NOW_FILE)) {
+      rmSync(ROLLBACK_NOW_FILE, { force: true });
+      rollbackNow('asked for with server.js rollback');
+    } else if (existsSync(UPDATE_NOW_FILE)) {
+      rmSync(UPDATE_NOW_FILE, { force: true });
+      updateNow(true);
+    }
+  }, STOP_POLL_MS);
+  if (!state.pending) return;
+  setTimeout(() => {
+    const own = services.filter((s) => !s.exe);
+    const sick = own.filter((s) => !s.health?.ok || s.restarts > 0 || !s.child);
+    if (sick.length) {
+      rollbackNow(`${state.tag} was not healthy in its first ${span(PROBATION_MS)} (${sick.map((s) => s.name).join(', ')})`);
+      return;
+    }
+    confirm();
+    say(`Release ${state.tag} passed its probation and stays.`);
+  }, PROBATION_MS);
 }
 
 /** The default mode: build, start both services, and watch them until told to stop. */
 async function supervise() {
   mkdirSync(LOG_DIR, { recursive: true });
   const running = await supervisorPid();
-  if (running) fail(`Money 24 is already running around the clock (supervisor pid ${running}).\nSee it with: npm run forever -- ${FLAG.status}\nStop it with: npm run forever -- ${FLAG.stop}`);
-  const busy = await busyPorts();
-  if (busy.length) fail(`Port ${busy.join(' and ')} is already in use, so the services cannot start.\nMoney 24 may be running another way (npm start, or the desktop app): close it first.`);
+  if (running) fail(`Money 24 is already running around the clock (supervisor pid ${running}).\nSee it with: npm run forever -- ${FLAG.status}\nStop it with: npm run forever -- ${FLAG.stop}`, EXIT_BUSY);
+  // Just after a restart for an update, the old services may take a moment to let go of their ports.
+  const busy = (await waitFor(async () => (await busyPorts()).length === 0, SERVICE_GRACE_MS)) ? [] : await busyPorts();
+  if (busy.length) fail(`Port ${busy.join(' and ')} is already in use, so the services cannot start.\nMoney 24 may be running another way (npm start, or the desktop app): close it first.`, EXIT_BUSY);
 
   if (!process.argv.includes(FLAG.noBuild)) {
     if (!existsSync(VITE_BIN)) fail('Packages are not installed yet. Run: npm install');
@@ -480,6 +604,7 @@ async function supervise() {
   say(`Supervisor started (pid ${process.pid})`);
   for (const svc of services) start(svc);
   startTray();
+  startUpdates();
 
   process.on('SIGINT', () => shutdown(0));
   process.on('SIGTERM', () => shutdown(0));
@@ -558,6 +683,8 @@ async function status() {
   const state = readState();
   const now = Date.now();
   if (IS_WINDOWS) console.log(`Starts at logon:  ${logonStart() || `no (npm run forever -- ${FLAG.install})`}`);
+  const release = readRelease();
+  if (release) console.log(`Release:          ${release.tag}${release.pending ? ' (on probation)' : ''}${release.previous ? `, rolls back to ${release.previous.tag}` : ''}`);
   if (!pid) {
     const busy = await busyPorts();
     console.log(`Supervisor:       not running${busy.length ? ` (but port ${busy.join(' and ')} is in use by something else)` : ''}`);
@@ -582,10 +709,14 @@ function xmlText(/** @type {string} */ text) {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** How the supervisor is started with no window: conhost's headless mode, then Node, then this script. */
+/**
+ * How the supervisor is started with no window: conhost's headless mode, then Node, then this script,
+ * or on a server install the launcher, which starts this script and starts it again after an update.
+ */
 function hiddenStart() {
   const command = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'conhost.exe');
-  return { command, args: [HEADLESS, process.execPath, SCRIPT] };
+  const entry = process.argv.includes(FLAG.launcher) ? [LAUNCHER, LAUNCHER_RUN] : [SCRIPT];
+  return { command, args: [HEADLESS, process.execPath, ...entry] };
 }
 
 /**

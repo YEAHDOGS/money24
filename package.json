@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node scripts/start.js",
     "forever": "node scripts/forever.js",
+    "server": "node scripts/server.js",
+    "release": "node scripts/release.js",
     "dev": "vite",
     "build": "vite build",
     "test": "vitest",
