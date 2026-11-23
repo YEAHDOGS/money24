@@ -1,8 +1,9 @@
 // Package aicli asks the AI apps the user already pays for, through their own command-line tools,
 // signed in with the user's subscriptions or their free tiers. Money 24 pays for no AI.
 //
-// Each app gets the question with no tools, no web, no saved session and an empty working folder,
-// and must answer in a fixed JSON shape. Answers are untrusted input: nothing here places a trade.
+// Each app gets the question with no tools, no saved session and an empty working folder, and must
+// answer in a fixed JSON shape. A web ask adds web search and page reading, on the apps that can,
+// and nothing else. Answers are untrusted input: nothing here places a trade.
 // The apps run on the machine that runs the desk, as the signed-in Windows user, because that is
 // where they are signed in.
 package aicli
@@ -31,6 +32,15 @@ const (
 	CODEX_EFFORT   = "low"
 	GEMINI_MODEL   = "gemini-3.8-flash-low"
 	OPENCODE_MODEL = "opencode/deepseek-v4.1-flash-free"
+	// Deep asks (advice on one play, asked by a person) trade speed for a stronger read.
+	CLAUDE_DEEP_MODEL = "sonnet"
+	GEMINI_DEEP_MODEL = "gemini-3.8-flash-medium"
+	DEEP_EFFORT       = "medium"
+	// The only tools a web ask gets: search and read pages. No shell, no files.
+	CLAUDE_WEB_TOOLS = "WebSearch,WebFetch"
+	CODEX_WEB_LIVE   = `web_search="live"`
+	CODEX_WEB_OFF    = `web_search="disabled"`
+	ENV_DEEP_SUFFIX  = "_DEEP" // M24D_AI_CLAUDE_MODEL_DEEP and so on: the model for deep asks
 
 	ENV_CLAUDE_MODEL   = "M24D_AI_CLAUDE_MODEL"
 	ENV_CODEX_MODEL    = "M24D_AI_CODEX_MODEL"
@@ -62,13 +72,31 @@ type App struct {
 	Plan   string `json:"plan"`    // whose plan pays: the user's subscription, or a free tier
 	SignIn string `json:"sign_in"` // the one-time step on the desk machine
 	Model  string `json:"model"`
-	bins   []string
-	stdin  bool // the prompt goes on stdin, so long articles never hit the command-line limit
+	// DeepModel answers deep asks.
+	DeepModel string `json:"deep_model"`
+	// Web: the app can search the web on a web ask. The others answer from what they know.
+	Web   bool `json:"web"`
+	bins  []string
+	stdin bool // the prompt goes on stdin, so long articles never hit the command-line limit
 	// The tool cannot enforce a JSON Schema, so the schema is written into the prompt instead.
 	schemaInPrompt bool
-	args           func(model, schemaJSON, schemaFile, answerFile, prompt string) []string
+	args           func(c call) []string
 	parse          func(stdout []byte, answerFile string) (json.RawMessage, error)
 	envName        string
+}
+
+// call is everything one command line is built from.
+type call struct {
+	Model, SchemaJSON, SchemaFile, AnswerFile, Prompt string
+	Deep, Web                                         bool
+}
+
+// effort is the reasoning effort for this ask: the app's quick one, or DEEP_EFFORT.
+func (c call) effort(quick string) string {
+	if c.Deep {
+		return DEEP_EFFORT
+	}
+	return quick
 }
 
 // Apps lists every app in the order they are usually fastest, with models from the environment.
@@ -78,44 +106,54 @@ func Apps() []App {
 	localAppData := os.Getenv("LOCALAPPDATA")
 	apps := []App{
 		{ID: APP_CLAUDE, Name: "Claude", Via: "Claude Code", Plan: "your Claude plan", SignIn: "run `claude` once and sign in",
-			Model: CLAUDE_MODEL, envName: ENV_CLAUDE_MODEL, stdin: true,
+			Model: CLAUDE_MODEL, DeepModel: CLAUDE_DEEP_MODEL, Web: true, envName: ENV_CLAUDE_MODEL, stdin: true,
 			bins: []string{"claude", filepath.Join(home, ".local", "bin", "claude"+EXE)},
-			args: func(model, schemaJSON, _, _, _ string) []string {
-				return []string{"-p", "--output-format", "json", "--json-schema", schemaJSON, "--tools", "",
-					"--no-session-persistence", "--strict-mcp-config", "--setting-sources", "", "--effort", CLAUDE_EFFORT, "--model", model}
+			args: func(c call) []string {
+				a := []string{"-p", "--output-format", "json", "--json-schema", c.SchemaJSON, "--tools", ""}
+				if c.Web {
+					a = []string{"-p", "--output-format", "json", "--json-schema", c.SchemaJSON, "--tools", CLAUDE_WEB_TOOLS, "--allowedTools", CLAUDE_WEB_TOOLS}
+				}
+				return append(a, "--no-session-persistence", "--strict-mcp-config", "--setting-sources", "",
+					"--effort", c.effort(CLAUDE_EFFORT), "--model", c.Model)
 			},
 			parse: parseClaude},
 		{ID: APP_CODEX, Name: "ChatGPT", Via: "Codex", Plan: "your ChatGPT plan", SignIn: "run `codex login` and choose Sign in with ChatGPT",
-			envName: ENV_CODEX_MODEL, stdin: true,
+			Web: true, envName: ENV_CODEX_MODEL, stdin: true,
 			bins: []string{"codex", filepath.Join(localAppData, "Programs", "OpenAI", "Codex", "bin", "codex"+EXE)},
-			args: func(model, _, schemaFile, answerFile, _ string) []string {
+			args: func(c call) []string {
+				web := CODEX_WEB_OFF
+				if c.Web {
+					web = CODEX_WEB_LIVE
+				}
 				a := []string{"exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config", "-s", "read-only",
-					"-c", `web_search="disabled"`, "-c", `model_reasoning_effort="` + CODEX_EFFORT + `"`,
-					"--output-schema", schemaFile, "-o", answerFile}
-				if model != "" {
-					a = append(a, "-m", model)
+					"-c", web, "-c", `model_reasoning_effort="` + c.effort(CODEX_EFFORT) + `"`,
+					"--output-schema", c.SchemaFile, "-o", c.AnswerFile}
+				if c.Model != "" {
+					a = append(a, "-m", c.Model)
 				}
 				return append(a, STDIN_PROMPT)
 			},
 			parse: parseAnswerFile},
 		{ID: APP_GEMINI, Name: "Gemini", Via: "Antigravity", Plan: "your Google account", SignIn: "open Antigravity once and sign in with Google",
-			Model: GEMINI_MODEL, envName: ENV_GEMINI_MODEL,
+			Model: GEMINI_MODEL, DeepModel: GEMINI_DEEP_MODEL, envName: ENV_GEMINI_MODEL,
 			bins: []string{"agy", filepath.Join(localAppData, "agy", "bin", "agy"+EXE)},
-			args: func(model, schemaJSON, _, _, prompt string) []string {
-				return []string{"-p", prompt, "--output-format", "json", "--json-schema", schemaJSON, "--model", model,
+			// No web: headless Antigravity searches through a shell command, and the shell stays blocked.
+			args: func(c call) []string {
+				return []string{"-p", c.Prompt, "--output-format", "json", "--json-schema", c.SchemaJSON, "--model", c.Model,
 					"--disable-slash-commands", "--sandbox", "--print-timeout", PRINT_TIMEOUT}
 			},
 			parse: parseAntigravity},
 		{ID: APP_OPENCODE, Name: "OpenCode", Via: "OpenCode", Plan: "OpenCode's free models", SignIn: "nothing: its free models need no account",
 			Model: OPENCODE_MODEL, envName: ENV_OPENCODE_MODEL, schemaInPrompt: true,
 			bins: []string{filepath.Join(appData, "npm", "node_modules", "opencode-ai", "bin", "opencode"+EXE), "opencode"},
-			args: func(model, _, _, _, prompt string) []string {
-				return []string{"run", "--pure", "--agent", "plan", "-m", model, prompt}
+			args: func(c call) []string {
+				return []string{"run", "--pure", "--agent", "plan", "-m", c.Model, c.Prompt}
 			},
 			parse: parseLastObject},
 	}
 	for i := range apps {
 		apps[i].Model = cmp.Or(os.Getenv(apps[i].envName), apps[i].Model)
+		apps[i].DeepModel = cmp.Or(os.Getenv(apps[i].envName+ENV_DEEP_SUFFIX), apps[i].DeepModel, apps[i].Model)
 	}
 	return apps
 }

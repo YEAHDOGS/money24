@@ -89,12 +89,11 @@ It runs with no settings. To change any, copy `.env.example` to `.env` and fill 
 |---|---|
 | `USER_AGENT` | Put a contact email in it. Without one, SEC and BLS feeds refuse to answer and those news sources stay empty |
 | `WEBULL_APP_KEY`, `WEBULL_APP_SECRET` | Live stock and option quotes from Webull. Without them, plays and trades use Yahoo Finance quotes, delayed up to 15 minutes |
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY` | AI reads of your plays (Claude, OpenAI, Grok, Gemini). Add any you use; each key goes only to its own provider. Plays work without one |
 | `M24D_WEBHOOK_SECRET` | Fixes the secret other tools use to send callouts. Left empty, one is generated in the data folder |
 
 Coin prices (Coinbase), token prices (DEX Screener), option chains for plays and the Markets page (Yahoo Finance), and Robinhood contract links need no key.
 
-The desktop app does not read `.env` yet, so AI keys only work when you run with `start`. Moving keys into the OS keychain is planned (docs/PLAYS.md).
+AI reads of plays need no key: they go to the AI apps you are signed in to on this machine (docs/AI.md).
 
 ## 6. Other ways to run it
 

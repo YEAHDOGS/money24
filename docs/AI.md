@@ -30,7 +30,7 @@ shows the same, refreshed every half hour, with the one step that fixes an app t
 
 ## How a question is asked
 
-- **No tools, no web, no saved session, an empty folder.** Each ask runs in its own empty folder under
+- **No tools, no web, no saved session, an empty folder.** (A play read adds web search, below.) Each ask runs in its own empty folder under
   the data folder (`ai-work/`), so no project instructions are read and no files can be touched.
 - **A fixed answer shape.** Every app must answer one JSON object matching a JSON Schema: Claude Code,
   Codex and Antigravity enforce it; OpenCode gets the schema in its prompt.
@@ -60,6 +60,33 @@ Most of each answer is the tool starting up. Keeping each tool running between q
 and Antigravity can take question after question on stdin; OpenCode can attach to a running server) is
 the next step to bring this toward the model's own time, about 1.5 to 3 s.
 
+## Asking about a play
+
+On any play, **Ask Claude** (or ChatGPT, Gemini, OpenCode, or **Ask all**) sends the play to that app:
+the contract, the bracket, the market snapshot, the rules check, the engine's math and the headlines
+tagged with its symbol. The answer lands in the play's **AI reads**: a verdict (take, wait or pass), what
+the stock must do and by when, the risks, evidence, and a better bracket if the current one breaks its
+own rules. **Ask all** asks every signed-in app at once and files each read as it lands, so you can see
+whether they agree.
+
+A play read is a deep ask, because a person is waiting on it rather than a news race:
+
+- **A stronger model at medium effort**: Claude Sonnet, Codex's default model, Gemini Flash Medium, and
+  OpenCode's free model. Set `M24D_AI_<APP>_MODEL_DEEP` (for example `M24D_AI_CLAUDE_MODEL_DEEP`) to
+  change one.
+- **The web, where the app can search it.** Claude and ChatGPT search the web and read pages to check
+  the news behind the play, and must list every source with its URL. Those are the only tools they get.
+  Gemini (headless Antigravity searches through a shell, which stays blocked) and OpenCode answer from
+  what they know, and the read says "no web".
+- **Prices come only from the engine.** The prompt forbids quoting a price found on the web as current.
+- **Up to 4 minutes.** A web read usually takes 15 to 60 seconds.
+
+Nothing an app says changes the play on its own. Its evidence joins the play marked unverified and
+never moves the odds until you verify it, and applying a suggested bracket is a button you press.
+
+The same reads run when a pasted link has **AI read** ticked, and when the flow desk opens a play with
+its rulebook's AI read turned on.
+
 ## Routes
 
 | Route | Who | What |
@@ -67,5 +94,7 @@ the next step to bring this toward the model's own time, about 1.5 to 3 s.
 | `GET /api/ai` | anyone the runner lets read | each app's state, last answer time, and the last 20 stories asked |
 | `POST /api/ai/test` | the desk on this machine | asks every app the tiny question now |
 | `POST /api/ai/impact` `{"news": "..."}` | the desk on this machine | puts one story to every app and returns when two agree |
+| `GET /api/plays/ai` | anyone the runner lets read | the apps a play can be sent to |
+| `POST /api/plays/{id}/analyze` `{"provider": "claude"}` | the desk on this machine | sends a play to one app, `"all"`, or `""` for the first signed in |
 
 Asks spend your plans, so only the desk on the machine itself may make them.

@@ -103,12 +103,14 @@ Rules for the AI layer:
    suggestion is a button a person presses, and the result goes back through the rulebook.
 2. **Math is never asked of a model.** Levels, odds, payoff and sizing are computed in Go. The model
    gets them as input and is told not to invent prices.
-3. **No tools, no browsing.** Prompt-injection containment (ARCHITECTURE §6.3): headlines and links
-   arrive as quoted JSON fields; the answer must match a JSON schema.
+3. **Web search, and no other tools.** Prompt-injection containment (ARCHITECTURE §6.3): headlines
+   and links arrive as quoted JSON; the answer must match a JSON schema. Claude and ChatGPT may search
+   the web and read pages, and nothing else; prices still come only from the engine (docs/AI.md).
 4. **Unverified until verified.** Evidence a model suggests is filed with `ai: true` and is never
    weighed in the odds until a person marks it verified.
-5. **Bring your own key.** Keys live in `.env` today (OS keychain planned), go only to their own
-   provider, and never reach the browser or DOGS.
+5. **Your own plans, no keys.** A play goes to an AI app signed in on the desk machine (Claude Code,
+   Codex, Antigravity, OpenCode) on your own subscription or a free tier. Money 24 pays for no AI and
+   holds no AI keys (docs/AI.md).
 6. **The finder** (built Nov 18, 2026, `engine/plays/finder.go`; no model in it): every five minutes
    of the stock session m24d reads newsd's stories board (`engine/README.md`, Stories). A story earns a
    play when its coverage-against-volume reading is `early` or `confirmed`, its attention and validity
@@ -130,7 +132,7 @@ Rules for the AI layer:
    half its open interest traded today (new money, not old positions changing hands), spread under 10%.
    The top call and the top put of the pass get the rulebook's whole bracket and trade **only if no
    blocking rule fails**. One flow play per name a day, four running at once, six a day, and a pause
-   once the day's closed flow plays have lost $150. When an AI key is set, the first connected provider
+   once the day's closed flow plays have lost $150. When an AI app is signed in, the first one
    reads each new play; the read changes nothing. Its last pass is at `GET /api/plays/flow` and on Home.
    Option volume has no free history, so this desk cannot be replayed: it is proven or not by its own
    record, and its trades can be hedges it is following rather than bets.
@@ -139,9 +141,8 @@ Rules for the AI layer:
    so a play can be opened before the coverage starts (the "middle agent" in
    notes/catalyst-and-filings.md). Both stay desk first and are scored like any source.
 
-Claude calls use `claude-opus-5-5` with structured output (`output_config.format`), effort
-`medium`, and server-side refusal fallback (`fallbacks: "default"`). Every provider's model can be
-changed with `M24D_<PROVIDER>_MODEL`.
+A play read is a deep ask: each app's stronger model at medium effort, up to four minutes. Each app's
+model can be changed with `M24D_AI_<APP>_MODEL_DEEP` (docs/AI.md).
 
 ## 4. Links
 

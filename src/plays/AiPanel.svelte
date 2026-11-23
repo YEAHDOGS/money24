@@ -1,12 +1,13 @@
 <script>
   /**
-   * AI reads of a play, newest first. A model reads the play, the market, the report and tagged
-   * headlines as data, with no tools and no web, and answers in a fixed shape: a verdict, what must
-   * happen, the risks, evidence (added unverified) and an optional better bracket. Applying the
-   * bracket is the user's call, on drafts only.
+   * AI reads of a play, newest first. One of the AI apps signed in on the desk machine reads the play,
+   * the market, the report and tagged headlines as data, searching the web where the app can and
+   * using no other tools, and answers in a fixed shape: a verdict, what must happen, the risks,
+   * evidence (added unverified) and an optional better bracket. Applying the bracket is the user's
+   * call, on drafts only.
    */
   import strings from './strings.json';
-  import { clock, price, num } from './play-format.js';
+  import { clock, price, num, fill } from './play-format.js';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import CircleX from '@lucide/svelte/icons/circle-x';
 
@@ -15,6 +16,7 @@
 
   const VERDICT_CLASS = { take: 'border-ok text-ok', wait: 'border-warn text-warn', pass: 'border-bad text-bad' };
   const PERCENT = 100;
+  const MS_PER_S = 1000;
 
   let applied = $state(-1);
 
@@ -43,7 +45,8 @@
   {#each reads as { a, i } (i)}
     <li class="border-l border-kind-insider/40 pl-3 text-xs leading-snug">
       <p class="flex flex-wrap items-center gap-2 text-[0.65rem] text-muted">
-        <span class="font-mono">{clock(a.at)} · {a.provider}{a.model ? ` · ${a.model}` : ''}</span>
+        <span class="font-mono">{clock(a.at)} · {a.provider_name || a.provider}{a.model ? ` · ${a.model}` : ''}{a.ms ? ` · ${fill(strings.ai.took, { s: Math.round(a.ms / MS_PER_S) })}` : ''}</span>
+        {#if a.provider_name && !a.error}<span>{a.web ? strings.ai.web : strings.ai.noWeb}</span>{/if}
         {#if a.verdict}<span class="rounded-sm border px-1.5 py-px font-bold uppercase tracking-wider {VERDICT_CLASS[a.verdict] ?? 'border-line text-white'}">{strings.ai.verdicts[a.verdict] ?? a.verdict}</span>{/if}
         {#if a.confidence}<span class="tabular-nums">{strings.ai.confidence} {Math.round(a.confidence * PERCENT)}%</span>{/if}
       </p>

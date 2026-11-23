@@ -1,5 +1,5 @@
 // The plays page's connection to the m24d runner: plays with their reports, the link history, the
-// rulebook and the AI providers. Plays live in the runner; this only reads and asks. The runner URL
+// rulebook and the AI apps signed in on the desk machine. Plays live in the runner; this only reads and asks. The runner URL
 // and secret are the trading desk's, so a phone pointed at a VPS runner works here too.
 // With no runner (the public site, or ?demo) it shows a recorded snapshot instead (src/lib/demo.js).
 // The demo is a trial room: every action works on this page only (plays-demo.js) and nothing is sent.
@@ -20,6 +20,7 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 const DEMO_SNAPSHOT = 'plays.json';
 const DEMO_PREVIEW_DIR = 'preview/';
 const DEMO_BUSY_MS = 320; // a demo action takes this long, so its button shows it was pressed
+const ALL_PROVIDERS = 'all'; // the runner sends the play to every signed-in AI app at once
 
 /** @typedef {{ play: any, report: any }} Item */
 
@@ -220,6 +221,12 @@ export class PlaysClient {
   async paper(/** @type {string} */ id) {
     if (this.demo) return this.#upsert(demoPaper(await this.#demoItem(id)));
     return this.#upsert(await this.#req(`/api/plays/${encodeURIComponent(id)}/paper`, { method: 'POST' }));
+  }
+
+  /** The signed-in AI apps a play can be sent to, and all of them at once when there are two or more. */
+  get aiChoices() {
+    const connected = this.providers.filter((p) => p.connected);
+    return connected.length > 1 ? [...connected, { id: ALL_PROVIDERS, name: strings.inbox.allProviders, model: '' }] : connected;
   }
 
   async analyze(/** @type {string} */ id, /** @type {string} */ provider) {

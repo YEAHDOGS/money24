@@ -90,9 +90,9 @@
         <input type="checkbox" bind:checked={aiRead} class="accent-neon-red" />
         <Sparkles class="size-3 text-kind-insider" aria-hidden="true" />{strings.inbox.aiRead}
       </label>
-      <select bind:value={provider} aria-label={strings.inbox.provider} disabled={!aiRead}
+      <select value={provider || client.aiChoices[0]?.id} onchange={(e) => (provider = e.currentTarget.value)} aria-label={strings.inbox.provider} disabled={!aiRead}
         class="min-w-0 flex-1 rounded-sm border border-line bg-card px-1.5 py-1 text-xs text-white focus:border-neon-red focus:outline-none disabled:opacity-40">
-        {#each connected as p (p.id)}<option value={p.id}>{p.name} · {p.model}</option>{/each}
+        {#each client.aiChoices as p (p.id)}<option value={p.id}>{p.name}{p.model ? ` · ${p.model}` : ''}</option>{/each}
       </select>
     </div>
   {:else if client.demo}

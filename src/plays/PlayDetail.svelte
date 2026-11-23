@@ -38,12 +38,13 @@
   const STATUS_CLASS = { draft: 'border-line text-white/70', armed: 'border-paper text-paper', closed: 'border-muted text-muted' };
   const SECTION_LABEL = 'text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted';
   const PERCENT = 100;
+  const ALL_PROVIDERS = 'all';
 
   /** @type {import('./plays-client.svelte.js').Item | null} the stake dial's unsaved view */
   let preview = $state(null);
   let busy = $state('');
   let error = $state('');
-  let provider = $state(untrack(() => client.providers.find((p) => p.connected)?.id ?? ''));
+  let provider = $state(untrack(() => client.aiChoices[0]?.id ?? ''));
 
   const shown = $derived(preview ?? item);
   const play = $derived(shown.play);
@@ -55,7 +56,9 @@
   const endsNote = $derived(`${pnl(report.payoff.max_profit_usd)} / ${pnl(-report.payoff.planned_loss_usd)}`);
   const checksNote = $derived(fails.blocks || fails.warns ? fill(strings.detail.checksNote, { blocks: fails.blocks, warns: fails.warns }) : strings.detail.checksClear);
   const market = $derived(play.market);
-  const connected = $derived(client.providers.filter((p) => p.connected));
+  /** Who the play can be sent to; the picked one, or the first while the list is still loading. */
+  const choices = $derived(client.aiChoices);
+  const chosen = $derived(choices.find((p) => p.id === provider) ?? choices[0]);
   const analyzing = $derived(item.play.analyzing);
 
   /** Runs one action with a busy flag and shows its error. */
@@ -136,18 +139,20 @@
         class="spring flex items-center gap-1.5 rounded-sm border border-line px-3 py-2 text-xs font-bold uppercase tracking-wider text-white/80 hover:border-white/40 focus-visible:border-neon-red focus-visible:outline-none disabled:opacity-40">
         <RefreshCw class="size-3.5 {busy === 'refresh' ? 'spin' : ''}" aria-hidden="true" />{strings.detail.refresh}
       </button>
-      {#if connected.length}
+      {#if chosen}
         <span class="flex items-stretch">
-          <button type="button" onclick={() => act('analyze', () => client.analyze(item.play.id, provider))} disabled={!!busy || !!analyzing}
+          <button type="button" onclick={() => act('analyze', () => client.analyze(item.play.id, chosen.id))} disabled={!!busy || !!analyzing}
             class="spring flex items-center gap-1.5 rounded-l-sm border border-kind-insider/60 px-3 py-2 text-xs font-bold uppercase tracking-wider text-kind-insider hover:bg-kind-insider/10 focus-visible:outline-none focus-visible:bg-kind-insider/10 disabled:opacity-40">
             {#if analyzing}<LoaderCircle class="spin size-3.5" aria-hidden="true" />{:else}<Sparkles class="size-3.5" aria-hidden="true" />{/if}
-            {analyzing ? strings.detail.analyzing : strings.detail.analyze}
+            {analyzing ? strings.detail.analyzing : chosen.id === ALL_PROVIDERS ? strings.detail.analyzeAll : fill(strings.detail.analyze, { name: chosen.name })}
           </button>
-          <select bind:value={provider} aria-label={strings.inbox.provider}
-            class="max-w-28 rounded-r-sm border border-l-0 border-kind-insider/60 bg-card px-1 text-xs text-white focus:border-neon-red focus:outline-none">
-            {#each connected as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+          <select value={chosen.id} onchange={(e) => (provider = e.currentTarget.value)} aria-label={strings.inbox.provider}
+            class="max-w-32 rounded-r-sm border border-l-0 border-kind-insider/60 bg-card px-1 text-xs text-white focus:border-neon-red focus:outline-none">
+            {#each choices as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
           </select>
         </span>
+      {:else if !client.demo}
+        <span class="self-center text-[0.68rem] leading-snug text-muted">{strings.detail.noAi}</span>
       {/if}
       <button type="button" onclick={remove} disabled={!!busy} aria-label={strings.detail.delete}
         class="spring ml-auto flex items-center gap-1.5 rounded-sm border border-line px-2.5 py-2 text-xs text-white/60 hover:border-bad hover:text-bad focus-visible:border-bad focus-visible:outline-none disabled:opacity-40">
@@ -196,7 +201,7 @@
     <Fold id="evidence" title={strings.detail.evidence} note={String(item.play.evidence?.length ?? 0)} i={7}><EvidenceList play={item.play} {draft} onSave={save} /></Fold>
     <Fold id="bracket" title={draft ? strings.detail.bracket : strings.detail.fills} i={8}>{@render bracketBody()}</Fold>
     <Fold id="record" title={strings.detail.record} i={9}>{@render recordBody()}</Fold>
-    <Fold id="ai" title={strings.detail.ai} i={10}><AiPanel play={item.play} {draft} onSave={save} /></Fold>
+    <Fold id="ai" title={strings.detail.ai} note={analyzing ? strings.detail.analyzing : String(item.play.analyses?.length ?? 0)} tone={analyzing ? 'text-kind-insider' : 'text-muted'} i={10}><AiPanel play={item.play} {draft} onSave={save} /></Fold>
   {:else}
   <section class="reveal border-b border-line px-4 py-4 lg:px-6" style="--i:1" aria-labelledby="orders">
     <h3 id="orders" class="{SECTION_LABEL} mb-2">{strings.detail.orders}</h3>

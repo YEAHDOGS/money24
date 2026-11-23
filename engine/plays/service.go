@@ -50,6 +50,8 @@ type Service struct {
 	MayWrite func(*http.Request) bool
 	// Funds is the cash account the crypto desk sizes against. Nil: the rulebook bankroll stands in.
 	Funds func(now time.Time) Funds
+	// AI is the AI apps signed in on this machine, for reads of a play. Nil: no AI.
+	AI Advisor
 	// finder is the finder's last pass, served so nothing it decides is hidden.
 	finder finderLog
 	// crypto is the crypto desk's last pass and the hourly candles it read.
@@ -235,8 +237,38 @@ func (s *Service) headlines(ctx context.Context, symbol string) []Headline {
 	return out
 }
 
-// analyze runs one AI read in the background and files it on the play, error or not.
-func (s *Service) analyze(id, provider, link string) {
+// ForgetReads clears reads a stopped runner left marked on its plays: those answers will never land.
+func (s *Service) ForgetReads() {
+	for _, p := range s.Store.Plays() {
+		if p.Analyzing != "" {
+			s.Store.Update(p.ID, func(q *Play) { q.Analyzing = "" })
+		}
+	}
+}
+
+// startAnalysis sends a play to the AI apps a request names (one, the first, or ALL_PROVIDERS) and
+// marks it as being read by them. Each read runs in the background and is filed as it lands.
+func (s *Service) startAnalysis(p Play, providerID, link string) (Play, error) {
+	provs := s.pick(providerID)
+	if len(provs) == 0 {
+		return p, ErrNoProvider
+	}
+	names := make([]string, 0, len(provs))
+	for _, prov := range provs {
+		names = append(names, prov.Name)
+	}
+	p, err := s.Store.Update(p.ID, func(q *Play) { q.Analyzing = strings.Join(names, ANALYZING_SEP) })
+	if err != nil {
+		return p, err
+	}
+	for _, prov := range provs {
+		go s.analyze(p.ID, prov, link)
+	}
+	return p, nil
+}
+
+// analyze runs one AI read and files it on the play, error or not.
+func (s *Service) analyze(id string, prov Provider, link string) {
 	p, err := s.Store.Play(id)
 	if err != nil {
 		return
@@ -244,14 +276,14 @@ func (s *Service) analyze(id, provider, link string) {
 	now := time.Now()
 	rep := Build(p, s.Store.Rules(), Book{Others: s.Store.Plays(), Now: now})
 	ctx := context.Background()
-	a, err := Analyze(ctx, s.HTTP, provider, p, rep, s.headlines(ctx, p.Contract.Symbol), link)
+	a, err := Analyze(ctx, s.AI, prov, p, rep, s.headlines(ctx, p.Contract.Symbol), link)
 	if err != nil {
-		a = Analysis{At: time.Now().UTC(), Provider: provider, Error: err.Error()}
-		log.Printf("plays: analyze %s: %v", id, err)
+		a = Analysis{At: time.Now().UTC(), Provider: prov.ID, ProviderName: prov.Name, Error: err.Error()}
+		log.Printf("plays: analyze %s with %s: %v", id, prov.Name, err)
 	}
 	s.Store.Update(id, func(q *Play) {
 		q.Analyses = append(q.Analyses, a)
-		q.Analyzing = ""
+		q.Analyzing = stillReading(q.Analyzing, prov.Name)
 		// The model's evidence joins the play unverified, so it never moves the odds on its own.
 		for _, e := range a.Evidence {
 			q.Evidence = append(q.Evidence, Evidence{Kind: e.Kind, Label: e.Label, Stance: e.Stance, Source: e.Source, URL: e.URL,
@@ -281,13 +313,13 @@ func writeErr(w http.ResponseWriter, status int, err error) {
 //	DELETE /api/plays/{id}            remove a play
 //	POST   /api/plays/{id}/refresh    reload the market snapshot
 //	POST   /api/plays/{id}/paper      trade it now
-//	POST   /api/plays/{id}/analyze    ask an AI provider to read it   {"provider":"anthropic"}
+//	POST   /api/plays/{id}/analyze    send it to a signed-in AI app    {"provider":"claude"}, or "all", or "" for the first
 //	POST   /api/plays/link            paste a link or callout          {"url":"...","provider":"","analyze":true}
 //	GET    /api/plays/links           the link history
 //	GET    /api/plays/rules           the rulebook
 //	PUT    /api/plays/rules           save the rulebook
 //	POST   /api/plays/rules/reset     back to the DOGS defaults
-//	GET    /api/plays/ai              which AI providers are connected (never the keys)
+//	GET    /api/plays/ai              the AI apps signed in on this machine, and how each was last seen
 //	GET    /api/plays/finder          the stock finder's last pass
 //	GET    /api/plays/crypto          the crypto desk's last pass: what it decided about every coin
 //	GET    /api/plays/flow            the flow desk's last pass: the top contract on every name it reads
@@ -463,24 +495,19 @@ func (s *Service) Routes() map[string]http.Handler {
 				Provider string `json:"provider"`
 			}
 			decode(r, &in)
-			if in.Provider == "" {
-				for _, x := range Providers() {
-					if x.Connected {
-						in.Provider = x.ID
-						break
-					}
-				}
-			}
-			if in.Provider == "" {
-				writeErr(w, http.StatusPreconditionFailed, ErrNoProvider)
+			if p.Analyzing != "" {
+				writeErr(w, http.StatusConflict, fmt.Errorf("%s still reading this play", p.Analyzing))
 				return
 			}
 			link := ""
 			if len(p.Links) > 0 {
 				link = p.Links[0]
 			}
-			p, _ = s.Store.Update(p.ID, func(q *Play) { q.Analyzing = in.Provider })
-			go s.analyze(p.ID, in.Provider, link)
+			p, err := s.startAnalysis(p, in.Provider, link)
+			if err != nil {
+				writeErr(w, http.StatusPreconditionFailed, err)
+				return
+			}
 			reply(w, p)
 		}),
 		"POST /api/plays/link": guard(s.link),
@@ -524,7 +551,7 @@ func (s *Service) Routes() map[string]http.Handler {
 			writeJSON(w, http.StatusOK, s.CryptoStatus())
 		}),
 		"GET /api/plays/ai": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			writeJSON(w, http.StatusOK, Providers())
+			writeJSON(w, http.StatusOK, s.Providers())
 		}),
 	}
 }
@@ -573,15 +600,8 @@ func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if in.Analyze {
-		provider := in.Provider
-		for _, x := range Providers() {
-			if provider == "" && x.Connected {
-				provider = x.ID
-			}
-		}
-		if provider != "" {
-			p, _ = s.Store.Update(p.ID, func(q *Play) { q.Analyzing = provider })
-			go s.analyze(p.ID, provider, entry.URL)
+		if read, err := s.startAnalysis(p, in.Provider, entry.URL); err == nil {
+			p = read
 		}
 	}
 	writeJSON(w, http.StatusOK, s.item(p, s.Store.Plays(), rules, now))

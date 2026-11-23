@@ -361,14 +361,7 @@ func (s *Service) askAI(p Play, f FlowRules) {
 	if !f.AskAI {
 		return
 	}
-	for _, x := range Providers() {
-		if !x.Connected {
-			continue
-		}
-		s.Store.Update(p.ID, func(q *Play) { q.Analyzing = x.ID })
-		go s.analyze(p.ID, x.ID, "")
-		return
-	}
+	s.startAnalysis(p, "", "")
 }
 
 // flowNoteFor is the pass's note on one name, to finish once its pick was acted on.

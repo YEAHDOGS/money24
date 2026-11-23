@@ -479,7 +479,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	playService := &plays.Service{Store: playStore, HTTP: http.DefaultClient, MayWrite: mayLoad,
+	// The AI apps signed in on this machine: probed for the pocket, asked about news and about plays.
+	aiDesk := aicli.NewDesk(*dataDir)
+	aiDesk.MayWrite = mayLoad
+	for pattern, h := range aiDesk.Routes() {
+		opts.Mount[pattern] = h
+	}
+	go aiDesk.Run(ctx)
+	playService := &plays.Service{Store: playStore, HTTP: http.DefaultClient, MayWrite: mayLoad, AI: aiDesk,
 		Resolver: plays.Resolver{HTTP: http.DefaultClient, Market: prices},
 		Paper:    func(sig signals.Signal, plan signals.Plan) (int64, error) { return runner.Adopt(sig, plan, time.Now()) },
 		Lines:    journal.Lines, NewsURL: newsURL,
@@ -487,6 +494,7 @@ func main() {
 			account := runner.Account(now)
 			return plays.Funds{EquityUSD: account.EquityUSD, BuyingPowerUSD: account.BuyingPowerUSD}
 		}}
+	playService.ForgetReads()
 	for pattern, h := range playService.Routes() {
 		opts.Mount[pattern] = h
 	}
@@ -577,20 +585,9 @@ func main() {
 	for pattern, h := range predictDesk.Routes() {
 		opts.Mount[pattern] = h
 	}
-	aiDesk := aicli.NewDesk(*dataDir)
-	aiDesk.MayWrite = mayLoad
-	for pattern, h := range aiDesk.Routes() {
-		opts.Mount[pattern] = h
-	}
-	go aiDesk.Run(ctx)
 	opts.Mount[scoreboard.ROUTE] = scoreboard.Handler(predictDesk.Scoreboard, memeScoreboard, playService.Scoreboard, func() []scoreboard.Strategy {
 		return tracker.Scoreboard(journal, callBacktester, plays.SOURCE_ID)
 	})
-	for _, p := range plays.Providers() {
-		if p.Connected {
-			log.Printf("AI: %s (%s) connected for play analysis", p.Name, p.Model)
-		}
-	}
 	resolver := func(ctx context.Context, statusURL string) (signals.Tweet, error) {
 		return signals.ResolveTweet(ctx, http.DefaultClient, statusURL)
 	}

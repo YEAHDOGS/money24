@@ -89,7 +89,7 @@ func (d *Desk) Run(ctx context.Context) {
 func (d *Desk) Probe(ctx context.Context) []Answer {
 	q := Question{Prompt: PROBE_PROMPT, Schema: map[string]any{"type": "object", "additionalProperties": false,
 		"required": []string{"ok"}, "properties": map[string]any{"ok": map[string]any{"type": "boolean"}}}}
-	return d.Asker.AskAll(ctx, q, d.record)
+	return d.Asker.AskAll(ctx, q, func(a Answer) { d.record(a, true) })
 }
 
 // Impact puts one story to every app and decides as soon as IMPACT_NEED of them agree.
@@ -98,13 +98,13 @@ func (d *Desk) Impact(ctx context.Context, news string) ImpactRun {
 	// The slower apps keep answering after the quorum (and after the request) for their record.
 	ctx = context.WithoutCancel(ctx)
 	group, all := d.Asker.Quorum(ctx, ImpactQuestion(news), IMPACT_NEED, ImpactsAgree, func(late Answer) {
-		d.record(late)
+		d.record(late, true)
 		d.mu.Lock()
 		run.Answers = append(run.Answers, late)
 		d.mu.Unlock()
 	})
 	for _, ans := range all {
-		d.record(ans)
+		d.record(ans, true)
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -120,14 +120,31 @@ func (d *Desk) Impact(ctx context.Context, news string) ImpactRun {
 	return *run
 }
 
-func (d *Desk) record(ans Answer) {
+// Ask puts one question to one app, by id, and records whether it could answer. A deep ask's time is
+// left out of the app's speed, which tracks quick asks only.
+func (d *Desk) Ask(ctx context.Context, appID string, q Question) Answer {
+	i := slices.IndexFunc(d.Asker.Apps, func(a App) bool { return a.ID == appID })
+	if i < 0 {
+		return Answer{App: appID, State: STATE_MISSING, Started: time.Now(), Error: "no AI app called " + appID}
+	}
+	one := Asker{Apps: d.Asker.Apps[i : i+1], WorkRoot: d.Asker.WorkRoot, Run: d.Asker.Run}
+	ans := one.AskAll(ctx, q, nil)[0]
+	d.record(ans, !q.Deep)
+	return ans
+}
+
+// record files an answer on its app's status; speed says whether its time counts as the app's speed.
+func (d *Desk) record(ans Answer, speed bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	st := d.status[ans.App]
 	if st == nil {
 		return
 	}
-	st.State, st.Millis, st.At, st.Error = ans.State, ans.Millis, ans.Started.UTC(), ans.Error
+	st.State, st.At, st.Error = ans.State, ans.Started.UTC(), ans.Error
+	if speed {
+		st.Millis = ans.Millis
+	}
 	st.Installed = ans.State != STATE_MISSING
 	if ans.State != STATE_OK {
 		log.Printf("AI %s: %s (%s)", st.Name, ans.State, firstLine(ans.Error))
@@ -141,7 +158,8 @@ type Snapshot struct {
 	Impacts []ImpactRun `json:"impacts"`
 }
 
-func (d *Desk) snapshot() Snapshot {
+// Snapshot is every app as last seen, in order, and the recent impact runs.
+func (d *Desk) Snapshot() Snapshot {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	snap := Snapshot{Need: IMPACT_NEED, Apps: make([]AppStatus, 0, len(d.status)), Impacts: make([]ImpactRun, 0, len(d.impacts))}
@@ -157,10 +175,10 @@ func (d *Desk) snapshot() Snapshot {
 // Routes: the status for anyone the runner already lets read, asks for the local desk only.
 func (d *Desk) Routes() map[string]http.Handler {
 	return map[string]http.Handler{
-		ROUTE_STATUS: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, d.snapshot()) }),
+		ROUTE_STATUS: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, d.Snapshot()) }),
 		ROUTE_TEST: d.guard(func(w http.ResponseWriter, r *http.Request) {
 			d.Probe(r.Context())
-			writeJSON(w, d.snapshot())
+			writeJSON(w, d.Snapshot())
 		}),
 		ROUTE_IMPACT: d.guard(func(w http.ResponseWriter, r *http.Request) {
 			var body struct {

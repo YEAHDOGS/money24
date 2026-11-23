@@ -38,12 +38,19 @@ type Answer struct {
 	State   string          `json:"state"`
 	JSON    json.RawMessage `json:"answer,omitempty"`
 	Error   string          `json:"error,omitempty"`
+	Web     bool            `json:"web,omitempty"` // the app was allowed to search the web for this answer
 }
 
 // Question is one fixed-shape ask: a prompt and the JSON Schema the answer must match.
 type Question struct {
 	Prompt string
 	Schema map[string]any
+	// Deep uses each app's DeepModel at DEEP_EFFORT: for a person's question, where speed matters less.
+	Deep bool
+	// Web lets the apps that can search the web and read pages. Nothing else is allowed.
+	Web bool
+	// Timeout overrides ASK_TIMEOUT.
+	Timeout time.Duration
 }
 
 // Runner asks one app one question. Tests replace it.
@@ -58,7 +65,11 @@ type Asker struct {
 
 // Run asks one app with the real command-line tool.
 func Run(ctx context.Context, app App, q Question, workRoot string) Answer {
-	ans := Answer{App: app.ID, Model: app.Model, Started: time.Now()}
+	model := app.Model
+	if q.Deep {
+		model = app.DeepModel
+	}
+	ans := Answer{App: app.ID, Model: model, Started: time.Now(), Web: q.Web && app.Web}
 	finish := func(state string, err error) Answer {
 		ans.Millis = time.Since(ans.Started).Milliseconds()
 		ans.State = state
@@ -92,9 +103,12 @@ func Run(ctx context.Context, app App, q Question, workRoot string) Answer {
 	if app.schemaInPrompt {
 		prompt += SCHEMA_PROMPT + string(schemaJSON)
 	}
-	ctx, cancel := context.WithTimeout(ctx, ASK_TIMEOUT)
+	limit := cmp.Or(q.Timeout, ASK_TIMEOUT)
+	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, path, app.args(app.Model, string(schemaJSON), schemaFile, answerFile, prompt)...)
+	c := call{Model: model, SchemaJSON: string(schemaJSON), SchemaFile: schemaFile, AnswerFile: answerFile, Prompt: prompt,
+		Deep: q.Deep, Web: q.Web && app.Web}
+	cmd := exec.CommandContext(ctx, path, app.args(c)...)
 	cmd.Dir = dir
 	hideWindow(cmd)
 	if app.stdin {
@@ -104,7 +118,7 @@ func Run(ctx context.Context, app App, q Question, workRoot string) Answer {
 	cmd.Stdout, cmd.Stderr = &limited{&stdout}, &limited{&stderr}
 	runErr := cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
-		return finish(STATE_SLOW, fmt.Errorf("no answer in %s", ASK_TIMEOUT))
+		return finish(STATE_SLOW, fmt.Errorf("no answer in %s", limit))
 	}
 	if ctx.Err() != nil {
 		return finish(STATE_FAILED, ctx.Err())
