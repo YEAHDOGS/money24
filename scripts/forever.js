@@ -63,6 +63,7 @@ const BUILD_RETRY_MS = 60 * 60 * 1000; // a release that did not build is tried 
 // A new release must keep newsd and m24d answering, with no restart, for this long (three health
 // checks), or it is rolled back.
 const PROBATION_MS = 3 * 60 * 1000 + 5000;
+const PROBATION_CRASHES = 2; // exits of newsd or m24d on probation that roll the release back at once
 // Both services exit on their own when this pipe closes, so a supervisor that dies leaves nothing behind.
 const EXIT_WITH_STDIN = '--exit-with-stdin';
 // The desk lives under this path, here (http://127.0.0.1:8025/desk/) and on money24.dogs.red/desk/.
@@ -349,6 +350,11 @@ function gone(/** @type {Service} */ svc, /** @type {import('node:child_process'
   svc.restarts += 1;
   say(`${svc.name} stopped (${how}) after ${span(ran)}: restart ${svc.restarts} in ${span(wait)}`);
   saveState();
+  // A release on probation that keeps crashing goes back at once, without waiting out the probation.
+  if (onProbation && !svc.exe && svc.restarts >= PROBATION_CRASHES) {
+    rollbackNow(`${svc.name} crashed ${svc.restarts} times on the new release (${how})`);
+    if (stopping) return; // the rollback began; otherwise an update holds the lock and the restart below goes ahead
+  }
   svc.timer = setTimeout(() => start(svc), wait);
 }
 
@@ -479,6 +485,8 @@ async function shutdown(/** @type {number} */ code) {
 
 /** Set while an update is checked, built or switched to, or a rollback runs, so two never overlap. */
 let updating = false;
+/** The running release was just switched to and has not yet passed its probation. */
+let onProbation = false;
 /** @type {Map<string, number>} releases that did not build, and when they were tried */
 const failedBuilds = new Map();
 
@@ -557,7 +565,9 @@ function startUpdates() {
     }
   }, STOP_POLL_MS);
   if (!state.pending) return;
+  onProbation = true;
   setTimeout(() => {
+    if (stopping) return;
     const own = services.filter((s) => !s.exe);
     const sick = own.filter((s) => !s.health?.ok || s.restarts > 0 || !s.child);
     if (sick.length) {
@@ -565,6 +575,7 @@ function startUpdates() {
       return;
     }
     confirm();
+    onProbation = false;
     say(`Release ${state.tag} passed its probation and stays.`);
   }, PROBATION_MS);
 }

@@ -48,6 +48,8 @@ const OUTPUT_KEEP = 4000; // characters of a step's output kept for its error me
 const ERROR_LINES = 6;
 const MS_PER_SECOND = 1000;
 const VITE = ['node_modules', 'vite', 'bin', 'vite.js'];
+const MOVE_TRIES = 40;
+const MOVE_WAIT_MS = 250;
 
 /**
  * Runs a command to the end without blocking the event loop (the supervisor keeps health-checking
@@ -65,6 +67,22 @@ export function run(/** @type {string} */ command, /** @type {string[]} */ args,
     child.on('error', (err) => { clearTimeout(timer); done({ ok: false, out: err.message }); });
     child.on('close', (code) => { clearTimeout(timer); done({ ok: code === 0, out: out.trim() }); });
   });
+}
+
+/**
+ * Renames, retrying for a few seconds: Windows can hold a program's file (or an antivirus scan can)
+ * for a moment after the program exits.
+ */
+async function move(/** @type {string} */ from, /** @type {string} */ to) {
+  for (let tries = 1; ; tries++) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (err) {
+      if (tries >= MOVE_TRIES) throw err;
+      await new Promise((wait) => setTimeout(wait, MOVE_WAIT_MS));
+    }
+  }
 }
 
 /** The last few lines of a step's output, for a one-paragraph error. */
@@ -182,8 +200,8 @@ export async function swapIn(/** @type {Release} */ release) {
   rmSync(PREV_DIR, { recursive: true, force: true });
   mkdirSync(PREV_DIR, { recursive: true });
   for (const name of SWAPPED) {
-    if (existsSync(join(RUN_DIR, name))) renameSync(join(RUN_DIR, name), join(PREV_DIR, name));
-    renameSync(join(STAGE_OUT, name), join(RUN_DIR, name));
+    if (existsSync(join(RUN_DIR, name))) await move(join(RUN_DIR, name), join(PREV_DIR, name));
+    await move(join(STAGE_OUT, name), join(RUN_DIR, name));
   }
   const moved = await run('git', ['checkout', '--force', '--detach', release.commit]);
   if (!moved.ok) throw new Error(`could not check out ${release.tag}: ${tail(moved.out)}`);
@@ -206,8 +224,8 @@ export async function rollback(/** @type {string} */ reason) {
   const state = readRelease();
   if (!state?.previous || !BINARIES.every((name) => existsSync(join(PREV_DIR, name)))) return false;
   for (const name of SWAPPED) {
-    rmSync(join(RUN_DIR, name), { recursive: true, force: true });
-    if (existsSync(join(PREV_DIR, name))) renameSync(join(PREV_DIR, name), join(RUN_DIR, name));
+    rmSync(join(RUN_DIR, name), { recursive: true, force: true, maxRetries: MOVE_TRIES, retryDelay: MOVE_WAIT_MS });
+    if (existsSync(join(PREV_DIR, name))) await move(join(PREV_DIR, name), join(RUN_DIR, name));
   }
   rmSync(PREV_DIR, { recursive: true, force: true });
   const moved = await run('git', ['checkout', '--force', '--detach', state.previous.commit]);
