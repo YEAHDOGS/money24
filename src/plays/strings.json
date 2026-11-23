@@ -562,5 +562,26 @@
     },
     "wrongRules": "It was let through these blocking rules as a trade: {rules}.",
     "wrongSlip": "It lost {lost} against a planned {planned}: the sale filled below the stop, at the bid."
+  },
+  "crowd": {
+    "title": "Crowd room",
+    "of": "of",
+    "players": "players fit",
+    "oi": "5% of open interest",
+    "volume": "1% of today's volume",
+    "collar": "Entry collar (±10%)",
+    "order": "Seats go to the hand-picked list first, then the top tier, then the lower tiers. Each player takes one contract, so no one is sized above the crowd.",
+    "verdict": {
+      "fits": "The whole crowd fits",
+      "basket": "A small basket covers the crowd",
+      "thin": "Too thin for the crowd on its own",
+      "closed": "Not a crowd play"
+    },
+    "explain": {
+      "fits": "This contract can hold every player at one contract each without moving.",
+      "basket": "About {copies} matching contracts (other strikes, or the names that moved with it) hold everyone. Late tranches fill only inside the collar.",
+      "thin": "It would take about {copies} matching contracts. Offer it to the priority list only, and rotate the rest to neighbors.",
+      "closed": "Open interest or volume is too small for even one player. It is never offered to the crowd."
+    }
   }
 }

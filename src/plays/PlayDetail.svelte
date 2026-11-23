@@ -13,6 +13,7 @@
   import SuccessRate from './SuccessRate.svelte';
   import LevelSpine from './LevelSpine.svelte';
   import OddsPanel from './OddsPanel.svelte';
+  import CrowdPanel from './CrowdPanel.svelte';
   import RuleChecks from './RuleChecks.svelte';
   import EvidenceList from './EvidenceList.svelte';
   import BracketEditor from './BracketEditor.svelte';
@@ -196,6 +197,7 @@
     {@render dial()}
     <Fold id="orders" title={strings.detail.orders} open={!draft} i={3}>{@render ordersBody()}</Fold>
     <Fold id="ends" title={strings.detail.scenarios} note={endsNote} i={4}><OddsPanel {report} bare /></Fold>
+    <Fold id="crowd" title={strings.crowd.title} i={5}><CrowdPanel {item} bare /></Fold>
     <Fold id="spine" title={strings.detail.spine} i={5}>{@render spineBody()}</Fold>
     <Fold id="checks" title={strings.detail.checks} note={checksNote} tone={fails.blocks ? 'text-bad' : fails.warns ? 'text-warn' : 'text-ok'} i={6}><RuleChecks checks={report.checks} /></Fold>
     <Fold id="evidence" title={strings.detail.evidence} note={String(item.play.evidence?.length ?? 0)} i={7}><EvidenceList play={item.play} {draft} onSave={save} /></Fold>
@@ -223,6 +225,7 @@
     </section>
     <section class="border-t border-line px-4 py-4 @2xl:border-t-0 lg:px-6">
       <OddsPanel {report} />
+      <div class="mt-4 border-t border-line pt-3"><CrowdPanel {item} /></div>
     </section>
   </div>
 
