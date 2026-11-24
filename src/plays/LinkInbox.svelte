@@ -20,6 +20,8 @@
   let url = $state('');
   let theme = $state('');
   let aiRead = $state(true);
+  /** Keep this one as a draft: read and built, but not traded until you say. */
+  let draftOnly = $state(false);
   let provider = $state('');
   let busy = $state(false);
   let message = $state('');
@@ -40,7 +42,7 @@
     busy = true;
     message = '';
     try {
-      const item = await client.link({ url: value, theme: theme.trim(), analyze: aiRead && connected.length > 0, provider });
+      const item = await client.link({ url: value, theme: theme.trim(), analyze: aiRead && connected.length > 0, provider, draft: draftOnly });
       failed = false;
       url = '';
       message = `${item.play.status === 'armed' ? strings.inbox.paperNow : strings.inbox.drafted}: ${item.play.title}`;
@@ -84,6 +86,9 @@
       {busy ? strings.inbox.busy : strings.inbox.submit}
     </button>
   </div>
+  <label class="mt-2 flex items-center gap-1.5 text-xs text-white/70" title={strings.inbox.draftOnlyNote}>
+    <input type="checkbox" bind:checked={draftOnly} class="accent-neon-red" />{strings.inbox.draftOnly}
+  </label>
   {#if connected.length}
     <div class="mt-2 flex items-center gap-2 text-xs text-white/70">
       <label class="flex items-center gap-1.5">

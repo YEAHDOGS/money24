@@ -188,7 +188,7 @@ export class PlaysClient {
   }
 
   /** Pastes a link: the runner resolves it, plans it and (by default) trades it at once. */
-  async link(/** @type {{url: string, provider?: string, analyze?: boolean, theme?: string}} */ input) {
+  async link(/** @type {{url: string, provider?: string, analyze?: boolean, theme?: string, draft?: boolean}} */ input) {
     if (this.demo) {
       await new Promise((done) => setTimeout(done, DEMO_BUSY_MS));
       const known = demoFind(this.items, input.url);

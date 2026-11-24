@@ -239,3 +239,9 @@ Built from the Nov 23 discussion tickets. UI and client logic only; the engine i
 - **Levels** (`src/markets/levels.js`, `Levels.svelte`): support and resistance from six months of daily candles (swing turns clustered by ATR), the pivot, a normal day's reach, the nearest lines that turn a symbol positive or negative, and a lean (bullish, neutral, bearish) from the 20/50-day averages and five-day move. Drawn on the chart (toggle). Not yet wired: levels the news outlets publish (needs newsd).
 - **The Pit** (`src/lib/pit.svelte.js`, `PitBell.svelte`): a bell in every header. It polls the runner, logs each new play and each change of phase on the device, counts unread, and can raise a system notification when the tab is in the background. The demo has no live desk, so it stays empty there.
 - **Strategy deck** (`src/deck/`, `deck.html`, filed under Plays): strategies as editable cards (AI read, rule, catalyst, spread, prediction), kept on the device, seeded with DOGS's starter cards, JSON import and export so an AI can write cards in. Grading by the scoreboard and running a card as a play need the engine.
+
+### Nov 24 additions
+
+- **Draft only** on the link inbox: a per-link switch (`draft: true` on `POST /api/plays/link`) that builds the full bracket but skips the rulebook's auto-trade for that one link, so a play can be reviewed and edited before it trades.
+- **Stretch and three outcomes** (`src/markets/levels.js`): how far a symbol has run (a month's move, distance from its 20-day average in ATRs, RSI), and up / flat / down odds for the next session and the next five. A stretched symbol tilts against its run, the trend tilts with it. Starting weights, to be tuned against the scoreboard; a lean, not a forecast.
+- **Storylines** (`src/feed/storylines.svelte.js`): your own grouping of news stories on this device, over the news service's own.

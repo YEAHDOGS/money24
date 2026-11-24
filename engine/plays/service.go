@@ -565,6 +565,7 @@ func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 		Provider string `json:"provider"`
 		Analyze  bool   `json:"analyze"`
 		Theme    string `json:"theme"`
+		Draft    bool   `json:"draft"` // keep this one as a draft even when the rulebook trades plays at once
 	}
 	if err := decode(r, &in); err != nil || strings.TrimSpace(in.URL) == "" {
 		writeErr(w, http.StatusBadRequest, errors.New("paste a link or a contract"))
@@ -592,7 +593,7 @@ func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 	entry.PlayID = p.ID
 	s.Store.AddLink(entry)
 
-	if rules.AutoPaper {
+	if rules.AutoPaper && !in.Draft {
 		if armed, err := s.paper(p, now); err == nil {
 			p = armed
 		} else {

@@ -23,6 +23,8 @@
   "inbox": {
     "label": "Link inbox",
     "placeholder": "Robinhood or Webull link, option symbol, or AAL 12.5P 11/20",
+    "draftOnly": "Draft only, do not trade",
+    "draftOnlyNote": "Read the contract and build the full bracket, but leave it as a draft to review and edit first.",
     "theme": "Theme (optional)",
     "themePlaceholder": "FAA outage",
     "submit": "Play it",
