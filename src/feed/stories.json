@@ -114,5 +114,24 @@
     "legendHigh": "Loud",
     "connected": "Connected places",
     "mapLabel": "World map of news coverage"
+  },
+  "lines": {
+    "mine": "Storylines",
+    "group": "Group",
+    "groupInto": "Group into a storyline…",
+    "newLine": "New storyline…",
+    "titleLabel": "Storyline title",
+    "titlePlaceholder": "e.g. GTA 6 Launch",
+    "create": "Create",
+    "ungroup": "Ungroup",
+    "inLine": "In storyline: {title}",
+    "rename": "Rename",
+    "delete": "Delete storyline",
+    "deleteConfirm": "Delete this storyline? Its stories go back on the board.",
+    "count": "{n} stories",
+    "countOne": "1 story",
+    "outlets": "{n} outlets",
+    "empty": "No storylines yet. Open a story and group it to start one.",
+    "gone": "Its stories have aged off the board."
   }
 }

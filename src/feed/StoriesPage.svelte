@@ -14,8 +14,12 @@
   import { age } from './post-format.js';
   import StoryRow from './StoryRow.svelte';
   import StoryDetail from './StoryDetail.svelte';
+  import StorylineRow from './StorylineRow.svelte';
+  import GroupMenu from './GroupMenu.svelte';
+  import { storylines } from './storylines.svelte.js';
 
   const CATEGORY_ALL = 'all';
+  const CATEGORY_MINE = 'mine'; // your own storylines
   const OPEN_MS = 240;
   const MAX_STAGGER = 14;
   const LABEL = 'text-[0.62rem] font-bold tracking-[0.18em] text-muted uppercase';
@@ -30,14 +34,21 @@
   const board = $derived(client.stories.board);
   const all = $derived(board?.stories ?? []);
   const wanted = $derived(query.trim().toLowerCase());
-  const visible = $derived(all.filter((s) =>
-    (category === CATEGORY_ALL || s.category === category) && (!wanted || s.title.toLowerCase().includes(wanted) || s.tags.some((t) => t.toLowerCase() === wanted))));
-  /** Every category on the board with its count, the fullest first, under "All". */
-  const categories = $derived([{ id: CATEGORY_ALL, stories: (board?.categories ?? []).reduce((n, c) => n + c.stories, 0) }, ...(board?.categories ?? [])]);
+  const grouped = $derived(storylines.grouped);
+  const visible = $derived(category === CATEGORY_MINE ? [] : all.filter((s) =>
+    !grouped.has(s.id) && (category === CATEGORY_ALL || s.category === category) && (!wanted || s.title.toLowerCase().includes(wanted) || s.tags.some((t) => t.toLowerCase() === wanted))));
+  /** Your storylines that match the search, shown above the board (under All and under Storylines). */
+  const lineRows = $derived([CATEGORY_ALL, CATEGORY_MINE].includes(category)
+    ? storylines.list.filter((l) => !wanted || l.title.toLowerCase().includes(wanted)).map((line) => ({ line, members: all.filter((s) => line.members.includes(s.id)) }))
+    : []);
+  /** Every category on the board with its count, the fullest first, under "All", then your storylines. */
+  const categories = $derived([{ id: CATEGORY_ALL, stories: (board?.categories ?? []).reduce((n, c) => n + c.stories, 0) }, { id: CATEGORY_MINE, stories: storylines.list.length }, ...(board?.categories ?? [])]);
+  const label = (/** @type {string} */ id) => (id === CATEGORY_MINE ? strings.lines.mine : (strings.categories[id] ?? id));
   const selected = $derived(all.find((s) => s.id === storyId) ?? client.stories.details[storyId]?.story);
   const movers = $derived(board?.movers ?? []);
   const emptyText = $derived.by(() => {
     if (client.stories.outdated) return strings.emptyOld;
+    if (category === CATEGORY_MINE) return strings.lines.empty;
     if (client.status === 'offline') return feedStrings.emptyOffline;
     return all.length ? strings.emptyFilter : strings.emptyLive;
   });
@@ -71,6 +82,17 @@
   </ul>
 {/snippet}
 
+{#snippet storyItem(/** @type {any} */ story, /** @type {number} */ _i)}
+  <StoryRow {story} {now} open={storyId === story.id} onToggle={() => toggle(story.id)} />
+  <!-- In place, where there is no third column -->
+  {#if storyId === story.id}
+    <div id="story-{story.id}" class="border-t border-line bg-card lg:hidden desktop-portrait:block!" transition:slide={{ duration: OPEN_MS, easing: cubicOut }}>
+      <GroupMenu storyId={story.id} />
+      <StoryDetail {story} detail={client.stories.details[story.id]} {now} {linkTarget} />
+    </div>
+  {/if}
+{/snippet}
+
 <div class="mx-auto grid h-full w-full max-w-7xl grid-cols-[minmax(0,1fr)] md:grid-cols-[13rem_minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,24rem)] xl:border-x xl:border-line desktop-portrait:grid-cols-[minmax(0,1fr)]! landscape-phone:grid-cols-[minmax(0,1fr)]! ultrawide:max-w-none ultrawide:grid-cols-[19rem_minmax(0,1fr)_minmax(0,40rem)]">
 
   <!-- STORY TYPES AND UNEXPLAINED VOLUME (tablet and up) -->
@@ -80,7 +102,7 @@
         <button type="button" onclick={() => { category = c.id; }} aria-pressed={category === c.id}
           class="spring flex w-full items-center gap-2.5 px-4 py-1.5 text-left text-sm hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none {category === c.id ? 'text-white' : 'text-white/60'}">
           <span class="h-3 w-0.5 rounded-full bg-neon-red transition-opacity duration-150 {category === c.id ? 'opacity-100' : 'opacity-25'}"></span>
-          <span class="flex-1 truncate">{strings.categories[c.id] ?? c.id}</span>
+          <span class="flex-1 truncate">{label(c.id)}</span>
           <span class="font-mono text-xs tabular-nums text-muted">{c.stories}</span>
         </button>
       {/each}
@@ -92,7 +114,7 @@
   <section class="flex min-h-0 flex-col" aria-label={strings.tabStories}>
     <div class="flex items-center gap-2 border-b border-line px-4 py-1.5 short:py-1 lg:px-6">
       <select bind:value={category} class="{FIELD} max-w-[45%] md:hidden desktop-portrait:block! landscape-phone:block!" aria-label={strings.categoriesLabel}>
-        {#each categories as c (c.id)}<option value={c.id}>{strings.categories[c.id] ?? c.id} ({c.stories})</option>{/each}
+        {#each categories as c (c.id)}<option value={c.id}>{label(c.id)} ({c.stories})</option>{/each}
       </select>
       <button type="button" onclick={() => client.stories.setTradable(!client.stories.tradable)} aria-pressed={client.stories.tradable} title={strings.tradableNote}
         class="spring shrink-0 rounded-sm border px-1.5 py-1 text-[0.68rem] font-bold tracking-wide whitespace-nowrap uppercase focus-visible:outline focus-visible:outline-neon-red {client.stories.tradable ? 'border-neon-red bg-neon-red text-app' : 'border-line text-white/60 hover:text-white'}">
@@ -103,7 +125,7 @@
         <input type="search" bind:value={query} placeholder={strings.search} aria-label={strings.search}
           class="min-w-0 flex-1 bg-transparent py-1 text-xs text-white placeholder:text-muted focus-visible:outline-none" />
       </label>
-      <span class="shrink-0 font-mono text-xs tabular-nums text-muted">{visible.length}</span>
+      <span class="shrink-0 font-mono text-xs tabular-nums text-muted">{visible.length + lineRows.length}</span>
     </div>
 
     <!-- Unexplained volume, where the rail is hidden: one fixed line, so it never moves the board -->
@@ -115,19 +137,15 @@
     </p>
 
     <ol class="list-scroll min-h-0 flex-1 overflow-y-auto">
-      {#each visible as story, i (story.id)}
-        <li class="row-far border-b border-line {i < MAX_STAGGER ? 'cal-rise' : ''}" style:--i={i}>
-          <StoryRow {story} {now} open={storyId === story.id} onToggle={() => toggle(story.id)} />
-          <!-- In place, where there is no third column -->
-          {#if storyId === story.id}
-            <div id="story-{story.id}" class="border-t border-line bg-card lg:hidden desktop-portrait:block!" transition:slide={{ duration: OPEN_MS, easing: cubicOut }}>
-              <StoryDetail {story} detail={client.stories.details[story.id]} {now} {linkTarget} />
-            </div>
-          {/if}
-        </li>
-      {:else}
-        <li class="px-6 py-16 text-center text-sm text-muted">{emptyText}</li>
+      {#each lineRows as { line, members } (line.id)}
+        <li class="row-far border-b border-line cal-rise"><StorylineRow {line} {members} member={storyItem} /></li>
       {/each}
+      {#each visible as story, i (story.id)}
+        <li class="row-far border-b border-line {i < MAX_STAGGER ? 'cal-rise' : ''}" style:--i={i}>{@render storyItem(story, i)}</li>
+      {/each}
+      {#if !visible.length && !lineRows.length}
+        <li class="px-6 py-16 text-center text-sm text-muted">{emptyText}</li>
+      {/if}
     </ol>
 
     {#if board}
@@ -142,6 +160,7 @@
         <div class="cal-rise">
           <h2 class="px-4 pt-4 text-base leading-snug font-semibold text-white lg:px-6">{selected.title}</h2>
           <p class="px-4 pt-1 pb-1 font-mono text-xs tabular-nums text-muted lg:px-6">{strings.firstSeen} {new Date(selected.first_seen).toLocaleString()}</p>
+          <GroupMenu storyId={selected.id} />
           <StoryDetail story={selected} detail={client.stories.details[selected.id]} {now} {linkTarget} />
         </div>
       {/key}
