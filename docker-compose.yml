@@ -1,14 +1,42 @@
-# Money 24 engine services. Same file on Windows (Docker Desktop), Linux and the VPS:
-#   docker compose up -d --build
-# Ports bind to 127.0.0.1 only. Put a reverse proxy in front before exposing anything.
+# Money 24 on one machine with Docker (Debian, Ubuntu, Windows 11 with Docker Desktop):
+#   cp .env.example .env   (fill it in)   then   docker compose up -d --build
+# The three services share one network, so they see each other on 127.0.0.1 exactly as they do natively:
+# the runner (trading) owns it, and the news service and the tunnel join it. Ports bind to 127.0.0.1 only;
+# the desk reaches the world through the tunnel (Cloudflare Access in front), never a published port.
+# Updates: deploy/docker-update.sh keeps it on the newest signed release. The AI apps (claude, codex ...)
+# are not in these images: see docs/SERVER.md, "Docker".
 name: money24
 
 services:
+  trading:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: m24d
+      args:
+        CMD: m24d
+    env_file: .env
+    environment:
+      M24D_HOSTS: localhost:8025,127.0.0.1:8025
+      M24D_NEWSD: http://127.0.0.1:8024
+    command: ["--data", "/data", "--addr", "0.0.0.0:8025"]
+    volumes:
+      - trading-data:/data
+      # Key files .env points to (a Kalshi .pem, say), read only: KALSHI_PRIVATE_KEY_PATH=/secrets/kalshi.pem
+      - ./secrets:/secrets:ro
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:8024:8024"
+    restart: unless-stopped
+
   news:
     build:
-      context: ./engine
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: newsd
       args:
         CMD: newsd
+    network_mode: "service:trading"
     env_file: .env
     environment:
       NEWSD_DATA: /data
@@ -17,23 +45,22 @@ services:
       NEWSD_HOSTS: localhost:8024,127.0.0.1:8024
     volumes:
       - news-data:/data
-    ports:
-      - "127.0.0.1:8024:8024"
+    depends_on:
+      - trading
     restart: unless-stopped
 
-  trading:
-    build:
-      context: ./engine
-      args:
-        CMD: m24d
-    env_file: .env
+  # The Cloudflare tunnel: dials out, publishes no port. The dashboard's origin stays http://127.0.0.1:8025,
+  # which here is the runner, because this container shares its network. Needs M24D_TUNNEL_TOKEN in .env;
+  # turn it on with COMPOSE_PROFILES=tunnel in .env. Only one machine may run this tunnel at a time.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: [tunnel]
+    network_mode: "service:trading"
+    command: ["tunnel", "--no-autoupdate", "run"]
     environment:
-      M24D_HOSTS: localhost:8025,127.0.0.1:8025
-    command: ["--data", "/data", "--addr", "0.0.0.0:8025"]
-    volumes:
-      - trading-data:/data
-    ports:
-      - "127.0.0.1:8025:8025"
+      TUNNEL_TOKEN: ${M24D_TUNNEL_TOKEN:-}
+    depends_on:
+      - trading
     restart: unless-stopped
 
 volumes:

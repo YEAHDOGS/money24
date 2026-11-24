@@ -1,0 +1,14 @@
+# Keeps the image build small and keeps secrets out of it.
+.git
+.env
+.env.*
+!.env.example
+node_modules
+dist
+.run
+api/.wrangler
+engine/**/*.db
+src/tauri/target
+src/tauri/gen
+*.tar.gz
+secrets

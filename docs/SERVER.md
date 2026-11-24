@@ -76,6 +76,37 @@ package repository. The AI apps sign in without a browser: `claude setup-token`,
 
 Day to day: `systemctl --user status money24`, `journalctl --user -u money24 -f`, and the logs in `.run/logs/`.
 
+## Docker (Debian, Ubuntu, Windows 11)
+
+The same services as containers: the runner with the desk pages built in, the news service, and the Cloudflare
+tunnel. `docker-compose.yml` at the repo root, `deploy/Dockerfile` for the images. The three share one network
+(the runner owns it), so they see each other on `127.0.0.1` exactly as they do natively and the tunnel's origin in
+the dashboard stays `http://127.0.0.1:8025`. No port is published beyond the machine's own loopback.
+
+On a Debian-based box (best) install Docker Engine and its compose plugin from Docker's own apt repository, then:
+
+```sh
+git clone https://github.com/YEAHDOGS/money24 && cd money24
+cp .env.example .env            # fill it in; add M24D_TUNNEL_TOKEN and COMPOSE_PROFILES=tunnel for the tunnel
+docker compose up -d --build    # first build takes a few minutes
+sh deploy/docker-update.sh      # pins the release key (compare the fingerprint) and moves to the newest signed release
+```
+
+Add `*/10 * * * * /path/to/money24/deploy/docker-update.sh >> ~/money24-update.log 2>&1` to the crontab and it stays
+on the newest signed release by itself, going back to the old one if the desk does not answer. A push to master
+never deploys here either: only a tag signed by the pinned key does. Windows 11 works the same way with Docker
+Desktop (WSL 2 backend, Linux containers), but a Debian box has fewer moving parts for something that runs for good.
+
+Data lives in the named volumes `money24_trading-data` and `money24_news-data`, so rebuilding or updating never
+touches it. Back them up with `docker run --rm -v money24_trading-data:/d -v "$PWD":/b alpine tar czf /b/trading.tgz -C /d .`.
+Key files `.env` points to (a Kalshi `.pem`) go in `./secrets/` and are read at `/secrets/` in the container.
+
+**What Docker does not give you: the AI apps.** The AI asks (docs/AI.md) run `claude`, `codex` and the others
+as programs signed in on the machine, and the images do not contain them. Everything else works: news, plays,
+the desk, paper trading, the scoreboard. For the AI asks too, use the native install above (`deploy/install.sh`),
+which runs beside the machine's own sign-ins, rolls back on its own and is the better fit for this box. Pick one:
+the two must not run on the same machine, since they would fight over the same ports and tunnel.
+
 ## Updates
 
 **A push to master does not deploy.** A release does, and only the owner's PC can make one:
