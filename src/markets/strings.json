@@ -105,6 +105,21 @@
       "neutral": "No clear lean. Plays here wait for a close past either line, or sell range-bound spreads.",
       "bearish": "Price is leaning down. Puts and put spreads fit while it stays under the positive line; the stop belongs above it."
     },
+    "stretch": {
+      "title": "Stretch",
+      "none": "Not stretched. Price sits near where it normally trades.",
+      "up": "Stretched up: {run} in 20 sessions, {ext} ATRs above its 20-day average, RSI {rsi}. A run this far is the likeliest to give some back. A play with it needs a reason beyond the trend.",
+      "down": "Stretched down: {run} in 20 sessions, {ext} ATRs under its 20-day average, RSI {rsi}. A bounce is likelier than more of the same."
+    },
+    "outcomes": {
+      "title": "Three outcomes",
+      "day": "Next session",
+      "week": "Next 5 sessions",
+      "up": "Up",
+      "flat": "Flat",
+      "down": "Down",
+      "note": "Flat is within half a normal day's spread. Tilted by the trend and by stretch; a lean, not a forecast. Weights are tuned on paper."
+    },
     "outlets": "Levels the news outlets publish are not wired in yet.",
     "show": "Levels",
     "showTitle": "Draw support and resistance on the chart"

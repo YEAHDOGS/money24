@@ -1,28 +1,112 @@
 [
-  { "id": "seed-filing-bell", "name": "Filing at the bell", "kind": "catalyst", "asset": "Any",
+  {
+    "id": "seed-filing-bell",
+    "name": "Filing at the bell",
+    "kind": "catalyst",
+    "asset": "Any",
     "when": "An 8-K or other primary filing lands before the open, and premarket volume is at least 3x normal.",
     "then": "Queue call orders for the open on the filer and its neighbors. One contract per player, stop under the premarket low.",
-    "notes": "The exception to never buying at the open. NVDA, Nov 23: the Form 8-K hit 33 minutes before the bell and the stock rallied 35%.", "by": "dogs", "enabled": true },
-  { "id": "seed-dip-firing", "name": "Dip on a firing", "kind": "catalyst", "asset": "Any",
+    "notes": "The exception to never buying at the open. NVDA, Nov 23: the Form 8-K hit 33 minutes before the bell and the stock rallied 35%.",
+    "by": "dogs",
+    "enabled": true
+  },
+  {
+    "id": "seed-dip-firing",
+    "name": "Dip on a firing",
+    "kind": "catalyst",
+    "asset": "Any",
     "when": "A leader exit drops the stock through a one-year support while contract volume climbs.",
     "then": "Buy calls on the far expiry (January, not the weekly). Tiny stake, the sensible version of the lotto.",
-    "notes": "Someone knew. Volume on Thursday and Friday during the dip was the tell.", "by": "dogs", "enabled": true },
-  { "id": "seed-follow-whales", "name": "Follow the whales", "kind": "rule", "asset": "Any",
+    "notes": "Someone knew. Volume on Thursday and Friday during the dip was the tell.",
+    "by": "dogs",
+    "enabled": true
+  },
+  {
+    "id": "seed-follow-whales",
+    "name": "Follow the whales",
+    "kind": "rule",
+    "asset": "Any",
     "when": "A strike trades at 3x its open interest or more during a dip.",
-    "then": "Ride it: one tranche in, ladder the exits.", "notes": "Rule one: never trade alone.", "by": "dogs", "enabled": true },
-  { "id": "seed-ask-models", "name": "Ask the models", "kind": "ai", "asset": "Any",
+    "then": "Ride it: one tranche in, ladder the exits.",
+    "notes": "Rule one: never trade alone.",
+    "by": "dogs",
+    "enabled": true
+  },
+  {
+    "id": "seed-ask-models",
+    "name": "Ask the models",
+    "kind": "ai",
+    "asset": "Any",
     "when": "A story reads bullish or bearish on a symbol.",
-    "then": "Ask Gemini, Claude and ChatGPT for the best call or put contracts for that read. Keep only the contracts they agree on.", "notes": "", "by": "dogs", "enabled": true },
-  { "id": "seed-rsi", "name": "RSI snap-back", "kind": "rule", "asset": "Any",
+    "then": "Ask Gemini, Claude and ChatGPT for the best call or put contracts for that read. Keep only the contracts they agree on.",
+    "notes": "",
+    "by": "dogs",
+    "enabled": true
+  },
+  {
+    "id": "seed-rsi",
+    "name": "RSI snap-back",
+    "kind": "rule",
+    "asset": "Any",
     "when": "RSI(14) under 30 while price holds above its 200-day average.",
-    "then": "Buy. Sell when RSI passes 70.", "notes": "", "by": "dogs", "enabled": true },
-  { "id": "seed-quiet-put", "name": "Sell the quiet put", "kind": "spread", "asset": "Any",
+    "then": "Buy. Sell when RSI passes 70.",
+    "notes": "",
+    "by": "dogs",
+    "enabled": true
+  },
+  {
+    "id": "seed-quiet-put",
+    "name": "Sell the quiet put",
+    "kind": "spread",
+    "asset": "Any",
     "when": "A one-year support holds and volume dries up.",
-    "then": "Sell cash-secured puts below the support.", "notes": "Capital needs unchecked: price the collateral before this goes live.", "by": "dogs", "enabled": false },
-  { "id": "seed-both-sides", "name": "Both sides of the coin", "kind": "spread", "asset": "Any",
+    "then": "Sell cash-secured puts below the support.",
+    "notes": "Capital needs unchecked: price the collateral before this goes live.",
+    "by": "dogs",
+    "enabled": false
+  },
+  {
+    "id": "seed-both-sides",
+    "name": "Both sides of the coin",
+    "kind": "spread",
+    "asset": "Any",
     "when": "A dated catalyst is coming and the direction is a coin flip.",
-    "then": "A small straddle or strangle, sized so the worst case is the stake.", "notes": "For steady returns, not lottery wins.", "by": "dogs", "enabled": false },
-  { "id": "seed-odds-lag", "name": "Odds under the news", "kind": "prediction", "asset": "Any",
+    "then": "A small straddle or strangle, sized so the worst case is the stake.",
+    "notes": "For steady returns, not lottery wins.",
+    "by": "dogs",
+    "enabled": false
+  },
+  {
+    "id": "seed-odds-lag",
+    "name": "Odds under the news",
+    "kind": "prediction",
+    "asset": "Any",
     "when": "A prediction-market price lags a confirmed filing or result.",
-    "then": "Buy the side the news already decided, while the price is still behind.", "notes": "", "by": "dogs", "enabled": false }
+    "then": "Buy the side the news already decided, while the price is still behind.",
+    "notes": "",
+    "by": "dogs",
+    "enabled": false
+  },
+  {
+    "id": "seed-fade-run",
+    "name": "Fade the run",
+    "kind": "rule",
+    "asset": "Any",
+    "when": "A stock has run 30% or more in a month and its stretch reading is 60 or higher.",
+    "then": "Look for puts or put spreads, ready to size up once the first support breaks. The stretch is the reason; the Greeks only pick the contract.",
+    "notes": "NVDA, Nov 24: up 35% a day earlier, then red. Several AIs talked the trade down with theta and Greeks when the run itself was the signal.",
+    "by": "dogs",
+    "enabled": true
+  },
+  {
+    "id": "seed-three-outcomes",
+    "name": "Three outcomes first",
+    "kind": "ai",
+    "asset": "Any",
+    "when": "A play or a story is being weighed.",
+    "then": "Say up, flat and down with a probability each before choosing a contract. Pick the contract that pays in the likeliest two.",
+    "notes": "",
+    "by": "dogs",
+    "enabled": true
+  }
 ]

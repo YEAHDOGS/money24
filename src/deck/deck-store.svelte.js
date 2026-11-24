@@ -4,10 +4,12 @@ import seed from './seed.json';
 import strings from './strings.json';
 
 const STORE_DECK = 'm24.deck';
+const STORE_SEEDS = 'm24.deck.seeds'; // starter cards already offered, so a removed one stays removed
 export const KINDS = Object.keys(strings.kinds);
 const DEFAULT_KIND = 'rule';
 const MAX_TEXT = 600;
 const MAX_CARDS = 500;
+const FIRST_SEEDS = 8; // the starter cards a deck saved before STORE_SEEDS existed was offered
 
 /** @typedef {{ id: string, name: string, kind: string, asset: string, when: string, then: string, notes: string, by: string, enabled: boolean }} Card */
 
@@ -31,11 +33,26 @@ export function cleanCard(/** @type {any} */ raw) {
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_DECK) ?? 'null');
-    if (Array.isArray(saved)) return saved.slice(0, MAX_CARDS).map(cleanCard);
+    const offered = new Set(JSON.parse(localStorage.getItem(STORE_SEEDS) ?? 'null') ?? (Array.isArray(saved) ? seed.slice(0, FIRST_SEEDS).map((c) => c.id) : []));
+    const fresh = seed.filter((c) => !offered.has(c.id));
+    if (Array.isArray(saved)) {
+      const merged = [...fresh, ...saved].slice(0, MAX_CARDS).map(cleanCard);
+      // Offered and kept together: a starter card is never marked offered without being in the saved deck.
+      localStorage.setItem(STORE_DECK, JSON.stringify(merged));
+      localStorage.setItem(STORE_SEEDS, JSON.stringify(seed.map((c) => c.id)));
+      return merged;
+    }
   } catch {
     // Unreadable: start from the starter deck.
   }
-  return seed.map(cleanCard);
+  const starter = seed.map(cleanCard);
+  try {
+    localStorage.setItem(STORE_DECK, JSON.stringify(starter));
+    localStorage.setItem(STORE_SEEDS, JSON.stringify(seed.map((c) => c.id)));
+  } catch {
+    // Not remembered on this device.
+  }
+  return starter;
 }
 
 class Deck {

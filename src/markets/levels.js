@@ -16,6 +16,63 @@ const BULL_SCORE = 2;
 const BEAR_SCORE = -2;
 const MARK_LIMIT = 2; // levels per side drawn on the chart
 
+// Stretch: how far a symbol has run from where it normally sits. Three gauges, each 0 to 1 at its ceiling.
+const RSI_DAYS = 14;
+const RSI_NEUTRAL = 50;
+const RSI_SPAN = 25; // RSI 75 or 25 is a full gauge
+const RUN_DAYS = 20;
+const RUN_FULL_PCT = 30; // a 30% move in a month is a full gauge
+const EXTENSION_FULL_ATR = 4; // four ATRs from the 20-day average is a full gauge
+const STRETCH_ON = 60; // score at which a symbol counts as stretched
+const PERCENT = 100;
+
+// Three outcomes (up, flat, down) over a horizon, from a normal distribution of moves. A tilt shifts it:
+// the trend lean pushes with the move, a stretched symbol pulls back against it. Starting weights, tuned on paper.
+const SIGMA_OF_ATR = 0.8; // one day's close-to-close spread as a share of the average range
+const FLAT_BAND_SIGMA = 0.5; // flat is within this many spreads either side of where it is now
+const LEAN_TILT = 0.05; // spreads of tilt per point of lean score
+const SNAPBACK_TILT = 0.35; // spreads of pull-back at a fully stretched symbol
+const HORIZONS = { day: 1, week: 5 };
+
+/** The normal curve's cumulative distribution (Abramowitz and Stegun 7.1.26). */
+function phi(/** @type {number} */ x) {
+  const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+  const poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  const erf = 1 - poly * Math.exp(-(x * x) / 2);
+  return 0.5 * (1 + (x < 0 ? -erf : erf));
+}
+
+/** Wilder's relative strength index of the closes. */
+function rsi(/** @type {Candle[]} */ bars) {
+  const closes = bars.map((b) => b.c);
+  let gain = 0;
+  let loss = 0;
+  for (let i = 1; i <= RSI_DAYS; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d > 0) gain += d;
+    else loss -= d;
+  }
+  gain /= RSI_DAYS;
+  loss /= RSI_DAYS;
+  for (let i = RSI_DAYS + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    gain = (gain * (RSI_DAYS - 1) + Math.max(d, 0)) / RSI_DAYS;
+    loss = (loss * (RSI_DAYS - 1) + Math.max(-d, 0)) / RSI_DAYS;
+  }
+  return loss === 0 ? PERCENT : PERCENT - PERCENT / (1 + gain / loss);
+}
+
+const unit = (/** @type {number} */ x) => Math.max(0, Math.min(1, x));
+
+/** Up, flat and down shares (each 0 to 1, summing to 1) over `days` sessions, given a tilt in spreads. */
+function outcomes(/** @type {number} */ sigma, /** @type {number} */ days, /** @type {number} */ tilt) {
+  // Flat stays the same size in price, so it is a smaller share of a longer horizon's wider spread.
+  const band = FLAT_BAND_SIGMA / Math.sqrt(days);
+  const down = phi(-band - tilt);
+  const up = 1 - phi(band - tilt);
+  return { up, flat: Math.max(0, 1 - up - down), down, spread: sigma * Math.sqrt(days) };
+}
+
 /** @typedef {{t:number, o:number, h:number, l:number, c:number, v:number}} Candle */
 /** @typedef {{ price: number, touches: number, pct: number }} Level */
 /** @typedef {'bullish' | 'neutral' | 'bearish'} Bias */
@@ -62,7 +119,8 @@ const sma = (/** @type {Candle[]} */ bars, /** @type {number} */ n) => mean(bars
  * @param {number} [live] the live price, when newer than the last close
  * @returns {null | { price: number, atr: number, expected: {low:number, high:number}, resistance: Level[], support: Level[],
  *   positive: number | null, negative: number | null, pivots: {p:number, r1:number, s1:number}, yearHigh: number, yearLow: number,
- *   bias: Bias, score: number, reasons: string[], marks: {price:number, title:string, tone:string}[] }}
+ *   bias: Bias, score: number, stretch: {score:number, direction:'up'|'down'|'none', runPct:number, extension:number, rsi:number},
+ *   odds: Record<string, {up:number, flat:number, down:number, spread:number}>, reasons: string[], marks: {price:number, title:string, tone:string}[] }}
  */
 export function levelsFor(candles, live) {
   const bars = (candles ?? []).filter((b) => b.h >= b.l && b.c > 0).slice(-LOOKBACK_BARS);
@@ -92,6 +150,23 @@ export function levelsFor(candles, live) {
   const above = [...resistance.map((l) => l.price), ...(pivots.r1 > price ? [pivots.r1] : [])];
   const below = [...support.map((l) => l.price), ...(pivots.s1 < price ? [pivots.s1] : [])];
 
+  // Stretch: the run, the distance from the average and RSI, each against its ceiling, in the direction of the run.
+  const monthAgo = bars[Math.max(0, bars.length - 1 - RUN_DAYS)].c;
+  const runPct = ((price - monthAgo) / monthAgo) * PERCENT;
+  const extension = (price - fast) / range;
+  const strength = rsi(bars);
+  const direction = extension >= 0 ? 'up' : 'down';
+  const sign = direction === 'up' ? 1 : -1;
+  const gauges = [unit(Math.abs(runPct) / RUN_FULL_PCT), unit(Math.abs(extension) / EXTENSION_FULL_ATR), unit(((strength - RSI_NEUTRAL) * sign) / RSI_SPAN)];
+  const stretchScore = Math.round(mean(gauges) * PERCENT);
+  const stretched = stretchScore >= STRETCH_ON;
+  const stretch = { score: stretchScore, direction: stretched ? direction : 'none', runPct, extension, rsi: strength };
+
+  // The odds: the trend's lean pushes with the move, a stretched symbol pulls back against it.
+  const sigma = (SIGMA_OF_ATR * range) / price;
+  const tilt = score * LEAN_TILT - (stretched ? sign * (stretchScore / PERCENT) * SNAPBACK_TILT : 0);
+  const odds = Object.fromEntries(Object.entries(HORIZONS).map(([name, days]) => [name, outcomes(sigma, days, tilt)]));
+
   const marks = [
     ...resistance.slice(0, MARK_LIMIT).map((l, i) => ({ price: l.price, title: `R${i + 1}`, tone: 'down' })),
     ...support.slice(0, MARK_LIMIT).map((l, i) => ({ price: l.price, title: `S${i + 1}`, tone: 'up' })),
@@ -109,6 +184,8 @@ export function levelsFor(candles, live) {
     yearLow: Math.min(...bars.map((b) => b.l)),
     bias,
     score,
+    stretch,
+    odds,
     reasons: checks.map(([up, yes, no]) => (up ? yes : no)),
     marks,
   };
