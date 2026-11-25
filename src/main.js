@@ -1,7 +1,7 @@
 // @ts-nocheck
 import App from './App.svelte'
 import './app.css'
-import { mount } from 'svelte'
+import { mountProtected as mount } from './lib/app-lock/mount.js'
 // Light, dark or auto (sunset): applies the saved choice
 import './lib/theme.js'
 

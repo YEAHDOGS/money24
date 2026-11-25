@@ -5,7 +5,7 @@
 // (src/lib/demo.js): each range at its default candle size, read once, never polled.
 
 import { DEFAULT_RUNNER } from '../trading/trading-client.svelte.js';
-import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo } from '../lib/demo.js';
+import { DEMO_PARAM, DEMO_STATUS, demoFirst, loadDemo, stored } from '../lib/demo.js';
 
 export const RANGES = ['1d', '5d', '1mo', '6mo', 'ytd', '1y', '5y', 'max'];
 /** Candle sizes each range can be drawn in. The first is the default. Mirrors engine/market. */
@@ -38,15 +38,6 @@ const PROBLEM_MISSING = 'missing';
 const STATUS = { connecting: 'connecting', live: 'live', offline: 'offline', demo: DEMO_STATUS };
 const DEMO_DIR = 'markets/';
 const DEMO_INDEX = 'index.json';
-
-/** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
-function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
-  try {
-    return localStorage.getItem(key) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function store(/** @type {string} */ key, /** @type {string} */ value) {
   try {

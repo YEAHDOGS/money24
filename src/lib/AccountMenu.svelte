@@ -13,6 +13,9 @@
   import Moon from '@lucide/svelte/icons/moon';
   import SunMoon from '@lucide/svelte/icons/sun-moon';
   import MapPin from '@lucide/svelte/icons/map-pin';
+  import LockKeyhole from '@lucide/svelte/icons/lock-keyhole';
+  import { isMobileLock, lockApp } from './app-lock/session.js';
+  import lockStrings from './app-lock/strings.json';
 
   const ICONS = { auto: SunMoon, light: Sun, dark: Moon };
   const TIME_FORMAT = { hour: 'numeric', minute: '2-digit' };
@@ -49,6 +52,11 @@
 
 <HeaderPopover icon={CircleUser} label={strings.button} tour="account">
   <div class="p-3 tv:p-5">
+    {#if isMobileLock()}
+      <button type="button" onclick={lockApp} class="spring mb-3 flex min-h-11 w-full items-center gap-2 border-b border-line pb-3 text-sm font-bold text-white hover:text-neon-red focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-neon-red">
+        <LockKeyhole class="size-4" aria-hidden="true" />{lockStrings.lock}
+      </button>
+    {/if}
     <h2 class="text-[0.62rem] font-bold tracking-[0.2em] text-muted uppercase tv:text-sm">{strings.appearance}</h2>
     <div role="radiogroup" aria-label={strings.appearance} class="mt-2 grid grid-cols-3 gap-1">
       {#each MODES as m (m)}

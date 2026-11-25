@@ -2,7 +2,7 @@
 // so the terms wear exactly what every app page wears, and folds the contents list on phones.
 // The text itself never needs it.
 import AppHeader from '../lib/AppHeader.svelte';
-import { mount } from 'svelte';
+import { mountProtected as mount } from '../lib/app-lock/mount.js';
 
 const SLOT_ID = 'header-slot';
 const FOLD_SELECTOR = '.toc-fold';

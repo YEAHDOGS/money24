@@ -7,7 +7,8 @@
   import AppHeader from '../lib/AppHeader.svelte';
   import AppFooter from '../lib/AppFooter.svelte';
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-  import { demoHref } from '../lib/demo.js';
+  import { demoHref, stored } from '../lib/demo.js';
+  import { saveConnection } from '../lib/app-lock/session.js';
   import { onMount, untrack } from 'svelte';
   import { cubicOut } from 'svelte/easing';
   import strings from './strings.json';
@@ -50,15 +51,6 @@
     noise: 'text-muted border-line',
   };
 
-  /** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
-  function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
-    try {
-      return localStorage.getItem(key) ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
   let runnerUrl = $state(stored(STORE_RUNNER, DEFAULT_RUNNER));
   let runnerSecret = $state(stored(STORE_SECRET, ''));
   let client = $state(untrack(() => new TradingClient(runnerUrl, runnerSecret)));
@@ -94,13 +86,8 @@
     loadRanking();
   }
 
-  function saveRunner(/** @type {string} */ url, /** @type {string} */ secret) {
-    try {
-      localStorage.setItem(STORE_RUNNER, url || DEFAULT_RUNNER);
-      localStorage.setItem(STORE_SECRET, secret);
-    } catch {
-      // Not persisted on this device; still used for this visit.
-    }
+  async function saveRunner(/** @type {string} */ url, /** @type {string} */ secret) {
+    await saveConnection(url || DEFAULT_RUNNER, secret);
     client.stop();
     runnerUrl = url || DEFAULT_RUNNER;
     runnerSecret = secret;

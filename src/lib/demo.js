@@ -2,6 +2,8 @@
 // address) a page shows a recorded snapshot from public/demo/ instead of asking a local service.
 // The snapshot is written by scripts/demo-snapshot.js. A demo only reads: nothing in it is live.
 
+import { protectedSetting } from './app-lock/session.js';
+
 export const STORE_RUNNER = 'm24.trading.runner';
 /** The runner a desk talks to unless told otherwise (the trading desk's own address). */
 export const DEFAULT_RUNNER = import.meta.env.VITE_TRADING_API || 'http://127.0.0.1:8025';
@@ -14,6 +16,8 @@ const SELF_HOSTED = import.meta.env.VITE_SELF_HOSTED === '1';
 
 /** Browser storage can be missing or throw (private mode, some WebViews): fall back to defaults. */
 export function stored(/** @type {string} */ key, /** @type {string} */ fallback) {
+  const protectedValue = protectedSetting(key, fallback);
+  if (protectedValue !== undefined) return protectedValue;
   try {
     return localStorage.getItem(key) ?? fallback;
   } catch {

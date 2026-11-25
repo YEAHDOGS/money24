@@ -1,4 +1,4 @@
-import { mount } from 'svelte';
+import { mountProtected as mount } from '../lib/app-lock/mount.js';
 import '../feed/feed.css';
 import Deck from './Deck.svelte';
 

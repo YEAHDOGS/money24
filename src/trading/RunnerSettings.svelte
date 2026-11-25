@@ -5,23 +5,36 @@
    */
   import strings from './strings.json';
 
-  /** @type {{ url: string, secret: string, onSave: (url: string, secret: string) => void }} */
+  /** @type {{ url: string, secret: string, onSave: (url: string, secret: string) => void | Promise<void> }} */
   let { url, secret, onSave } = $props();
 
   let open = $state(false);
   let draftUrl = $state('');
   let draftSecret = $state('');
+  let saving = $state(false);
+  let error = $state('');
 
   function toggle() {
     open = !open;
     draftUrl = url;
     draftSecret = secret;
+    error = '';
   }
 
-  function save(/** @type {SubmitEvent} */ event) {
+  async function save(/** @type {SubmitEvent} */ event) {
     event.preventDefault();
-    onSave(draftUrl.trim(), draftSecret.trim());
-    open = false;
+    if (saving) return;
+    saving = true;
+    error = '';
+    try {
+      await onSave(draftUrl.trim(), draftSecret.trim());
+      draftSecret = '';
+      open = false;
+    } catch (reason) {
+      error = reason.message;
+    } finally {
+      saving = false;
+    }
   }
 </script>
 
@@ -42,7 +55,8 @@
           class="rounded-sm border border-line bg-card px-2 py-1.5 font-mono text-xs text-white focus:border-neon-red focus:outline-none" />
       </label>
       <p class="text-[0.7rem] leading-snug text-muted">{strings.runnerHint}</p>
-      <button type="submit" class="spring rounded-sm border border-neon-red px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-red hover:bg-neon-red/10 focus-visible:outline-none focus-visible:bg-neon-red/10">{strings.save}</button>
+      {#if error}<p role="alert" class="text-xs text-bad">{error}</p>{/if}
+      <button type="submit" disabled={saving} class="spring rounded-sm border border-neon-red px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-neon-red hover:bg-neon-red/10 focus-visible:outline-none focus-visible:bg-neon-red/10 disabled:opacity-50">{strings.save}</button>
     </form>
   {/if}
 </div>

@@ -20,6 +20,8 @@ mod pocket;
 mod supervisor;
 #[cfg(desktop)]
 mod tray;
+#[cfg(mobile)]
+mod mobile_lock;
 
 #[cfg(desktop)]
 use tauri::{window::Color, Manager, RunEvent};
@@ -84,6 +86,15 @@ pub fn run() {
     let builder = builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init());
+    #[cfg(mobile)]
+    let builder = builder
+        .manage(mobile_lock::MobileLock::default())
+        .invoke_handler(tauri::generate_handler![
+            mobile_lock::mobile_lock_session,
+            mobile_lock::mobile_unlock_session,
+            mobile_lock::mobile_lock
+        ])
+        .on_window_event(mobile_lock::on_window_event);
     #[cfg(desktop)]
     let builder = builder
         .manage(engines::Engines::new())
@@ -144,7 +155,12 @@ pub(crate) fn app_window<'a>(
     url: WebviewUrl,
 ) -> WebviewWindowBuilder<'a, Wry, AppHandle> {
     let handle = app.clone();
-    WebviewWindowBuilder::new(app, label, url).on_navigation(move |url| {
+    let builder = WebviewWindowBuilder::new(app, label, url);
+    #[cfg(mobile)]
+    let builder = builder
+        .initialization_script(mobile_lock::INIT_SCRIPT)
+        .content_protected(true);
+    builder.on_navigation(move |url| {
         if is_app_url(url) {
             return true;
         }

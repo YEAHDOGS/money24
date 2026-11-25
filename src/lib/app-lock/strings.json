@@ -1,0 +1,22 @@
+{
+  "brand": "Money 24",
+  "setupTitle": "Lock this phone",
+  "unlockTitle": "Unlock your desk",
+  "setupHint": "Choose a password to encrypt the runner connection saved on this phone. The app locks whenever it goes into the background.",
+  "unlockHint": "Your desktop keeps running while this phone is locked.",
+  "password": "App password",
+  "confirm": "Confirm password",
+  "length": "At least 12 characters. Keep it somewhere safe; there is no password recovery.",
+  "runner": "Runner address",
+  "secret": "Runner secret",
+  "runnerHint": "Use the HTTPS address of your desktop runner. Its access controls still apply.",
+  "setup": "Save and unlock",
+  "unlock": "Unlock",
+  "busy": "Unlocking…",
+  "mismatch": "The passwords do not match.",
+  "failed": "Could not unlock. Check the password and try again.",
+  "unavailable": "Secure storage is unavailable. Reopen the app in an updated Android WebView.",
+  "scope": "The lock protects access to the app and encrypts its saved runner connection. Other app preferences and caches are not encrypted.",
+  "lock": "Lock app",
+  "boot": "Opening secure storage…"
+}
