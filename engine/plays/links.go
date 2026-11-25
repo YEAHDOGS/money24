@@ -299,7 +299,7 @@ func Draft(c Contract, m Market, t Template, now time.Time) Play {
 		p.Failsafes.ExitBy = now.AddDate(0, 0, t.HoldDays).UTC()
 	}
 	p.Evidence = autoEvidence(m, c.Right != RIGHT_PUT)
-	return p
+	return immediateSchedule(p, now)
 }
 
 // plainContract reads a PLAIN_CONTRACT match. With no year, the expiry is the next such date.

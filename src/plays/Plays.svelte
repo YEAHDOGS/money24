@@ -10,6 +10,9 @@
   import { PlaysClient, DEFAULT_RUNNER, STORE_RUNNER, STORE_SECRET, stored } from './plays-client.svelte.js';
   import { failing, fill } from './play-format.js';
   import LinkInbox from './LinkInbox.svelte';
+  import ScribePanel from './ScribePanel.svelte';
+  import scribeStrings from './scribe.json';
+  import Terminal from '@lucide/svelte/icons/terminal';
   import PlayCard from './PlayCard.svelte';
   import PlayDetail from './PlayDetail.svelte';
   import RulesEditor from './RulesEditor.svelte';
@@ -36,10 +39,12 @@
   const TAB_PLAY = 'play';
   const TAB_INBOX = 'inbox';
   const TAB_RULES = 'rules';
+  const TAB_SCRIBE = 'scribe';
   const PHONE_TABS = [
     { id: TAB_PLAYS, icon: Zap },
     { id: TAB_PLAY, icon: Crosshair },
     { id: TAB_INBOX, icon: Inbox },
+    { id: TAB_SCRIBE, icon: Terminal },
     { id: TAB_RULES, icon: Scale },
   ];
   const PLAY_PARAM = 'play'; // plays.html?play=<id> opens on that play (Home's open positions link here)
@@ -104,7 +109,7 @@
   const selected = $derived(client.items.find((x) => x.play.id === selectedId) ?? client.items[0]);
   const showInboxPane = $derived(mode === MODE_WIDE || tab === TAB_INBOX);
   const showList = $derived(mode === MODE_WIDE || (mode === MODE_LANDSCAPE ? tab !== TAB_INBOX : tab === TAB_PLAYS));
-  const showDetail = $derived(mode !== MODE_PHONE || tab === TAB_PLAY || tab === TAB_RULES);
+  const showDetail = $derived(mode !== MODE_PHONE || tab === TAB_PLAY || tab === TAB_RULES || tab === TAB_SCRIBE);
   const detailIsRules = $derived(tab === TAB_RULES);
 </script>
 
@@ -136,6 +141,10 @@
         <Layers class="size-3" aria-hidden="true" />{strings.deck}
       </a>
       {#if mode === MODE_WIDE}
+        <button type="button" aria-pressed={tab === TAB_SCRIBE} onclick={() => { tab = tab === TAB_SCRIBE ? TAB_PLAY : TAB_SCRIBE; }}
+          class="spring flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:border-neon-red {tab === TAB_SCRIBE ? 'border-neon-red text-neon-red' : 'border-line text-white/70 hover:text-white'}">
+          <Terminal class="size-3" aria-hidden="true" />{scribeStrings.title}
+        </button>
         <button type="button" aria-pressed={detailIsRules} onclick={() => { tab = detailIsRules ? TAB_PLAY : TAB_RULES; }}
           class="spring flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:border-neon-red {detailIsRules ? 'border-neon-red text-neon-red' : 'border-line text-white/70 hover:text-white'}">
           <Scale class="size-3" aria-hidden="true" />{strings.tabs.rules}
@@ -161,8 +170,12 @@
 {/snippet}
 
 {#snippet detail()}
-  <section aria-label={detailIsRules ? strings.tabs.rules : strings.tabs.play} class="@container flex min-h-0 flex-col border-line">
-    {#if detailIsRules}
+  <section aria-label={tab === TAB_SCRIBE ? scribeStrings.title : detailIsRules ? strings.tabs.rules : strings.tabs.play} class="@container flex min-h-0 flex-col border-line">
+    {#if tab === TAB_SCRIBE}
+      {#key client}
+        <ScribePanel {runnerUrl} {runnerSecret} providers={client.providers} status={client.status} />
+      {/key}
+    {:else if detailIsRules}
       <RulesEditor {client} />
     {:else if selected}
       {#key selected.play.id}
@@ -195,7 +208,7 @@
   <div class="grid min-h-0 w-full flex-1 grid-cols-[3rem_15rem_minmax(0,1fr)] select-text">
     <nav class="flex flex-col items-center gap-1 border-r border-line py-2" aria-label="Sections">
       {#each PHONE_TABS.filter((t) => t.id !== TAB_PLAY) as t (t.id)}
-        <button type="button" aria-pressed={tab === t.id || (t.id === TAB_PLAYS && tab === TAB_PLAY)} aria-label={strings.tabs[t.id]} onclick={() => { tab = t.id; }}
+        <button type="button" aria-pressed={tab === t.id || (t.id === TAB_PLAYS && tab === TAB_PLAY)} aria-label={t.id === TAB_SCRIBE ? scribeStrings.title : strings.tabs[t.id]} onclick={() => { tab = t.id; }}
           class="spring grid size-10 place-items-center rounded-sm focus-visible:outline focus-visible:outline-neon-red {tab === t.id || (t.id === TAB_PLAYS && tab === TAB_PLAY) ? 'bg-white/5 text-neon-red' : 'text-white/55'}">
           <t.icon class="size-5" aria-hidden="true" />
         </button>
@@ -220,13 +233,13 @@
         {@render detail()}
       {/if}
     </div>
-    <nav data-tour="plays-tabs" class="grid grid-cols-4 border-t border-line" aria-label="Sections">
+    <nav data-tour="plays-tabs" class="grid grid-cols-5 border-t border-line" aria-label="Sections">
       {#each PHONE_TABS as t (t.id)}
         {@const alert = t.id === TAB_PLAY && selected ? failing(selected.report).blocks : 0}
         <button type="button" aria-pressed={tab === t.id} onclick={() => { tab = t.id; }}
           class="spring relative flex flex-col items-center gap-0.5 py-2.5 text-[0.65rem] font-bold uppercase tracking-wider focus-visible:bg-white/5 focus-visible:outline-none {tab === t.id ? 'text-neon-red' : 'text-white/55'}">
           <t.icon class="size-5" aria-hidden="true" />
-          {strings.tabs[t.id]}
+          {t.id === TAB_SCRIBE ? scribeStrings.title : strings.tabs[t.id]}
           {#if alert}<span class="absolute top-1.5 right-[calc(50%-1.4rem)] size-1.5 rounded-full bg-warn" aria-hidden="true"></span>{/if}
         </button>
       {/each}

@@ -125,6 +125,10 @@ type Play struct {
 	// "crypto-desk" when the crypto desk opened it from a coin's hourly candles.
 	FoundBy string `json:"found_by,omitempty"`
 	StoryID int64  `json:"story_id,omitempty"`
+	// Expected times are the proposal's clock; fills keep the actual clock separately.
+	ExpectedEntryAt time.Time `json:"expected_entry_at,omitzero"`
+	ExpectedExitAt  time.Time `json:"expected_exit_at,omitzero"`
+	ScheduleMode    string    `json:"schedule_mode,omitempty"`
 
 	Contract Contract `json:"contract"`
 	Qty      float64  `json:"qty"`

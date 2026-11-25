@@ -54,6 +54,12 @@ func OpenStore(dir string) (*Store, error) {
 			return nil, err
 		}
 	}
+	for i := range s.plays {
+		if s.plays[i].ScheduleMode == "" {
+			// Historical timestamps do not prove what was expected before the trade.
+			s.plays[i].ScheduleMode = SCHEDULE_LEGACY
+		}
+	}
 	s.rules = s.rules.merged()
 	return s, nil
 }
@@ -103,6 +109,12 @@ func (s *Store) Play(id string) (Play, error) {
 func (s *Store) Save(p Play) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	p = immediateSchedule(p, time.Now())
+	if p.ScheduleMode != SCHEDULE_LEGACY {
+		if err := validateSchedule(p); err != nil {
+			return err
+		}
+	}
 	for i := range s.plays {
 		if s.plays[i].ID == p.ID {
 			s.plays[i] = p
@@ -155,7 +167,7 @@ func (s *Store) AddLink(l Link) error {
 func (s *Store) Links() []Link {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]Link(nil), s.links...)
+	return append([]Link{}, s.links...)
 }
 
 // Rules returns the rulebook.

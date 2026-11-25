@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/YEAHDOGS/money24/engine/market"
+	"github.com/YEAHDOGS/money24/engine/predict"
 	"github.com/YEAHDOGS/money24/engine/signals"
 )
 
@@ -52,6 +53,10 @@ type Service struct {
 	Funds func(now time.Time) Funds
 	// AI is the AI apps signed in on this machine, for reads of a play. Nil: no AI.
 	AI Advisor
+	// PaperTip starts a hand-picked contract on the prediction desk's paper book. Nil: no desk.
+	PaperTip func(ctx context.Context, ticker, side, note string) (predict.Line, error)
+	// scribe bounds on-demand research to one AI request at a time.
+	scribe scribeRun
 	// finder is the finder's last pass, served so nothing it decides is hidden.
 	finder finderLog
 	// crypto is the crypto desk's last pass and the hourly candles it read.
@@ -112,8 +117,12 @@ func (s *Service) sync() {
 // paper hands a play to the runner. Blocking rule fails stop it unless the rulebook lets
 // trades through, in which case the broken rules are written on the play.
 func (s *Service) paper(p Play, now time.Time) (Play, error) {
-	if p.Status == STATUS_ARMED {
-		return p, errors.New("already trading")
+	if p.Status != STATUS_DRAFT {
+		return p, errors.New("only a draft can enter trading")
+	}
+	p = immediateSchedule(p, now)
+	if err := entryAllowed(p, now); err != nil {
+		return p, err
 	}
 	if s.Paper == nil {
 		return p, errors.New("the runner is not connected")
@@ -161,6 +170,8 @@ func (s *Service) paper(p Play, now time.Time) (Play, error) {
 		return p, err
 	}
 	return s.Store.Update(p.ID, func(q *Play) {
+		q.ExpectedEntryAt, q.ExpectedExitAt, q.ScheduleMode = p.ExpectedEntryAt, p.ExpectedExitAt, p.ScheduleMode
+		q.Failsafes.ExitBy = p.ExpectedExitAt
 		q.Status, q.JournalID, q.ArmedAt, q.BrokeRules, q.UpdatedAt = STATUS_ARMED, id, now.UTC(), broke, now.UTC()
 		// An entry fills whole, at its limit. A live one will report what the broker did.
 		q.Filled = &Filled{At: now.UTC(), Price: plan.Entry, Qty: plan.Qty, AmountUSD: plan.CostUSD}
@@ -239,6 +250,7 @@ func (s *Service) headlines(ctx context.Context, symbol string) []Headline {
 
 // ForgetReads clears reads a stopped runner left marked on its plays: those answers will never land.
 func (s *Service) ForgetReads() {
+	s.interruptScribe()
 	for _, p := range s.Store.Plays() {
 		if p.Analyzing != "" {
 			s.Store.Update(p.ID, func(q *Play) { q.Analyzing = "" })
@@ -365,18 +377,28 @@ func (s *Service) Routes() map[string]http.Handler {
 				return
 			}
 			now := time.Now().UTC()
+			var previous *Play
 			if in.ID == "" {
 				in.ID, in.CreatedAt, in.Status = NewID(now), now, STATUS_DRAFT
 				if in.Contract.Market == "" {
 					in.Contract.Market = map[bool]string{true: MARKET_OPTION, false: MARKET_STOCK}[in.Contract.Right != ""]
 				}
 			} else if old, err := s.Store.Play(in.ID); err == nil {
+				previous = &old
 				if old.Status != STATUS_DRAFT {
 					writeErr(w, http.StatusConflict, errors.New("a play that is trading or closed can't be edited; copy it instead"))
 					return
 				}
 				// The engine owns these; an edit from the page can't change them.
 				in.CreatedAt, in.Status, in.Analyses, in.Analyzing, in.Links = old.CreatedAt, old.Status, old.Analyses, old.Analyzing, old.Links
+			} else {
+				writeErr(w, http.StatusNotFound, ErrNotFound)
+				return
+			}
+			in, err := plannedSchedule(in, previous, now)
+			if err != nil {
+				writeErr(w, http.StatusBadRequest, err)
+				return
 			}
 			in.UpdatedAt = now
 			if err := s.Store.Save(in); err != nil {
@@ -510,7 +532,10 @@ func (s *Service) Routes() map[string]http.Handler {
 			}
 			reply(w, p)
 		}),
-		"POST /api/plays/link": guard(s.link),
+		"POST /api/plays/link":         guard(s.link),
+		"GET /api/plays/scribe":        guard(s.scribeHistory),
+		"POST /api/plays/scribe":       guard(s.startScribe),
+		"POST /api/plays/scribe/paper": guard(s.paperScribe),
 		"GET /api/plays/links": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, s.Store.Links())
 		}),
@@ -586,6 +611,14 @@ func (s *Service) link(w http.ResponseWriter, r *http.Request) {
 	rules := s.Store.Rules()
 	p := Draft(c, s.Resolver.Snapshot(ctx, c, now), rules.Template, now)
 	p.ID, p.Links, p.Theme = NewID(now), []string{entry.URL}, strings.TrimSpace(in.Theme)
+	if in.Draft || !rules.AutoPaper {
+		p.ExpectedEntryAt, p.ScheduleMode = time.Time{}, SCHEDULE_PLANNED
+		p, err = plannedSchedule(p, nil, now)
+		if err != nil {
+			writeErr(w, http.StatusUnprocessableEntity, err)
+			return
+		}
+	}
 	if err := s.Store.Save(p); err != nil {
 		writeErr(w, http.StatusInternalServerError, err)
 		return

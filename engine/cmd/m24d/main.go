@@ -581,6 +581,7 @@ func main() {
 	if err := predictDesk.Reload(); err != nil {
 		log.Printf("predict rulebook: %v", err)
 	}
+	playService.PaperTip = predictDesk.BuyTip
 	go predictDesk.Run(ctx)
 	for pattern, h := range predictDesk.Routes() {
 		opts.Mount[pattern] = h

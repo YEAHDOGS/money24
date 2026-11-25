@@ -79,7 +79,7 @@ func playFrom(c Candidate, now time.Time) Play {
 	}
 	p.Evidence = []Evidence{{Kind: EV_VOLUME, Stance: STANCE_FOR, Source: FLOW_SOURCE, Verified: true, At: now.UTC(),
 		Value: float64(c.Liquidity.Volume), Label: joinReasons(c.Reasons)}}
-	return p
+	return immediateSchedule(p, now)
 }
 
 // joinReasons writes a candidate's reasons as one line.

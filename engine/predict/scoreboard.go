@@ -46,6 +46,10 @@ func (d *Desk) Scoreboard() []scoreboard.Strategy {
 	}
 	for _, p := range d.Book.positions {
 		row := ensure(p.Buy.Strategy)
+		if p.Buy.Strategy == TIP_STRATEGY {
+			// Tips have no rulebook entry: they are started by hand from Scribe.
+			row.Name, row.State, row.Blocker = TIP_NAME, STATE_LOOKING, ""
+		}
 		if p.Settled {
 			*row.RealizedPnL += p.PnlUSD
 		}

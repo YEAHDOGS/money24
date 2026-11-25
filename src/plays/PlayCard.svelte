@@ -6,6 +6,7 @@
   import strings from './strings.json';
   import { needsLine, failing, pct, pnl, usd, realized } from './play-format.js';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
+  import PlaySchedule from './PlaySchedule.svelte';
 
   /** @type {{ item: import('./plays-client.svelte.js').Item, selected: boolean, onPick: () => void }} */
   let { item, selected, onPick } = $props();
@@ -34,6 +35,7 @@
     {report.odds.dogs_pct ? pct(report.odds.dogs_pct) : '—'}
   </span>
   <span class="col-span-2 truncate font-mono text-xs tabular-nums text-white/80">{needsLine(play, report) || '—'}</span>
+  <div class="col-span-2"><PlaySchedule {play} compact /></div>
   <span class="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[0.7rem] tabular-nums">
     {#if showMade}
       <span class={made < 0 ? 'text-bad' : 'text-ok'}>{pnl(made)}{play.result ? '' : ' …'}</span>

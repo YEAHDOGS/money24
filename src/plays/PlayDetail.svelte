@@ -21,6 +21,8 @@
   import AiPanel from './AiPanel.svelte';
   import PlayRecord from './PlayRecord.svelte';
   import PlayOrders from './PlayOrders.svelte';
+  import PlaySchedule from './PlaySchedule.svelte';
+  import { entryBlock } from './play-schedule.js';
   import Play from '@lucide/svelte/icons/play';
   import RefreshCw from '@lucide/svelte/icons/refresh-cw';
   import Sparkles from '@lucide/svelte/icons/sparkles';
@@ -61,16 +63,19 @@
   const choices = $derived(client.aiChoices);
   const chosen = $derived(choices.find((p) => p.id === provider) ?? choices[0]);
   const analyzing = $derived(item.play.analyzing);
+  const scheduleBlock = $derived(entryBlock(item.play, now));
 
   /** Runs one action with a busy flag and shows its error. */
   async function act(/** @type {string} */ name, /** @type {() => Promise<any>} */ fn) {
-    if (busy) return;
+    if (busy) return false;
     busy = name;
     error = '';
     try {
       await fn();
+      return true;
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
+      return false;
     } finally {
       busy = '';
     }
@@ -122,6 +127,7 @@
       <span class="rounded-sm border px-1.5 py-px text-[0.65rem] font-bold uppercase tracking-wider {STATUS_CLASS[play.status]}">{strings.playStatus[play.status]}</span>
     </div>
     {#if play.theme}<p class="mt-0.5 text-xs text-muted">{strings.detail.theme}: {play.theme}</p>{/if}
+    <PlaySchedule {play} />
     {#if item.play.broke_rules?.length}
       <p class="mt-2 flex items-start gap-1.5 rounded-sm border border-warn/40 bg-warn/5 px-2 py-1.5 text-xs leading-snug text-warn">
         <TriangleAlert class="mt-px size-3.5 shrink-0" aria-hidden="true" />
@@ -131,7 +137,7 @@
 
     <div class="mt-3 flex flex-wrap gap-2">
       {#if draft}
-        <button type="button" onclick={() => act('paper', () => client.paper(item.play.id))} disabled={!!busy}
+        <button type="button" onclick={() => act('paper', () => client.paper(item.play.id))} disabled={!!busy || !!scheduleBlock}
           class="spring flex items-center gap-1.5 rounded-sm bg-neon-red px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-app hover:brightness-110 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-40">
           <Play class="size-3.5" aria-hidden="true" />{busy === 'paper' ? strings.detail.paperBusy : strings.detail.paperNow}
         </button>
@@ -160,6 +166,7 @@
         <Trash2 class="size-3.5" aria-hidden="true" /><span class="max-sm:hidden">{strings.detail.delete}</span>
       </button>
     </div>
+    {#if draft && scheduleBlock}<p class="mt-2 text-xs leading-snug text-warn">{scheduleBlock}</p>{/if}
     <p class="mt-1.5 min-h-4 text-xs text-bad" role="alert">{error}</p>
 
     {#if market}

@@ -167,6 +167,7 @@ func (f CryptoRules) draft(s Setup, m Market, b cryptoBracket, qty, feePct float
 	p.Runner = Runner{Qty: runner, Target: b.Runner}
 	p.Failsafes = Failsafes{ExitBy: now.Add(time.Duration(f.HoldHours) * time.Hour).UTC(), SidewaysMinutes: f.SidewaysHours * MINUTES_PER_HR,
 		NoQuoteMinutes: t.NoQuoteMinutes, GapPct: t.GapPct, Calamity: t.Calamity}
+	p = immediateSchedule(p, now)
 	line := func(kind, stance, label string, value float64) Evidence {
 		return Evidence{Kind: kind, Label: label, Value: value, Stance: stance, Source: CRYPTO_SOURCE, Verified: true, At: now.UTC()}
 	}

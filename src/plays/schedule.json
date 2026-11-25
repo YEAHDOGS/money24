@@ -1,0 +1,15 @@
+{
+  "title": "Expected timing",
+  "entry": "Expected entry",
+  "exit": "Expected exit / time stop",
+  "notRecorded": "Not recorded",
+  "local": "Times use this device’s time zone.",
+  "planned": "Planned entries require a manual start when due. Prices and evidence must be checked again.",
+  "immediate": "Immediate strategy entry",
+  "legacy": "This older play has no recorded plan times. Set a schedule before entering.",
+  "future": "Entry is planned for later. Return when due to review and start it.",
+  "expired": "The planned exit has passed. Edit the schedule before entering.",
+  "lead": "Plan a day ahead where possible; new entry times must be at least three hours ahead.",
+  "invalid": "Choose an entry time and an exit time after it.",
+  "tooSoon": "Choose an entry time at least three hours ahead."
+}
